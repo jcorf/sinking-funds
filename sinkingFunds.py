@@ -426,7 +426,7 @@ def run():
             add_db(category,saved,goal,goal_date)
         elif (user == "update"):
             runUpdate()
-        elif (user == "update"):
+        elif (user == "categories"):
             get_categories()
         elif (user == "row delete"):
             category = input("category:")
@@ -440,7 +440,7 @@ def run():
             category = input("category:")
             report(category)
         elif (user == "export"):
-            date = datetime.now().strftime("%Y-%m-%d-%H:%M")
+            date = datetime.now().strftime("%Y-%m-%d-%H-%M")
             export_table_to_csv(f"/reports/{date}-sinkingFunds.csv")
             print_string_to_file(f"/reports/{date}-paycheck-schedule.txt")
         else:
