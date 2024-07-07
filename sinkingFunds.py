@@ -427,7 +427,9 @@ def run():
         elif (user == "update"):
             runUpdate()
         elif (user == "categories"):
-            get_categories()
+            categories = get_categories()
+            for cat in categories:
+                print(cat)
         elif (user == "row delete"):
             category = input("category:")
             delete_row_based_on_category(category)
