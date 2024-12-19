@@ -57,10 +57,6 @@ def remaining_paychecks(start_date, end_date):
         # Move to the next month
         current_date = next_month.replace(day=1)
 
-    # Print the list of paycheck dates
-    #for date in paycheck_dates:
-        #print(date.strftime("%Y-%m-%d"))
-
     return (paychecks, paycheck_dates)
 
 def save_per_paycheck(saved,goal,start_date,end_date, printValues=False):
