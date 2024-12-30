@@ -40,10 +40,15 @@ def saved_by_paycheck(saved, goal, start_date, end_date):
 
     return paycheck_schedule
 
+def remaining_paychecks(start_date, end_date):
+    print("HEYYY", start_date, end_date)
+    num_paychecks_left, paycheck_dates = _remaining_paychecks(stringToDate(start_date),stringToDate(end_date))
+    return num_paychecks_left
+
 def save_per_paycheck(saved, goal, start_date, end_date):
     num_paychecks_left, paycheck_dates = _remaining_paychecks(stringToDate(start_date),stringToDate(end_date))
     to_save = remaining(saved,goal) / num_paychecks_left
     return(round(to_save,3))
 
-save_per_paycheck(100, 200, "2024-12-01","2025-01-01")
-print(saved_by_paycheck(100, 200, "2024-12-01","2025-01-01"))
+#save_per_paycheck(100, 200, "2024-12-01","2025-01-01")
+#print(saved_by_paycheck(100, 200, "2024-12-01","2025-01-01"))

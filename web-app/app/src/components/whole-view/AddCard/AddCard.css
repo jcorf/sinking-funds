@@ -1,0 +1,41 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f2f2f2;
+    margin: 0;
+}
+
+.plus-card {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    padding: 16px;
+    text-align: left;
+    height: 130px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.plus-card:hover {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 0px 8px rgb(0, 140, 255);
+    width: 300px;
+    padding: 16px;
+    text-align: left;
+    transform: scale(1.05, 1.05);
+    animation: jiggle 0.5s infinite linear;
+}
+
+.plus-sign {
+    font-size: 48px;
+    font-weight: bold;
+    color: #6b5b95; /* Purple color */
+    user-select: none; /* Prevent text selection */
+}

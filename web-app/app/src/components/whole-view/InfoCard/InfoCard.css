@@ -1,0 +1,201 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f2f2f2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.card {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    padding: 16px;
+    text-align: left;
+    height: 130px
+}
+
+.card:hover {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 0px 8px rgb(0, 140, 255);
+    width: 300px;
+    padding: 16px;
+    text-align: left;
+    transform: scale(1.05, 1.05);
+    animation: jiggle 0.5s infinite linear;
+}
+
+
+@keyframes jiggle {
+    /* start at 0deg and this scale size.
+       scale size is repeated here to maintain smooth scaling */
+    0% {
+        transform: rotate(0deg) scale(1.05, 1.05);
+    }
+    /* midway rotate 2deg right */
+    50% {
+        transform: rotate(-1deg) scale(1.05, 1.05);
+    }
+
+    /* end rotate -2deg left */
+    100% {
+        transform: rotate(-1deg) scale(1.05, 1.05)
+    }
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+    margin: 8px 0 16px;
+    position: relative;
+}
+
+.progress-bar-inner {
+    width: 52%; /* Adjust this percentage for progress */
+    height: 100%;
+    background-color: #007bff;
+    border-radius: 2px;
+}
+
+
+.card-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 16px;
+    color: #333;
+}
+
+.card-info span {
+    font-weight: bold;
+}
+
+.details {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 16px;
+}
+
+.details span {
+    display: block;
+    justify-content: space-between;
+}
+
+.details-footer {
+    display: flex;
+    justify-content: space-between;
+}
+
+.update-button {
+    display: block;
+    background-color: #007bff;
+    color: #fff;
+    width: 100%;
+    text-align: center;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    text-transform: lowercase;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.update-button-left {
+    margin-right: 5px;
+}
+
+.update-button-right {
+    margin-right: 5px;
+}
+
+.side-by-side {
+    display: flex;
+    justify-content: space-between;
+}
+
+.update-button:hover {
+    background-color: rgba(0, 123, 255, 0.67);
+}
+
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.styled-select {
+    appearance: none; /* Remove default dropdown arrow */
+    -moz-appearance: none; /* Firefox */
+    -webkit-appearance: none; /* Safari and Chrome */
+    background-color: #5e2f89; /* Purple background */
+    text-underline: #5e2f89;
+    color: #fff; /* White text */
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 180px; /* Adjust width to match dropdown size */
+    text-align: center;
+}
+
+.styled-input {
+    color: #000000; /* White text */
+    border: none;
+    border-bottom: #5e2f89 solid 5px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    margin: 0;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: underline;
+    transition: background-color 0.3s;
+    width: 50px; /* Adjust width to match dropdown size */
+    text-align: center;
+}
+
+/* Style the dropdown arrow */
+.styled-select::after {
+    content: '▼'; /* Unicode for down arrow */
+    font-size: 0.8rem;
+    position: absolute;
+    right: 15px;
+    pointer-events: none; /* Prevent click on the arrow */
+}
+
+/* Option styling */
+.styled-select option {
+    font-size: 1rem;
+    padding: 10px;
+    text-decoration: underline; /* Underline the text in options */
+    text-decoration-thickness: 2px; /* Thickness of underline */
+    text-underline-offset: 2px; /* Space between underline and text */
+}
+
+.underlined-text {
+    font-size: 2rem;
+    color: #2d3748; /* Dark gray text */
+    text-decoration: underline;
+    text-decoration-thickness: 2px; /* Thickness of the underline */
+    text-underline-offset: 6px; /* Space between text and underline */
+    text-decoration-color: #d3d3d3; /* Color of the underline */
+}
