@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+*/node_modules
 /.pnp
 .pnp.js
 
@@ -21,3 +21,56 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Db files
+src/paycheck/*.db
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+
+# Cython debug symbols
+cython_debug/
+
+# Virtual Environment
+env/
+venv/
+ENV/
+VENV/
+*.env
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Test coverage
+.coverage
+*.coveragerc
+nosetests.xml
+coverage.xml
+*.hypothesis/
+
+# Logs
+*.log
+
+# Temporary files
+*.swp
+*.bak
+*.tmp
+
+# Python dependency management
+pip-wheel-metadata/
