@@ -5,6 +5,7 @@ import * as emoji from 'node-emoji'
 import TextField from "../TextField/TextField";
 import EmojiPicker from "../EmojiPicker/EmojiPicker";
 import {deleteCategory, getCategoryData, getPaycheckSchedule, updateField} from "../../utils/api";
+import {getRandomEmoji} from "../../utils/lib";
 
 export function InfoPage({startDate}) {
     const {id, categoryName} = useParams(); // Access the route parameter (userId)
@@ -12,7 +13,7 @@ export function InfoPage({startDate}) {
 
     const [categoryData, setCategoryData] = useState([]);
     const [paySchedule, setPaySchedule] = useState([]);
-    const [currentEmoji, setCurrentEmoji] = useState(':heart:');
+    const [currentEmoji, setCurrentEmoji] = useState(getRandomEmoji());
     
     // Refs for TextField components
     const categoryRef = useRef();

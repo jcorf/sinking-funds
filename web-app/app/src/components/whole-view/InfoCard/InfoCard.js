@@ -44,7 +44,7 @@ const InfoCard = ({id, category, saved, goal, toSave, goalDate, icon}) => {
             <span>per paycheck: ${toSave}</span>
             <span>date: {goalDate}</span>
             <div className="side-by-side">
-                <span>in: {remainingPaychecks} paychecks</span>
+                <span>in: {remainingPaychecks} {remainingPaychecks === 1 ? 'paycheck' : 'paychecks'}</span>
                 <span>{progressString}%</span>
             </div>
         </div>

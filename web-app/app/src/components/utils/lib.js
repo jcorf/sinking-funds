@@ -57,3 +57,19 @@ export function getOneYearDate() {
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
+
+export function getRandomEmoji() {
+    const commonEmojis = [
+        ':heart:', ':moneybag:', ':red_car:', ':house:', ':airplane:', ':gift:',
+        ':dog:', ':cat:', ':baby:', ':mortar_board:', ':briefcase:', ':computer:',
+        ':phone:', ':camera:', ':game_die:', ':musical_note:', ':books:', ':palm_tree:',
+        ':umbrella:', ':snowflake:', ':sunny:', ':rainbow:', ':star:', ':sparkles:',
+        ':fire:', ':zap:', ':gem:', ':trophy:', ':medal_sports:', ':crown:',
+        ':rocket:', ':bike:', ':strawberry:', ':man_cook:', ':dizzy:',':herb:',
+        ':wedding:', ':bus:', ':train:', ':taxi:', ':eyeglasses:', ':woman:', ':man:',
+        ':christmas_tree:',':umbrella:', ':rotating_light:', ':tooth:'
+    ];
+    
+    const randomIndex = Math.floor(Math.random() * commonEmojis.length);
+    return commonEmojis[randomIndex];
+}
