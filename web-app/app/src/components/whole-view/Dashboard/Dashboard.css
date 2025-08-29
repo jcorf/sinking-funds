@@ -1,13 +1,14 @@
 .dashboard {
-    background-color: #f2f2f2;
-    min-height: calc(100vh - 60px);
     width: 100vw;
-    padding: 20px;
-    margin-top: 60px;
+    height: calc(100vh - 60px); /* Full viewport height minus navbar height */
+    padding-bottom: 20px;
     box-sizing: border-box;
-    overflow-x: hidden;
+    overflow: visible;
+    position: relative;
+    min-height: auto;
+    scroll-margin-top: 80px;
+    margin-top: 60px; /* Add margin to account for fixed navbar */
 }
-
 .dashboard-header {
     display: flex;
     justify-content: space-between;

@@ -98,14 +98,18 @@ export async function addCategory(category, saved, goal, goalDate, startDate = g
     }
 }
 
-export async function updateAllCategories(startDate= getTodayDate()) {
+export async function updateAllCategories(startDate= getTodayDate(), paySchedule = null) {
     try {
+        const requestBody = paySchedule 
+            ? obj(['start_date', 'pay_schedule'], [startDate, paySchedule])
+            : obj(['start_date'], [startDate]);
+            
         const response = await fetch(url('/recalculate_all'), {
             method: "POST",  // HTTP method
             headers: {
                 "Content-Type": "application/json",  // Indicate that the body is JSON
             },
-            body: JSON.stringify(obj(['start_date'], [startDate])),  // Convert the data object to a JSON string
+            body: JSON.stringify(requestBody),  // Convert the data object to a JSON string
         });
 
         if (!response.ok) {

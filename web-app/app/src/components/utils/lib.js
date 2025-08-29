@@ -73,3 +73,43 @@ export function getRandomEmoji() {
     const randomIndex = Math.floor(Math.random() * commonEmojis.length);
     return commonEmojis[randomIndex];
 }
+
+export function getNextPaycheckDate(currentDate = new Date()) {
+    const today = new Date(currentDate);
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    let nextPaycheckDate;
+    
+    // If today is before the 15th, next paycheck is the 15th
+    if (currentDay < 15) {
+        nextPaycheckDate = new Date(currentYear, currentMonth, 15);
+    }
+    // If today is on or after the 15th but before the last day, next paycheck is the last day
+    else {
+        // Get the last day of the current month
+        const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        nextPaycheckDate = new Date(currentYear, currentMonth, lastDayOfMonth);
+        
+        // If today is already past the last day, move to next month's 15th
+        if (currentDay >= lastDayOfMonth) {
+            nextPaycheckDate = new Date(currentYear, currentMonth + 1, 15);
+        }
+    }
+    
+    // Adjust for weekends (move to previous Friday)
+    const dayOfWeek = nextPaycheckDate.getDay();
+    if (dayOfWeek === 0) { // Sunday
+        nextPaycheckDate.setDate(nextPaycheckDate.getDate() - 2);
+    } else if (dayOfWeek === 6) { // Saturday
+        nextPaycheckDate.setDate(nextPaycheckDate.getDate() - 1);
+    }
+    
+    // Format as YYYY-MM-DD
+    const year = nextPaycheckDate.getFullYear();
+    const month = String(nextPaycheckDate.getMonth() + 1).padStart(2, '0');
+    const day = String(nextPaycheckDate.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}

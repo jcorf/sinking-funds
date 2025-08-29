@@ -22,7 +22,7 @@ import Infocard from "../InfoCard/InfoCard"
 import AddCard from "../AddCard/AddCard"
 import {getAllData, updateCardOrder} from "../../utils/api";
 
-function SortableItem({card}) {
+function SortableItem({card, updateGridCards}) {
   const {
     attributes,
     listeners,
@@ -52,6 +52,7 @@ function SortableItem({card}) {
         goal={card.goal} 
         toSave={card.calculated_to_save} 
         goalDate={card.goal_date}
+        updateGridCards={updateGridCards}
       />
     </div>
   );
@@ -121,7 +122,7 @@ const Grid = () => {
               <SortableContext items={cards.map(card => card.id)} strategy={rectSortingStrategy}>
                 <div className="grid-container">
                     {cards.map((card) => (
-                        <SortableItem key={card.id} card={card} />
+                        <SortableItem key={card.id} card={card} updateGridCards={updateGridCards}/>
                     ))}
                     <div className="grid-item add-card-item">
                         <AddCard updateGridCards={updateGridCards}/>
