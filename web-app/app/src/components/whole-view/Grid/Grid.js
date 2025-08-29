@@ -20,7 +20,7 @@ import {CSS} from '@dnd-kit/utilities';
 import './Grid.css';
 import Infocard from "../InfoCard/InfoCard"
 import AddCard from "../AddCard/AddCard"
-import {getAllData} from "../../utils/api";
+import {getAllData, updateCardOrder} from "../../utils/api";
 
 function SortableItem({card}) {
   const {
@@ -100,7 +100,13 @@ const Grid = () => {
           const oldIndex = items.findIndex(item => item.id === active.id);
           const newIndex = items.findIndex(item => item.id === over.id);
 
-          return arrayMove(items, oldIndex, newIndex);
+          const reorderedItems = arrayMove(items, oldIndex, newIndex);
+          
+          // Update the order in the database
+          const cardOrders = reorderedItems.map(item => item.id);
+          updateCardOrder(cardOrders);
+          
+          return reorderedItems;
         });
       }
     }

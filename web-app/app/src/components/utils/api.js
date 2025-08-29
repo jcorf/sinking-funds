@@ -117,3 +117,26 @@ export async function updateAllCategories(startDate= getTodayDate()) {
         console.error("Error:", error);  // Handle any errors
     }
 }
+
+export async function updateCardOrder(cardOrders) {
+    try {
+        const response = await fetch(url('/update_card_order'), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ card_orders: cardOrders }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("Order update success:", result);
+        return result;
+    } catch (error) {
+        console.error("Error updating card order:", error);
+        return false;
+    }
+}

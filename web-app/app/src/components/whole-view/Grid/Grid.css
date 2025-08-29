@@ -24,7 +24,6 @@
     cursor: grab;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     user-select: none; /* Prevent text selection during drag */
-
 }
 
 .grid-item:active {
@@ -49,14 +48,15 @@
 }
 
 .grid {
-    width: 100%;
-    padding-bottom: 20px; /* Add some bottom padding */
+    width: 100vw;
+    height: calc(100vh - 60px); /* Full viewport height minus navbar height */
+    padding-bottom: 20px;
     box-sizing: border-box;
     overflow: visible;
     position: relative;
-    height: auto;
     min-height: auto;
-    scroll-margin-top: 80px; /* Ensure top content is visible when scrolling */
+    scroll-margin-top: 80px;
+    margin-top: 60px; /* Add margin to account for fixed navbar */
 }
 
 /* Responsive design for smaller screens */

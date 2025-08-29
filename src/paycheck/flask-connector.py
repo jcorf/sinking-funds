@@ -8,7 +8,7 @@ cors = CORS(app) # allow CORS for all domains on all routes.
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 from database import (update_field, setup_database, delete_database,
-                      add_db, get_category_info, delete_row_based_on_category, get_all_data, get_categories
+                      add_db, get_category_info, delete_row_based_on_category, get_all_data, get_categories, update_card_order
                      )
 from paycheck import saved_by_paycheck, save_per_paycheck
 from utils.utils import nowString
@@ -164,6 +164,13 @@ def add_mock_data_route():
         add_db(category, saved, goal, "2025-01-01", calculated_to_save)
 
     return jsonify({"Added Data": "True"})
+
+@app.route('/update_card_order', methods=['POST'])
+@cross_origin()
+def update_card_order_route():
+    card_orders = request.get_json().get('card_orders', [])
+    result = update_card_order(card_orders)
+    return jsonify({"success": result})
 
 # @app.route('/updatePaycheckFrequency, methods=["POST"])
 

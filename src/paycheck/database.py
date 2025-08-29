@@ -13,6 +13,7 @@ def setup_database():
         goal_date DATE NOT NULL,
         calculated_to_save REAL NOT NULL,
         emoji TEXT DEFAULT ':heart:',
+        display_order INTEGER DEFAULT 0,
         last_updated DATE NOT NULL
     )
     ''')
@@ -33,9 +34,14 @@ def delete_db():
 
 def add_savings_category(category, saved, goal, goal_date, calculated_to_save, emoji=':heart:'):
     try:
-        query = f"""INSERT INTO savings (category, saved, goal, goal_date, calculated_to_save, emoji, last_updated)
-                               VALUES (?, ?, ?, ?, ?, ?, ?)"""
-        execute_query(query, category, saved, goal, goal_date, calculated_to_save, emoji, nowString())
+        # Get the next order number
+        max_order_query = "SELECT COALESCE(MAX(display_order), -1) FROM savings"
+        max_order_result = select_query(max_order_query)
+        next_order = max_order_result[0][0] + 1 if max_order_result else 0
+        
+        query = f"""INSERT INTO savings (category, saved, goal, goal_date, calculated_to_save, emoji, display_order, last_updated)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+        execute_query(query, category, saved, goal, goal_date, calculated_to_save, emoji, next_order, nowString())
         print(f"ADDED {category} to database")
         return True
     except Exception as e:
@@ -48,9 +54,9 @@ def add_db(category, saved, goal, goal_date, to_save, emoji=':heart:'):
 
 
 def get_all_data():
-    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji FROM savings"
+    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order FROM savings ORDER BY display_order"
     rows = select_query(query)
-    cols = ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji"]
+    cols = ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order"]
     return [listToDict(row, cols) for row in rows]
 
 
@@ -96,9 +102,9 @@ def update_field(field_to_change, new_value, filter_value, field_filter="categor
 
 # Get the category information, based on the category name or the id value (must be specified)
 def get_category_info(value, field="category"):
-    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji FROM savings WHERE {field} = '{value}' LIMIT 1"
+    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order FROM savings WHERE {field} = '{value}' LIMIT 1"
     row = select_query(query)
-    return listToDict(row[0], ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji"])
+    return listToDict(row[0], ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order"])
 
 
 # validate ID or category
@@ -112,6 +118,19 @@ def validate_primary_key(key):
         print(categories)
         print(key)
         return value in categories
+
+
+def update_card_order(card_orders):
+    """Update the display order for multiple cards"""
+    try:
+        for order, card_id in enumerate(card_orders):
+            query = f"UPDATE savings SET display_order = {order} WHERE id = {card_id}"
+            execute_query(query)
+        print(f"UPDATED card order for {len(card_orders)} cards")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
 
 
 # TESTS
