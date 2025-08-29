@@ -1,5 +1,5 @@
 import "./InfoPage.css"
-import {useEffect, useState} from "react";
+import {useEffect, useState, useRef} from "react";
 import {useNavigate, useParams} from 'react-router-dom';
 import * as emoji from 'node-emoji'
 import TextField from "../TextField/TextField";
@@ -11,6 +11,12 @@ export function InfoPage({startDate}) {
 
     const [categoryData, setCategoryData] = useState([]);
     const [paySchedule, setPaySchedule] = useState([]);
+    
+    // Refs for TextField components
+    const categoryRef = useRef();
+    const savedRef = useRef();
+    const goalRef = useRef();
+    const goalDateRef = useRef();
 
     useEffect(() => {
         async function getData() {
@@ -49,8 +55,28 @@ export function InfoPage({startDate}) {
         goToSinkingFunds()
     };
 
-    const handleUpdate = () => {
-        goToSinkingFunds()
+    const handleUpdate = async () => {
+        // Save all modified fields using the refs
+        let hasChanges = false;
+        
+        // Call save on each TextField component
+        if (categoryRef.current) {
+            hasChanges = categoryRef.current.save() || hasChanges;
+        }
+        if (savedRef.current) {
+            hasChanges = savedRef.current.save() || hasChanges;
+        }
+        if (goalRef.current) {
+            hasChanges = goalRef.current.save() || hasChanges;
+        }
+        if (goalDateRef.current) {
+            hasChanges = goalDateRef.current.save() || hasChanges;
+        }
+        
+        // Wait a moment for the save operations to complete
+        setTimeout(() => {
+            goToSinkingFunds();
+        }, 200);
     };
 
 
@@ -61,7 +87,7 @@ export function InfoPage({startDate}) {
             </div>
             <div className="container">
                 <div className="header">
-                    <div className="title"><TextField value={categoryName} fieldName="category"/></div>
+                    <div className="title"><TextField ref={categoryRef} value={categoryName} fieldName="category"/></div>
                     <div className="icon">{emoji.get(iconString)}</div>
                 </div>
                 <div className="progress-bar">
@@ -69,13 +95,13 @@ export function InfoPage({startDate}) {
                 </div>
                 <div className="content">
                     <div className="info">
-                        <div className="info-box"><div className="description">saved: $</div><TextField value={categoryData['saved']}
+                        <div className="info-box"><div className="description">saved: $</div><TextField ref={savedRef} value={categoryData['saved']}
                                                                      fieldName='saved' categoryName={categoryName}/></div>
-                        <div className="info-box"><div className="description">goal: $</div><TextField value={categoryData['goal']}
+                        <div className="info-box"><div className="description">goal: $</div><TextField ref={goalRef} value={categoryData['goal']}
                                                                     fieldName='goal'
                                                                     categoryName={categoryName}
                         /></div>
-                        <div className="info-box"><div className="description">by:&nbsp;</div><TextField value={categoryData['goal_date']}
+                        <div className="info-box"><div className="description">by:&nbsp;</div><TextField ref={goalDateRef} value={categoryData['goal_date']}
                                                                       fieldName='goal_date'  categoryName={categoryName}/></div>
                         <div>to save: ${categoryData['calculated_to_save']}</div>
                     </div>

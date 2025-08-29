@@ -1,8 +1,8 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useState, useImperativeHandle, forwardRef} from "react";
 import {updateField} from "../../utils/api";
 import {useNavigate, useParams} from "react-router-dom";
 
-function TextField({value, fieldName, categoryName, startDate}) {
+const TextField = forwardRef(({value, fieldName, categoryName, startDate}, ref) => {
 
     const {id, categoryName2} = useParams();
     const [oldValue, setOldValue] = useState({value});
@@ -13,6 +13,25 @@ function TextField({value, fieldName, categoryName, startDate}) {
     const [field, setField] = useState(fieldName);
     const [editingField, setEditingField] = useState(null);
     const navigate = useNavigate();
+    
+    // Expose save method to parent component
+    useImperativeHandle(ref, () => ({
+        save: () => {
+            if (text.value !== oldValue) {
+                setOldValue(text.value);
+                setEditingField(null); // Exit editing mode
+                if (field !== "category") {
+                    updateField(field, text.value, categoryName, startDate);
+                }
+                else {
+                    updateField(field, text.value, id, "id", startDate);
+                }
+                return true; // Indicate that a save occurred
+            }
+            return false; // No save needed
+        }
+    }));
+    
     useEffect(() => {
         if (value !== undefined) {
             setOldValue(value);
@@ -83,6 +102,6 @@ function TextField({value, fieldName, categoryName, startDate}) {
                         <span onClick={() => handleEdit(field)}>{text[field]}</span>)}
                 </div>))}
         </div>);
-}
+});
 
 export default TextField;
