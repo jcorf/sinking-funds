@@ -75,15 +75,15 @@ export async function deleteCategory(onValue, onField = 'category') {
     }
 }
 
-export async function addCategory(category, saved, goal, goalDate, startDate = getTodayDate()) {
+export async function addCategory(category, saved, goal, goalDate, startDate = getTodayDate(), emoji = ':heart:') {
     try {
         const response = await fetch(url('/add_category'), {
             method: "POST",  // HTTP method
             headers: {
                 "Content-Type": "application/json",  // Indicate that the body is JSON
             },
-            body: JSON.stringify(obj(['category', 'saved', 'goal', 'goal_date', 'start_date'],
-                [category, saved, goal, goalDate, startDate])),
+            body: JSON.stringify(obj(['category', 'saved', 'goal', 'goal_date', 'start_date', 'emoji'],
+                [category, saved, goal, goalDate, startDate, emoji])),
         });
 
         if (!response.ok) {

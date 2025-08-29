@@ -1,5 +1,6 @@
 from utils.database_utils import *
 from utils.utils import nowString, listToDict
+import random
 
 
 def setup_database():
@@ -11,6 +12,7 @@ def setup_database():
         goal REAL NOT NULL,
         goal_date DATE NOT NULL,
         calculated_to_save REAL NOT NULL,
+        emoji TEXT DEFAULT ':heart:',
         last_updated DATE NOT NULL
     )
     ''')
@@ -29,11 +31,11 @@ def delete_db():
         return False
 
 
-def add_savings_category(category, saved, goal, goal_date, calculated_to_save):
+def add_savings_category(category, saved, goal, goal_date, calculated_to_save, emoji=':heart:'):
     try:
-        query = f"""INSERT INTO savings (category, saved, goal, goal_date, calculated_to_save, last_updated)
-                               VALUES (?, ?, ?, ?, ?, ?)"""
-        execute_query(query, category, saved, goal, goal_date, calculated_to_save, nowString())
+        query = f"""INSERT INTO savings (category, saved, goal, goal_date, calculated_to_save, emoji, last_updated)
+                               VALUES (?, ?, ?, ?, ?, ?, ?)"""
+        execute_query(query, category, saved, goal, goal_date, calculated_to_save, emoji, nowString())
         print(f"ADDED {category} to database")
         return True
     except Exception as e:
@@ -41,14 +43,14 @@ def add_savings_category(category, saved, goal, goal_date, calculated_to_save):
         return False
 
 
-def add_db(category, saved, goal, goal_date, to_save):
-    return add_savings_category(category, saved, goal, goal_date, to_save)
+def add_db(category, saved, goal, goal_date, to_save, emoji=':heart:'):
+    return add_savings_category(category, saved, goal, goal_date, to_save, emoji)
 
 
 def get_all_data():
-    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save FROM savings"
+    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji FROM savings"
     rows = select_query(query)
-    cols = ["id", "category", "saved", "goal", "goal_date", "calculated_to_save"]
+    cols = ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji"]
     return [listToDict(row, cols) for row in rows]
 
 
@@ -94,9 +96,9 @@ def update_field(field_to_change, new_value, filter_value, field_filter="categor
 
 # Get the category information, based on the category name or the id value (must be specified)
 def get_category_info(value, field="category"):
-    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save FROM savings WHERE {field} = '{value}' LIMIT 1"
+    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji FROM savings WHERE {field} = '{value}' LIMIT 1"
     row = select_query(query)
-    return listToDict(row[0], ["id", "category", "saved", "goal", "goal_date", "calculated_to_save"])
+    return listToDict(row[0], ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji"])
 
 
 # validate ID or category
@@ -113,7 +115,7 @@ def validate_primary_key(key):
 
 
 # TESTS
-if False:
+if True:
     print("----------------")
     delete_db()
     setup_database()
@@ -154,4 +156,7 @@ if False:
     print(validate_primary_key(3))
     print(validate_primary_key("emergency fund"))
 
-    delete_db()
+    print(get_all_data())
+
+    #delete_db()
+

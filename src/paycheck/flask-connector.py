@@ -101,9 +101,10 @@ def update_to_save_all_route():
 @app.route('/add_category', methods=['POST', 'PUT'])
 def add_category_route():
     category, saved, goal, goal_date = get_args(['category', 'saved', 'goal', 'goal_date'], request.get_json())
+    emoji = request.get_json().get('emoji', ':heart:')  # Default to heart emoji if not provided
     start_date = get_start_date_args(request.get_json())
     to_save = save_per_paycheck(float(saved), float(goal), start_date, goal_date, "bimonthly")
-    result = add_db(category, float(saved), float(goal), goal_date, to_save)
+    result = add_db(category, float(saved), float(goal), goal_date, to_save, emoji)
     return jsonify(result)
 
 

@@ -74,3 +74,5 @@ coverage.xml
 
 # Python dependency management
 pip-wheel-metadata/
+
+web-app/app/node_modules/*

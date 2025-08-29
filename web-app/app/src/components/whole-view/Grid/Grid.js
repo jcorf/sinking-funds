@@ -48,7 +48,7 @@ function SortableItem({card}) {
         id={card.id} 
         category={card.category} 
         saved={card.saved} 
-        icon={card.icon}
+        icon={card.icon || card.emoji}
         goal={card.goal} 
         toSave={card.calculated_to_save} 
         goalDate={card.goal_date}
@@ -61,7 +61,11 @@ const Grid = () => {
     const [cards, setCards] = useState([]);
 
     const sensors = useSensors(
-      useSensor(PointerSensor),
+      useSensor(PointerSensor, {
+        activationConstraint: {
+          distance: 8, // Only activate drag after moving 8px
+        },
+      }),
       useSensor(KeyboardSensor, {
         coordinateGetter: sortableKeyboardCoordinates,
       })

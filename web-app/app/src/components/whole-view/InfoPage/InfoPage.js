@@ -3,6 +3,7 @@ import {useEffect, useState, useRef} from "react";
 import {useNavigate, useParams} from 'react-router-dom';
 import * as emoji from 'node-emoji'
 import TextField from "../TextField/TextField";
+import EmojiPicker from "../EmojiPicker/EmojiPicker";
 import {deleteCategory, getCategoryData, getPaycheckSchedule, updateField} from "../../utils/api";
 
 export function InfoPage({startDate}) {
@@ -11,6 +12,7 @@ export function InfoPage({startDate}) {
 
     const [categoryData, setCategoryData] = useState([]);
     const [paySchedule, setPaySchedule] = useState([]);
+    const [currentEmoji, setCurrentEmoji] = useState(':heart:');
     
     // Refs for TextField components
     const categoryRef = useRef();
@@ -24,16 +26,24 @@ export function InfoPage({startDate}) {
             const paycheckSchedule = await getPaycheckSchedule(categoryName, startDate);
             setCategoryData(catData)
             setPaySchedule(paycheckSchedule)
+            
+            // Set the emoji from the database if it exists
+            if (catData.emoji) {
+                setCurrentEmoji(catData.emoji);
+            }
         }
         getData();
-    }, []);
-
+    }, [categoryName, startDate]);
 
     const goToSinkingFunds = () => {
         navigate('/sinking-funds');
     };
 
-    let iconString = ":heart:".toString()
+    const handleEmojiSelect = async (emojiCode) => {
+        setCurrentEmoji(emojiCode);
+        // Update the emoji in the database
+        await updateField("emoji", emojiCode, id, "id", startDate);
+    };
 
     const handleDelete = () => {
         deleteCategory(id, 'id')
@@ -79,7 +89,6 @@ export function InfoPage({startDate}) {
         }, 200);
     };
 
-
     return (
         <div className="side-by-side">
             <div className="side-by-side-left" onClick={goToSinkingFunds}>
@@ -88,7 +97,12 @@ export function InfoPage({startDate}) {
             <div className="container">
                 <div className="header">
                     <div className="title"><TextField ref={categoryRef} value={categoryName} fieldName="category"/></div>
-                    <div className="icon">{emoji.get(iconString)}</div>
+                    <div className="icon">
+                        <EmojiPicker 
+                            onEmojiSelect={handleEmojiSelect}
+                            currentEmoji={currentEmoji}
+                        />
+                    </div>
                 </div>
                 <div className="progress-bar">
                     <div className="progress-bar-inner"></div>

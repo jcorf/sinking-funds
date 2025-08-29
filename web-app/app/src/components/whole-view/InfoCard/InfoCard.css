@@ -53,7 +53,17 @@ body {
     margin-bottom: 8px;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+}
 
+.card-title span:last-child {
+    font-size: 20px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
 }
 
 .progress-bar {
@@ -95,6 +105,29 @@ body {
     display: block;
     justify-content: space-between;
 }
+
+.next-paycheck {
+    font-size: 14px;
+    color: #000000;
+    font-weight: bold;
+    margin-top: 8px;
+    padding: 4px 8px;
+    background-color: rgba(59, 99, 142, 0.1);
+    border-radius: 4px;
+    text-align: center;
+}
+
+.next-paycheck {
+    font-size: 14px;
+    color: #007bff;
+    font-weight: bold;
+    margin-top: 8px;
+    padding: 4px 8px;
+    background-color: rgba(59, 99, 142, 0.1);
+    border-radius: 4px;
+    text-align: center;
+}
+
 
 .details-footer {
     display: flex;
