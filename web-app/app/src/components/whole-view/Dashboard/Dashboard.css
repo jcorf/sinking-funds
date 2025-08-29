@@ -1,0 +1,380 @@
+.dashboard {
+    background-color: #f2f2f2;
+    min-height: calc(100vh - 60px);
+    width: 100vw;
+    padding: 20px;
+    margin-top: 60px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 20px;
+}
+
+.dashboard-title {
+    color: #333;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.refresh-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.refresh-button:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.refresh-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto 32px auto;
+    padding: 0 20px;
+}
+
+.dashboard-card {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    text-align: center;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+}
+
+.dashboard-card:hover {
+    transform: scale(1.05, 1.05);
+    box-shadow: 0 0px 8px rgb(0, 140, 255);
+    z-index: 2;
+}
+
+.card-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.card-content h3 {
+    color: #333;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+}
+
+.card-value {
+    color: #333;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+}
+
+/* Pie Chart Tooltip Styles */
+.pie-chart-tooltip {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    z-index: 99999;
+    min-width: 300px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+/* Tooltip positioned above the card */
+.tooltip-above {
+    bottom: 100%;
+    margin-bottom: 10px;
+    z-index: 99999;
+}
+
+/* Tooltip positioned below the card */
+.tooltip-below {
+    top: 100%;
+    margin-top: 10px;
+    z-index: 99999;
+}
+
+.dashboard-card:hover .pie-chart-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.pie-chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.pie-chart {
+    border-radius: 50%;
+}
+
+.pie-chart-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 120px;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.legend-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.legend-label {
+    color: #333;
+    font-weight: 500;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.legend-percentage {
+    color: #666;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.progress-section {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.progress-section h3 {
+    color: #333;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0 0 16px 0;
+    text-align: center;
+}
+
+.progress-bar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #007bff;
+    border-radius: 2px;
+    transition: width 0.8s ease;
+}
+
+.progress-text {
+    color: #777;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.dashboard-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #777;
+    font-size: 16px;
+    background-color: #f2f2f2;
+    margin-top: 60px;
+    width: 100vw;
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e0e0e0;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 12px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .dashboard {
+        padding: 16px;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: center;
+        padding: 0 16px;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        padding: 0 16px;
+    }
+    
+    .dashboard-title {
+        font-size: 22px;
+    }
+    
+    .card-value {
+        font-size: 20px;
+    }
+    
+    .dashboard-card {
+        height: 180px;
+        padding: 16px;
+    }
+    
+    .progress-section {
+        margin: 0 16px;
+    }
+    
+    .pie-chart-tooltip {
+        min-width: 250px;
+        left: 0;
+        transform: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        padding: 0 16px;
+    }
+    
+    .dashboard-title {
+        font-size: 20px;
+    }
+    
+    .dashboard-card {
+        height: 160px;
+        padding: 12px;
+    }
+    
+    .progress-section {
+        margin: 0 16px;
+    }
+    
+    .pie-chart-tooltip {
+        min-width: 200px;
+    }
+}
+
+/* Bullet List Tooltip Styles */
+.bullet-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.bullet-list-title {
+    color: #333;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.bullet-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.bullet-list-item {
+    color: #333;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.bullet-list-empty {
+    color: #666;
+    font-size: 13px;
+    font-style: italic;
+    text-align: center;
+    padding: 8px 0;
+}
