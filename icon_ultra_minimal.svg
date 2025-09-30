@@ -1,0 +1,20 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#ffffff"/>
+  
+  <!-- Main piggy bank -->
+  <rect x="160" y="200" width="192" height="160" rx="24" fill="#007bff"/>
+  
+  <!-- Coin slot -->
+  <rect x="240" y="180" width="32" height="16" fill="#0056b3" rx="8"/>
+  
+  <!-- Three coins -->
+  <circle cx="200" cy="280" r="20" fill="#ffd700"/>
+  <circle cx="256" cy="260" r="16" fill="#ffd700"/>
+  <circle cx="312" cy="300" r="14" fill="#ffd700"/>
+  
+  <!-- Progress bar -->
+  <rect x="140" y="380" width="232" height="16" fill="#e9ecef" rx="8"/>
+  <rect x="140" y="380" width="174" height="16" fill="#28a745" rx="8"/>
+</svg>
+

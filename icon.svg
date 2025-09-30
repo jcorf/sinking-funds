@@ -1,0 +1,33 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#007bff" opacity="0.1"/>
+  
+  <!-- Main piggy bank shape -->
+  <path d="M 180 320 L 180 280 C 180 260 200 240 220 240 L 292 240 C 312 240 332 260 332 280 L 332 320 Z" 
+        fill="#007bff" stroke="#0056b3" stroke-width="4"/>
+  
+  <!-- Piggy bank top -->
+  <ellipse cx="256" cy="240" rx="56" ry="20" fill="#007bff" stroke="#0056b3" stroke-width="4"/>
+  
+  <!-- Coin slot -->
+  <rect x="248" y="220" width="16" height="8" fill="#0056b3" rx="2"/>
+  
+  <!-- Coins -->
+  <circle cx="200" cy="300" r="12" fill="#ffd700" stroke="#ffb300" stroke-width="2"/>
+  <circle cx="220" cy="290" r="10" fill="#ffd700" stroke="#ffb300" stroke-width="2"/>
+  <circle cx="240" cy="310" r="8" fill="#ffd700" stroke="#ffb300" stroke-width="2"/>
+  
+  <!-- Progress bar -->
+  <rect x="160" y="340" width="192" height="8" fill="#e0e0e0" rx="4"/>
+  <rect x="160" y="340" width="144" height="8" fill="#007bff" rx="4"/>
+  
+  <!-- Percentage text -->
+  <text x="256" y="370" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#333">75%</text>
+  
+  <!-- Minimalist dots for decoration -->
+  <circle cx="120" cy="200" r="4" fill="#007bff" opacity="0.3"/>
+  <circle cx="392" cy="200" r="4" fill="#007bff" opacity="0.3"/>
+  <circle cx="120" cy="400" r="4" fill="#007bff" opacity="0.3"/>
+  <circle cx="392" cy="400" r="4" fill="#007bff" opacity="0.3"/>
+</svg>
+

@@ -134,7 +134,7 @@ def update_card_order(card_orders):
 
 
 # TESTS
-if True:
+if False:
     print("----------------")
     delete_db()
     setup_database()

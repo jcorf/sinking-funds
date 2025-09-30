@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#ffffff"/>
+  
+  <!-- Main container -->
+  <rect x="128" y="128" width="256" height="256" rx="32" fill="#f8f9fa" stroke="#007bff" stroke-width="8"/>
+  
+  <!-- Piggy bank (simplified) -->
+  <rect x="176" y="200" width="160" height="120" rx="20" fill="#007bff" opacity="0.9"/>
+  
+  <!-- Coin slot -->
+  <rect x="240" y="180" width="32" height="12" fill="#0056b3" rx="6"/>
+  
+  <!-- Coins (minimalist) -->
+  <circle cx="200" cy="260" r="16" fill="#ffd700"/>
+  <circle cx="240" cy="250" r="12" fill="#ffd700"/>
+  <circle cx="280" cy="270" r="10" fill="#ffd700"/>
+  
+  <!-- Progress indicator -->
+  <rect x="160" y="360" width="192" height="12" fill="#e9ecef" rx="6"/>
+  <rect x="160" y="360" width="144" height="12" fill="#007bff" rx="6"/>
+  
+  <!-- Percentage -->
+  <text x="256" y="395" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="600" text-anchor="middle" fill="#495057">75%</text>
+</svg>
+

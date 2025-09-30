@@ -1,1 +1,1 @@
-DATABASE_NAME = 'sinkingFundsTest.db'
+DATABASE_NAME = 'sinkingFunds.db'
