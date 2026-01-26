@@ -38,11 +38,13 @@ const SourcePillSelector = ({ value, onChange }) => {
   const pillOptions = [
     { label: 'venmo', value: 'venmo', color: '#007bff' }, // Blue
     { label: 'future', value: 'future', color: '#28a745' }, // Green
+    { label: 'actual', value: 'actual', color: '#5f1a52' }, // Green
     { label: 'other', value: 'other', color: '#6c757d' } // Gray for other button
   ];
 
   const getPillColor = (source) => {
     if (source === 'venmo') return '#007bff';
+    if (source === 'actual') return '#5f1a52';
     if (source === 'future') return '#28a745';
     return '#fd7e14'; // Orange for custom sources
   };
@@ -89,7 +91,7 @@ const SourcePillSelector = ({ value, onChange }) => {
             {pill.label}
           </button>
         ))}
-        {value && value !== 'venmo' && value !== 'future' && (
+        {value && value !== 'venmo' && value !== 'future' && value !== 'actual' && (
           <span
             className="source-pill custom-pill"
             style={{
@@ -146,7 +148,6 @@ const SourcePillSelector = ({ value, onChange }) => {
 // Sortable Credit Card Row Component
 function SortableCreditCardRow({ card, removeCreditCard, updateCardBalance, formatCurrency, parseSubBalances, coveredDropdownCard, setCoveredDropdownCard, pendingDropdownCard, setPendingDropdownCard, updateCoveredSubBalances, updatePendingSubBalances, CoveredSubBalancesDropdown, PendingSubBalancesDropdown }) {
   const [localPosted, setLocalPosted] = useState(card.posted_transactions.toString());
-  const [localPending, setLocalPending] = useState(card.pending_transactions.toString());
 
   const {
     attributes,
@@ -165,12 +166,8 @@ function SortableCreditCardRow({ card, removeCreditCard, updateCardBalance, form
 
   // Update local state when card data changes
   useEffect(() => {
-    setLocalPosted(card.posted_transactions.toString());
+    setLocalPosted(parseFloat(card.posted_transactions).toFixed(2));
   }, [card.posted_transactions]);
-
-  useEffect(() => {
-    setLocalPending(card.pending_transactions.toString());
-  }, [card.pending_transactions]);
 
   return (
     <div
@@ -221,7 +218,7 @@ function SortableCreditCardRow({ card, removeCreditCard, updateCardBalance, form
           <input
             type="text"
             inputMode="decimal"
-            value={localPending}
+            value={parseFloat(card.pending_transactions).toFixed(2)}
             readOnly
           />
           {pendingDropdownCard === card.id && (
@@ -244,7 +241,7 @@ function SortableCreditCardRow({ card, removeCreditCard, updateCardBalance, form
           <input
             type="number"
             step="0.01"
-            value={card.covered_transactions}
+            value={parseFloat(card.covered_transactions).toFixed(2)}
             readOnly
           />
           {coveredDropdownCard === card.id && (
@@ -296,19 +293,33 @@ const CreditCards = () => {
 
   const fetchCreditCards = async () => {
     try {
+      console.log('DEBUG: fetchCreditCards called');
       const response = await fetch('http://127.0.0.1:5000/get_credit_cards');
       const data = await response.json();
-      setCreditCards(data.data || []);
+      console.log('DEBUG: fetchCreditCards received data:', data);
+      console.log('DEBUG: fetchCreditCards data.data:', data.data);
+
+      const cardsData = data.data || [];
+      console.log('DEBUG: Setting credit cards state with:', cardsData.length, 'cards');
+
+      // Log each card's data
+      cardsData.forEach((card, index) => {
+        console.log(`DEBUG: Card ${index}: ${card.card_name} - posted: ${card.posted_transactions}, pending: ${card.pending_transactions}, covered: ${card.covered_transactions}`);
+      });
+
+      setCreditCards(cardsData);
 
       // Calculate total debt
       let debt = 0;
-      data.data.forEach(card => {
+      cardsData.forEach(card => {
         debt += card.total_balance;
       });
+      console.log('DEBUG: Total debt calculated:', debt);
       setTotalDebt(debt);
       updateTotalToTransfer(debt);
     } catch (error) {
       console.error('Error fetching credit cards:', error);
+      console.error('Error details:', error);
     }
   };
 
@@ -435,31 +446,46 @@ const CreditCards = () => {
   };
 
   const updateCoveredSubBalances = async (cardName, subBalances) => {
+    console.log('DEBUG: updateCoveredSubBalances called');
+    console.log('DEBUG: cardName =', cardName);
+    console.log('DEBUG: subBalances =', subBalances);
+    console.log('DEBUG: subBalances type =', typeof subBalances);
+    console.log('DEBUG: subBalances length =', subBalances ? subBalances.length : 'undefined');
+
     // Calculate new covered total
     const totalCovered = subBalances.reduce((sum, sub) => sum + (parseFloat(sub.amount) || 0), 0);
+    console.log('DEBUG: totalCovered calculated as:', totalCovered);
 
     // Optimistically update local state
     const card = creditCards.find(c => c.card_name === cardName);
     if (!card) return;
 
+    console.log('DEBUG: Card before update:', card);
     const oldBalance = card.total_balance;
     const newBalance = card.posted_transactions + card.pending_transactions - totalCovered;
 
-    setCreditCards(prevCards => prevCards.map(c =>
-      c.card_name === cardName ? { ...c, covered_transactions: totalCovered, covered_sub_balances: JSON.stringify(subBalances), total_balance: newBalance } : c
-    ));
+    setCreditCards(prevCards => {
+      const updated = prevCards.map(c =>
+        c.card_name === cardName ? { ...c, covered_transactions: totalCovered, covered_sub_balances: JSON.stringify(subBalances), total_balance: newBalance } : c
+      );
+      console.log('DEBUG: Cards after optimistic update:', updated);
+      return updated;
+    });
 
     setTotalDebt(prevDebt => prevDebt - oldBalance + newBalance);
     updateTotalToTransfer(totalDebt - oldBalance + newBalance);
 
     try {
+      console.log('DEBUG: Making API call to update_covered_sub_balances');
       const response = await fetch('http://127.0.0.1:5000/update_covered_sub_balances', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ card_name: cardName, sub_balances: subBalances })
       });
-      await response.json();
+      const result = await response.json();
+      console.log('DEBUG: API response:', result);
       // Fetch to ensure consistency
+      console.log('DEBUG: Calling fetchCreditCards to refresh data');
       fetchCreditCards();
     } catch (error) {
       console.error('Error updating covered sub-balances:', error);
@@ -469,26 +495,55 @@ const CreditCards = () => {
   };
 
   const updatePendingSubBalances = async (cardName, subBalances) => {
+    console.log('DEBUG: updatePendingSubBalances called for', cardName, 'with subBalances:', subBalances);
+
     // Calculate new pending total
     const totalPending = subBalances.reduce((sum, sub) => sum + (parseFloat(sub.amount) || 0), 0);
+    console.log('DEBUG: totalPending calculated as:', totalPending);
 
     // Optimistically update local state
     const card = creditCards.find(c => c.card_name === cardName);
     if (!card) return;
 
+    console.log('DEBUG: Card before update:', card);
     const oldBalance = card.total_balance;
     const newBalance = card.posted_transactions + totalPending - card.covered_transactions;
 
-    setCreditCards(prevCards => prevCards.map(c =>
-      c.card_name === cardName ? { ...c, pending_transactions: totalPending, pending_sub_balances: JSON.stringify(subBalances), total_balance: newBalance } : c
-    ));
+    setCreditCards(prevCards => {
+      const updated = prevCards.map(c =>
+        c.card_name === cardName ? { ...c, pending_transactions: totalPending, pending_sub_balances: JSON.stringify(subBalances), total_balance: newBalance } : c
+      );
+      console.log('DEBUG: Cards after optimistic update:', updated);
+      return updated;
+    });
 
     setTotalDebt(prevDebt => prevDebt - oldBalance + newBalance);
     updateTotalToTransfer(totalDebt - oldBalance + newBalance);
 
-    // For now, just store locally - could be extended to save to DB later
-    console.log('Pending sub-balances updated:', cardName, subBalances, 'Total pending:', totalPending);
-    // TODO: Add database endpoint for pending sub-balances if needed
+    try {
+      console.log('DEBUG: Making API call to update_pending_sub_balances');
+      const response = await fetch('http://127.0.0.1:5000/update_pending_sub_balances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card_name: cardName, sub_balances: subBalances })
+      });
+      const result = await response.json();
+      console.log('DEBUG: Pending API response:', result);
+
+      if (result.success) {
+        console.log('DEBUG: API call successful, calling fetchCreditCards');
+        // Fetch to ensure consistency
+        fetchCreditCards();
+      } else {
+        console.error('DEBUG: API call failed:', result);
+        // Revert on error
+        fetchCreditCards();
+      }
+    } catch (error) {
+      console.error('Error updating pending sub-balances:', error);
+      // Revert on error
+      fetchCreditCards();
+    }
   };
 
   const parseSubBalances = (subBalancesJson) => {
@@ -546,6 +601,9 @@ const CreditCards = () => {
     };
 
     const saveSubBalances = () => {
+      console.log('DEBUG: CoveredSubBalancesDropdown saveSubBalances clicked');
+      console.log('DEBUG: cardName =', cardName);
+      console.log('DEBUG: localSubBalances =', localSubBalances);
       updateCoveredSubBalances(cardName, localSubBalances);
       onClose();
     };
@@ -729,15 +787,15 @@ const CreditCards = () => {
                       <div className="card-inputs-section">
                         <div className="balance-field">
                           <label>Posted</label>
-                          <input type="text" value={activeCard.posted_transactions} readOnly />
+                          <input type="text" value={parseFloat(activeCard.posted_transactions).toFixed(2)} readOnly />
                         </div>
                         <div className="balance-field">
                           <label>Pending</label>
-                          <input type="text" value={activeCard.pending_transactions} readOnly />
+                          <input type="text" value={parseFloat(activeCard.pending_transactions).toFixed(2)} readOnly />
                         </div>
                         <div className="balance-field covered-field">
                           <label>Covered</label>
-                          <input type="number" value={activeCard.covered_transactions} readOnly />
+                          <input type="number" value={parseFloat(activeCard.covered_transactions).toFixed(2)} readOnly />
                         </div>
                       </div>
                       <div className="card-total-section">

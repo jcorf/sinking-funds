@@ -266,7 +266,13 @@ def get_all_credit_cards():
     query = f"SELECT id, card_name, posted_transactions, pending_transactions, covered_transactions, covered_sub_balances, pending_sub_balances, total_balance, payment_tags, display_order FROM credit_cards ORDER BY display_order"
     rows = select_query(query)
     cols = ["id", "card_name", "posted_transactions", "pending_transactions", "covered_transactions", "covered_sub_balances", "pending_sub_balances", "total_balance", "payment_tags", "display_order"]
-    return [listToDict(row, cols) for row in rows]
+    cards = [listToDict(row, cols) for row in rows]
+
+    print("DEBUG: get_all_credit_cards returning:")
+    for card in cards:
+        print(f"  {card['card_name']}: posted={card['posted_transactions']}, pending={card['pending_transactions']}, covered={card['covered_transactions']}")
+
+    return cards
 
 
 def update_credit_card_order(card_orders):
@@ -342,21 +348,59 @@ def update_covered_sub_balances(card_name, sub_balances):
         # Calculate total covered amount from sub-balances
         total_covered = sum(float(balance['amount']) for balance in sub_balances)
 
+        # Get current card data BEFORE update
+        current_card = get_credit_card_info(card_name)
+        if not current_card:
+            print(f"Card {card_name} not found")
+            return False
+
+        print(f"DEBUG: Before update - {card_name}: posted={current_card['posted_transactions']}, pending={current_card['pending_transactions']}, covered={current_card['covered_transactions']}")
+
         # Update both fields
         query = "UPDATE credit_cards SET covered_sub_balances = ?, covered_transactions = ?, last_updated = ? WHERE card_name = ?"
         execute_query(query, json.dumps(sub_balances), total_covered, nowString(), card_name)
 
-        # Recalculate total balance
-        card = get_credit_card_info(card_name)
-        if card:
-            total_balance = card['posted_transactions'] + card['pending_transactions'] - total_covered
-            query = "UPDATE credit_cards SET total_balance = ?, last_updated = ? WHERE card_name = ?"
-            execute_query(query, total_balance, nowString(), card_name)
+        # Recalculate total balance using the preserved current data
+        total_balance = current_card['posted_transactions'] + current_card['pending_transactions'] - total_covered
+        query = "UPDATE credit_cards SET total_balance = ?, last_updated = ? WHERE card_name = ?"
+        execute_query(query, total_balance, nowString(), card_name)
 
+        print(f"DEBUG: After update - {card_name}: total_balance={total_balance}")
         print(f"UPDATED {card_name} covered sub-balances")
         return True
     except Exception as e:
         print("Exception updating covered sub-balances:", e)
+        return False
+
+
+def update_pending_sub_balances(card_name, sub_balances):
+    """Update pending sub-balances and recalculate pending_transactions total"""
+    try:
+        # Calculate total pending amount from sub-balances
+        total_pending = sum(float(balance['amount']) for balance in sub_balances)
+
+        # Get current card data BEFORE update
+        current_card = get_credit_card_info(card_name)
+        if not current_card:
+            print(f"Card {card_name} not found")
+            return False
+
+        print(f"DEBUG: Before update - {card_name}: posted={current_card['posted_transactions']}, pending={current_card['pending_transactions']}, covered={current_card['covered_transactions']}")
+
+        # Update both fields
+        query = "UPDATE credit_cards SET pending_sub_balances = ?, pending_transactions = ?, last_updated = ? WHERE card_name = ?"
+        execute_query(query, json.dumps(sub_balances), total_pending, nowString(), card_name)
+
+        # Recalculate total balance using the preserved current data
+        total_balance = current_card['posted_transactions'] + total_pending - current_card['covered_transactions']
+        query = "UPDATE credit_cards SET total_balance = ?, last_updated = ? WHERE card_name = ?"
+        execute_query(query, total_balance, nowString(), card_name)
+
+        print(f"DEBUG: After update - {card_name}: total_balance={total_balance}")
+        print(f"UPDATED {card_name} pending sub-balances")
+        return True
+    except Exception as e:
+        print("Exception updating pending sub-balances:", e)
         return False
 
 

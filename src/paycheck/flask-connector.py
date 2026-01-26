@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
-cors = CORS(app) # allow CORS for all domains on all routes.
+CORS(app)  # allow CORS for all domains on all routes
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 from database import (update_field, setup_database, delete_database,
@@ -12,13 +12,10 @@ from database import (update_field, setup_database, delete_database,
                       setup_credit_cards_database, add_credit_card, get_all_credit_cards, get_credit_card_info,
                       update_credit_card_balance, delete_credit_card, setup_default_credit_cards,
                       setup_ally_bank_database, get_ally_bank_balance, update_ally_bank_balance,
-                      update_covered_sub_balances, update_credit_card_order, add_display_order_to_credit_cards
+                      update_covered_sub_balances, update_pending_sub_balances, update_credit_card_order, add_display_order_to_credit_cards
                      )
 from paycheck import saved_by_paycheck, save_per_paycheck
 from utils.utils import nowString
-
-app = Flask(__name__)
-CORS(app)
 
 def get_on_args(data=None):
     if data is None:
@@ -265,6 +262,16 @@ def update_covered_sub_balances_route():
     card_name = data.get('card_name')
     sub_balances = data.get('sub_balances', [])
     result = update_covered_sub_balances(card_name, sub_balances)
+    return jsonify(result)
+
+
+@app.route('/update_pending_sub_balances', methods=['POST'])
+@cross_origin()
+def update_pending_sub_balances_route():
+    data = request.get_json()
+    card_name = data.get('card_name')
+    sub_balances = data.get('sub_balances', [])
+    result = update_pending_sub_balances(card_name, sub_balances)
     return jsonify(result)
 
 
