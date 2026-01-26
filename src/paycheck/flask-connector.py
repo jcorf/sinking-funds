@@ -8,7 +8,11 @@ cors = CORS(app) # allow CORS for all domains on all routes.
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 from database import (update_field, setup_database, delete_database,
-                      add_db, get_category_info, delete_row_based_on_category, get_all_data, get_categories, update_card_order
+                      add_db, get_category_info, delete_row_based_on_category, get_all_data, get_categories, update_card_order,
+                      setup_credit_cards_database, add_credit_card, get_all_credit_cards, get_credit_card_info,
+                      update_credit_card_balance, delete_credit_card, setup_default_credit_cards,
+                      setup_ally_bank_database, get_ally_bank_balance, update_ally_bank_balance,
+                      update_covered_sub_balances, update_credit_card_order, add_display_order_to_credit_cards
                      )
 from paycheck import saved_by_paycheck, save_per_paycheck
 from utils.utils import nowString
@@ -171,6 +175,114 @@ def update_card_order_route():
     card_orders = request.get_json().get('card_orders', [])
     result = update_card_order(card_orders)
     return jsonify({"success": result})
+
+
+# CREDIT CARD ROUTES
+
+@app.route('/setup_credit_cards_database', methods=["POST"])
+def setup_credit_cards_database_route():
+    result = setup_credit_cards_database()
+    return jsonify(result)
+
+
+@app.route('/setup_default_credit_cards', methods=['POST'])
+def setup_default_credit_cards_route():
+    result = setup_default_credit_cards()
+    return jsonify(result)
+
+
+@app.route('/get_credit_cards', methods=['GET'])
+def get_credit_cards_route():
+    result = get_all_credit_cards()
+    return jsonify({"data": result})
+
+
+@app.route('/get_credit_card_info', methods=['GET'])
+def get_credit_card_info_route():
+    card_name = request.args.get('card_name')
+    result = get_credit_card_info(card_name)
+    return jsonify(result)
+
+
+@app.route('/add_credit_card', methods=['POST', 'PUT'])
+def add_credit_card_route():
+    data = request.get_json()
+    card_name = data.get('card_name')
+    posted = data.get('posted_transactions', 0)
+    pending = data.get('pending_transactions', 0)
+    covered = data.get('covered_transactions', 0)
+    payment_tags = data.get('payment_tags', '')
+    result = add_credit_card(card_name, posted, pending, covered, payment_tags)
+    return jsonify(result)
+
+
+@app.route('/update_credit_card_balance', methods=['POST'])
+@cross_origin()
+def update_credit_card_balance_route():
+    data = request.get_json()
+    card_name = data.get('card_name')
+    field = data.get('field')
+    new_value = data.get('new_value')
+    result = update_credit_card_balance(card_name, field, new_value)
+    return jsonify(result)
+
+
+@app.route('/remove_credit_card', methods=['DELETE'])
+def remove_credit_card_route():
+    data = request.get_json()
+    card_name = data.get('card_name')
+    result = delete_credit_card(card_name)
+    return jsonify(result)
+
+
+# ALLY BANK ROUTES
+
+@app.route('/setup_ally_bank_database', methods=["POST"])
+def setup_ally_bank_database_route():
+    result = setup_ally_bank_database()
+    return jsonify(result)
+
+
+@app.route('/get_ally_bank_balance', methods=['GET'])
+def get_ally_bank_balance_route():
+    result = get_ally_bank_balance()
+    return jsonify({"balance": result})
+
+
+@app.route('/update_ally_bank_balance', methods=['POST'])
+@cross_origin()
+def update_ally_bank_balance_route():
+    data = request.get_json()
+    new_balance = data.get('balance', 0)
+    result = update_ally_bank_balance(new_balance)
+    return jsonify(result)
+
+
+@app.route('/update_covered_sub_balances', methods=['POST'])
+@cross_origin()
+def update_covered_sub_balances_route():
+    data = request.get_json()
+    card_name = data.get('card_name')
+    sub_balances = data.get('sub_balances', [])
+    result = update_covered_sub_balances(card_name, sub_balances)
+    return jsonify(result)
+
+
+@app.route('/update_credit_card_order', methods=['POST'])
+@cross_origin()
+def update_credit_card_order_route():
+    card_orders = request.get_json().get('card_orders', [])
+    result = update_credit_card_order(card_orders)
+    return jsonify({"success": result})
+
+
+@app.route('/add_display_order_column', methods=['POST'])
+@cross_origin()
+def add_display_order_column_route():
+    """Migration endpoint to add display_order column to existing credit_cards table"""
+    result = add_display_order_to_credit_cards()
+    return jsonify({"success": result})
+
 
 # @app.route('/updatePaycheckFrequency, methods=["POST"])
 

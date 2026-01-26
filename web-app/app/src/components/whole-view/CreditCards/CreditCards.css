@@ -1,0 +1,943 @@
+.credit-cards {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.credit-cards h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.ally-bank-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.ally-bank-section h2 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 1.3em;
+}
+
+.ally-bank-balance {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.ally-bank-balance label {
+  font-size: 1.1em;
+  font-weight: 500;
+  color: #495057;
+  min-width: 140px;
+}
+
+.ally-bank-balance input {
+  padding: 10px 15px;
+  border: 2px solid #6f42c1;
+  border-radius: 6px;
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #6f42c1;
+  background: white;
+  transition: all 0.2s ease;
+  min-width: 150px;
+}
+
+.ally-bank-balance input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.25);
+  background: #f8f9ff;
+}
+
+/* Hide number input spinners for Ally Bank input */
+.ally-bank-balance input[type="number"]::-webkit-outer-spin-button,
+.ally-bank-balance input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ally-bank-balance input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 40px;
+}
+
+.credit-card-row {
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  min-height: 80px;
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+/* Hover effect without transform */
+.credit-card-row:hover {
+  box-shadow: 0 0px 8px rgb(0, 140, 255);
+  z-index: 2;
+}
+
+/* Drag Handle */
+.drag-handle {
+  cursor: grab;
+  padding: 8px 4px;
+  margin-right: 10px;
+  color: #adb5bd;
+  font-size: 16px;
+  letter-spacing: 2px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.drag-handle:hover {
+  color: #6f42c1;
+  background: #f0ebf8;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Drag overlay styles */
+.dragging-overlay {
+  opacity: 0.9;
+  transform: scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border: 2px solid #6f42c1;
+  background: #f8f5ff;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.card-title-section {
+  flex: 0 0 150px;
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.delete-card-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  color: #6f42c1;
+  border: 2px solid #6f42c1;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.credit-card-row:hover .delete-card-btn {
+  opacity: 1;
+}
+
+.delete-card-btn:hover {
+  background: #6f42c1;
+  color: white;
+}
+
+.card-inputs-section {
+  flex: 1;
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  align-items: center;
+}
+
+.balance-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.balance-field label {
+  font-size: 0.85em;
+  font-weight: 500;
+  color: #6c757d;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.balance-field input {
+  width: 120px;
+  padding: 8px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 1em;
+  font-weight: 500;
+  text-align: center;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+/* Hide number input spinners */
+.balance-field input[type="number"]::-webkit-outer-spin-button,
+.balance-field input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.balance-field input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.balance-field input:focus {
+  outline: none;
+  border-color: #6f42c1;
+  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.1);
+  background: #f8f9ff;
+}
+
+.covered-field {
+  position: relative;
+}
+
+.covered-edit-btn {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #6f42c1;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.covered-edit-btn:hover {
+  opacity: 1;
+}
+
+.card-total-section {
+  flex: 0 0 150px;
+  text-align: right;
+}
+
+.total-balance {
+  background: #ffe6e6;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 1.3em;
+  color: #dc3545;
+  font-weight: 700;
+  border: 2px solid #ffcccc;
+  display: inline-block;
+  margin-left: auto;
+}
+
+.credit-card-item h3 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  text-align: center;
+  font-size: 1.2em;
+}
+
+.balance-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  font-size: 0.9em;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 5px;
+}
+
+.input-group input {
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 1em;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.input-group input:focus {
+  outline: 0;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.card-totals {
+  background: #e9ecef;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.total-balance {
+  font-size: 1.1em;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+.amount-to-transfer {
+  font-size: 1em;
+  color: #6c757d;
+}
+
+.payment-tags-section {
+  margin-top: 15px;
+}
+
+.payment-tags-section label {
+  display: block;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+.payment-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  min-height: 30px;
+}
+
+.payment-tag {
+  display: inline-flex;
+  align-items: center;
+  background: #6f42c1;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.tag-remove {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  margin-left: 6px;
+  font-size: 1.2em;
+  line-height: 1;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.tag-remove:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.payment-tags-section input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.add-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.add-card:hover {
+  background: #e9ecef;
+}
+
+.add-card input {
+  width: 80%;
+  padding: 12px;
+  border: 2px dashed #6c757d;
+  border-radius: 6px;
+  font-size: 1em;
+  text-align: center;
+  background: transparent;
+  transition: border-color 0.2s ease;
+}
+
+.add-card input:focus {
+  outline: none;
+  border-color: #6f42c1;
+}
+
+.summary-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.summary-section h2 {
+  margin: 0 0 20px 0;
+  color: #333;
+  text-align: center;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  text-align: center;
+}
+
+.summary-stats > div {
+  font-size: 1.1em;
+  font-weight: 500;
+  color: #495057;
+}
+
+.total-to-transfer {
+  color: #6f42c1 !important;
+  font-size: 1.2em !important;
+  font-weight: bold !important;
+}
+
+/* Covered Dropdown */
+.covered-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e9ecef;
+  z-index: 1000;
+  min-width: 400px;
+  max-width: 500px;
+}
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.dropdown-header h4 {
+  margin: 0;
+  color: #495057;
+  font-size: 1.1em;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.close-btn:hover {
+  background: #e9ecef;
+}
+
+.sub-balances-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 15px 20px;
+}
+
+.sub-balance-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.sub-balance-item input {
+  padding: 6px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.sub-balance-item input[type="number"] {
+  text-align: center;
+}
+
+.remove-sub {
+  background: transparent;
+  color: #6f42c1;
+  border: 2px solid #6f42c1;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.remove-sub:hover {
+  background: #6f42c1;
+  color: white;
+}
+
+.dropdown-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 20px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+}
+
+.add-sub-btn, .save-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.add-sub-btn {
+  background: #28a745;
+  color: white;
+}
+
+.add-sub-btn:hover {
+  background: #218838;
+}
+
+.save-btn {
+  background: #6f42c1;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #5a32a3;
+}
+
+/* Add Card Row */
+.add-card-row {
+  justify-content: center;
+  border: 2px dashed #6c757d !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.add-card-row input {
+  width: 300px;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  font-size: 1em;
+  text-align: center;
+  color: #6c757d;
+}
+
+.add-card-row input:focus {
+  outline: none;
+  color: #007bff;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .card-inputs-section {
+    gap: 20px;
+  }
+
+  .balance-field input {
+    width: 100px;
+  }
+
+  .covered-dropdown {
+    min-width: 350px;
+    max-width: 90vw;
+  }
+}
+
+@media (max-width: 768px) {
+  .credit-card-row {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+
+  .card-title-section,
+  .card-total-section {
+    flex: none;
+  }
+
+  .card-inputs-section {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .balance-field {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .balance-field label {
+    margin-bottom: 0;
+    min-width: 80px;
+  }
+
+  .covered-dropdown {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 90vw;
+    max-height: 80vh;
+  }
+
+  .sub-balances-list {
+    max-height: 200px;
+  }
+
+  .credit-cards {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .balance-field {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .balance-field label {
+    margin-bottom: 5px;
+  }
+
+  .covered-dropdown {
+    min-width: 320px;
+  }
+}
+
+/* Pending Dropdown */
+.pending-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e9ecef;
+  z-index: 1000;
+  min-width: 400px;
+  max-width: 500px;
+}
+
+.pending-dropdown .dropdown-header h4 {
+  color: #17a2b8; /* Different color for pending */
+}
+
+/* Transfer Tracking Section */
+.transfer-tracking-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 25px;
+  margin-top: 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.transfer-tracking-section h2 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.section-description {
+  margin: 0 0 20px 0;
+  color: #6c757d;
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+.transfer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.transfer-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.transfer-description {
+  padding: 6px 8px;
+  border: 2px solid #e9ecef;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.transfer-amount {
+  padding: 6px 8px;
+  border: 2px solid #e9ecef;
+  border-radius: 4px;
+  font-size: 0.9em;
+  text-align: center;
+}
+
+.transfer-date {
+  padding: 6px 8px;
+  border: 2px solid #e9ecef;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.remove-transfer-btn {
+  background: transparent;
+  color: #dc3545;
+  border: 2px solid #dc3545;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.remove-transfer-btn:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.transfer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.add-transfer-btn {
+  padding: 8px 16px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.add-transfer-btn:hover {
+  background: #218838;
+}
+
+.transfer-total {
+  font-size: 1.1em;
+  color: #495057;
+}
+
+/* Source Pill Selector Styles */
+.source-selector {
+  width: 100%;
+}
+
+.pill-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.source-pill {
+  padding: 6px 12px;
+  border: 2px solid;
+  border-radius: 16px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.source-pill:hover {
+  opacity: 0.8;
+}
+
+.source-pill.selected {
+  color: white !important;
+}
+
+.custom-pill {
+  position: relative;
+}
+
+.pill-remove {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 1.2em;
+  line-height: 1;
+  padding: 0;
+  margin-left: 4px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+
+.pill-remove:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.custom-source-input {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.custom-source-input input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 2px solid #6c757d;
+  border-radius: 6px;
+  font-size: 0.9em;
+}
+
+.custom-add-btn, .custom-cancel-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8em;
+  font-weight: 500;
+}
+
+.custom-add-btn {
+  background: #28a745;
+  color: white;
+}
+
+.custom-add-btn:hover {
+  background: #218838;
+}
+
+.custom-cancel-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.custom-cancel-btn:hover {
+  background: #5a6268;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .transfer-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .transfer-description,
+  .transfer-amount,
+  .transfer-date {
+    width: 100%;
+  }
+
+  .transfer-actions {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .transfer-tracking-section {
+    padding: 15px;
+  }
+}

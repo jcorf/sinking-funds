@@ -144,3 +144,26 @@ export async function updateCardOrder(cardOrders) {
         return false;
     }
 }
+
+export async function updateCreditCardOrder(cardOrders) {
+    try {
+        const response = await fetch(url('/update_credit_card_order'), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ card_orders: cardOrders }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("Credit card order update success:", result);
+        return result;
+    } catch (error) {
+        console.error("Error updating credit card order:", error);
+        return false;
+    }
+}
