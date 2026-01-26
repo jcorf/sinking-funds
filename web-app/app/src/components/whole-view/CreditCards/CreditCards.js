@@ -31,19 +31,14 @@ const parseDecimalInput = (value) => {
 };
 
 // Source Pill Selector Component
-const SourcePillSelector = ({ value, onChange, context = 'covered' }) => {
+const SourcePillSelector = ({ value, onChange }) => {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customSource, setCustomSource] = useState('');
 
-  // Different pill options based on context
-  const pillOptions = context === 'pending' ? [
+  const pillOptions = [
+    { label: 'venmo', value: 'venmo', color: '#007bff' }, // Blue
     { label: 'future', value: 'future', color: '#28a745' }, // Green
-    { label: 'actual', value: 'actual', color: '#007bff' }, // Blue
-    { label: 'Other', value: 'other', color: '#6c757d' } // Gray for other button
-  ] : [
-    { label: 'Venmo', value: 'Venmo', color: '#007bff' }, // Blue
-    { label: 'future', value: 'future', color: '#28a745' }, // Green
-    { label: 'Other', value: 'other', color: '#6c757d' } // Gray for other button
+    { label: 'other', value: 'other', color: '#6c757d' } // Gray for other button
   ];
 
   const getPillColor = (source) => {
@@ -187,7 +182,7 @@ function SortableCreditCardRow({ card, removeCreditCard, updateCardBalance, form
       <div className="drag-handle" {...attributes} {...listeners}>
         ⋮⋮
       </div>
-
+      
       <button
         className="delete-card-btn"
         onClick={() => removeCreditCard(card.card_name)}
@@ -414,12 +409,15 @@ const CreditCards = () => {
     }
   };
 
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
   };
+
+
 
   const updateAllyBankBalance = async (newBalance) => {
     try {
@@ -488,20 +486,9 @@ const CreditCards = () => {
     setTotalDebt(prevDebt => prevDebt - oldBalance + newBalance);
     updateTotalToTransfer(totalDebt - oldBalance + newBalance);
 
-    try {
-      const response = await fetch('http://127.0.0.1:5000/update_pending_sub_balances', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ card_name: cardName, sub_balances: subBalances })
-      });
-      await response.json();
-      // Fetch to ensure consistency
-      fetchCreditCards();
-    } catch (error) {
-      console.error('Error updating pending sub-balances:', error);
-      // Revert on error
-      fetchCreditCards();
-    }
+    // For now, just store locally - could be extended to save to DB later
+    console.log('Pending sub-balances updated:', cardName, subBalances, 'Total pending:', totalPending);
+    // TODO: Add database endpoint for pending sub-balances if needed
   };
 
   const parseSubBalances = (subBalancesJson) => {
@@ -592,7 +579,6 @@ const CreditCards = () => {
               <SourcePillSelector
                 value={sub.source}
                 onChange={(value) => updateSubBalance(index, 'source', value)}
-                context="covered"
               />
               <button onClick={() => removeSubBalance(index)} className="remove-sub">×</button>
             </div>
@@ -661,7 +647,6 @@ const CreditCards = () => {
               <SourcePillSelector
                 value={sub.source}
                 onChange={(value) => updateSubBalance(index, 'source', value)}
-                context="pending"
               />
               <button onClick={() => removeSubBalance(index)} className="remove-sub">×</button>
             </div>
