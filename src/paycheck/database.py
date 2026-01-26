@@ -31,6 +31,7 @@ def setup_credit_cards_database():
         pending_transactions REAL DEFAULT 0,
         covered_transactions REAL DEFAULT 0,
         covered_sub_balances TEXT DEFAULT '[]',
+        pending_sub_balances TEXT DEFAULT '[]',
         total_balance REAL DEFAULT 0,
         payment_tags TEXT DEFAULT '',
         display_order INTEGER DEFAULT 0,
@@ -111,6 +112,12 @@ def add_db(category, saved, goal, goal_date, to_save, emoji=':heart:'):
 
 
 def get_all_data():
+    # Ensure savings table exists
+    if not table_exists('savings'):
+        print("Savings table doesn't exist, creating it...")
+        setup_database()
+        print("✅ Savings table created")
+
     query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order FROM savings ORDER BY display_order"
     rows = select_query(query)
     cols = ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order"]
@@ -211,7 +218,51 @@ def add_credit_card(card_name, posted=0, pending=0, covered=0, payment_tags=''):
         return False
 
 
+def table_exists(table_name):
+    """Check if a table exists in the database"""
+    try:
+        query = f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'"
+        result = select_query(query)
+        return len(result) > 0
+    except:
+        return False
+
+
+def ensure_credit_cards_columns():
+    """Ensure all required columns exist in credit_cards table"""
+    try:
+        # Import here to avoid circular import
+        from utils.reference.database_constants import DATABASE_NAME
+        import sqlite3
+
+        # Check if pending_sub_balances column exists by querying the table info
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(credit_cards)")
+        columns = cursor.fetchall()
+        column_names = [col[1] for col in columns]
+        conn.close()
+
+        if 'pending_sub_balances' not in column_names:
+            # Column doesn't exist, add it
+            execute_query("ALTER TABLE credit_cards ADD COLUMN pending_sub_balances TEXT DEFAULT '[]'")
+            print("✅ Added pending_sub_balances column to existing table")
+    except Exception as e:
+        print(f"Error checking columns: {e}")
+
+
 def get_all_credit_cards():
+    # Ensure credit_cards table exists
+    if not table_exists('credit_cards'):
+        print("Credit cards table doesn't exist, creating it...")
+        setup_credit_cards_database()
+        add_display_order_to_credit_cards()
+        setup_default_credit_cards()
+        print("✅ Credit cards table created with default cards")
+    else:
+        # Table exists, ensure it has all required columns
+        ensure_credit_cards_columns()
+
     query = f"SELECT id, card_name, posted_transactions, pending_transactions, covered_transactions, covered_sub_balances, pending_sub_balances, total_balance, payment_tags, display_order FROM credit_cards ORDER BY display_order"
     rows = select_query(query)
     cols = ["id", "card_name", "posted_transactions", "pending_transactions", "covered_transactions", "covered_sub_balances", "pending_sub_balances", "total_balance", "payment_tags", "display_order"]
@@ -242,6 +293,12 @@ def get_credit_card_info(card_name):
 # ALLY BANK FUNCTIONS
 
 def get_ally_bank_balance():
+    # Ensure ally_bank table exists
+    if not table_exists('ally_bank'):
+        print("Ally bank table doesn't exist, creating it...")
+        setup_ally_bank_database()
+        print("✅ Ally bank table created")
+
     query = "SELECT balance FROM ally_bank LIMIT 1"
     row = select_query(query)
     return row[0][0] if row else 0
