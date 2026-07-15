@@ -85,15 +85,15 @@ sinking-funds/
    python flask-connector.py
    ```
 
-   The backend will start on `http://127.0.0.1:5000`
+   The backend will start on `http://127.0.0.1:5001`
 
 4. Set up database -- change DB name in `src/paycheck/utils/reference/database_constants.py`
 
-`http://127.0.0.1:5000/delete_database`
+`http://127.0.0.1:5001/delete_database`
 
-`http://127.0.0.1:5000/setup_database`
+`http://127.0.0.1:5001/setup_database`
 
-`http://127.0.0.1:5000/add_mock_data`
+`http://127.0.0.1:5001/add_mock_data`
 
 ### Frontend Setup
 

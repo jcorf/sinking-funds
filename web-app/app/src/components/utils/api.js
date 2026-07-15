@@ -1,9 +1,39 @@
 import {url, obj, getTodayDate} from './lib'
 
+export async function login(username, password) {
+    const response = await fetch(url('/login'), {
+        method: "POST",
+        credentials: 'include',
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({username, password}),
+    });
+    return await response.json();
+}
+
+export async function logout() {
+    const response = await fetch(url('/logout'), {
+        method: "POST",
+        credentials: 'include',
+    });
+    return await response.json();
+}
+
+export async function getSession() {
+    try {
+        const response = await fetch(url('/session'), {credentials: 'include'});
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching session:', error);
+        return {authenticated: false};
+    }
+}
+
 export async function getCategoryData(categoryName) {
     try {
         const flaskUrl = url('/get_category_info', ['on_value'], [categoryName])
-        const response = await fetch(flaskUrl);
+        const response = await fetch(flaskUrl, {credentials: 'include'});
         return await response.json();
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -13,7 +43,7 @@ export async function getCategoryData(categoryName) {
 export async function getAllData() {
     try {
         const flaskUrl = url('/get_data')
-        const response = await fetch(flaskUrl);
+        const response = await fetch(flaskUrl, {credentials: 'include'});
         return await response.json();
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -24,7 +54,7 @@ export async function getPaycheckSchedule(categoryName, startDate) {
     try {
         const flaskUrl = url('/saved_by_paycheck',
             ['on_value', 'start_date'], [categoryName, startDate])
-        const response = await fetch(flaskUrl);
+        const response = await fetch(flaskUrl, {credentials: 'include'});
         return await response.json();
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -35,6 +65,7 @@ export async function updateField(field, value, onValue, onField = 'category', s
     try {
         const response = await fetch(url('/update_field'), {
         method: "POST",  // HTTP method
+        credentials: 'include',
         headers: {
             "Content-Type": "application/json",  // Indicate that the body is JSON
         },
@@ -57,6 +88,7 @@ export async function deleteCategory(onValue, onField = 'category') {
     try {
         const response = await fetch(url('/remove_category'), {
             method: "DELETE",  // HTTP method
+            credentials: 'include',
             headers: {
                 "Content-Type": "application/json",  // Indicate that the body is JSON
             },
@@ -79,6 +111,7 @@ export async function addCategory(category, saved, goal, goalDate, startDate = g
     try {
         const response = await fetch(url('/add_category'), {
             method: "POST",  // HTTP method
+            credentials: 'include',
             headers: {
                 "Content-Type": "application/json",  // Indicate that the body is JSON
             },
@@ -106,6 +139,7 @@ export async function updateAllCategories(startDate= getTodayDate(), paySchedule
             
         const response = await fetch(url('/recalculate_all'), {
             method: "POST",  // HTTP method
+            credentials: 'include',
             headers: {
                 "Content-Type": "application/json",  // Indicate that the body is JSON
             },
@@ -126,6 +160,7 @@ export async function updateCardOrder(cardOrders) {
     try {
         const response = await fetch(url('/update_card_order'), {
             method: "POST",
+            credentials: 'include',
             headers: {
                 "Content-Type": "application/json",
             },
@@ -149,6 +184,7 @@ export async function updateCreditCardOrder(cardOrders) {
     try {
         const response = await fetch(url('/update_credit_card_order'), {
             method: "POST",
+            credentials: 'include',
             headers: {
                 "Content-Type": "application/json",
             },

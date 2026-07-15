@@ -27,6 +27,17 @@
     background-color: #dddddd;
 }
 
+.logout-button {
+    color: #f2f2f2;
+    padding: 14px 16px;
+    cursor: pointer;
+}
+
+.logout-button:hover {
+    background-color: #ddd;
+    color: black;
+}
+
 /* Style the links inside the navigation bar */
 .topnav a {
     float: left;

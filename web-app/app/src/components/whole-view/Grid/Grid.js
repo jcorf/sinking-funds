@@ -21,6 +21,7 @@ import './Grid.css';
 import Infocard from "../InfoCard/InfoCard"
 import AddCard from "../AddCard/AddCard"
 import {getAllData, updateCardOrder} from "../../utils/api";
+import {url} from "../../utils/lib";
 
 function SortableItem({card, updateGridCards}) {
   const {
@@ -76,10 +77,10 @@ const Grid = () => {
         // Scroll to top when component mounts
         window.scrollTo(0, 0);
         
-        fetch('http://127.0.0.1:5000/get_data')
+        fetch(url('/get_data'), {credentials: 'include'})
             .then(response => response.json())
             .then(data => {
-                setCards(data['data'])
+                setCards(data['data'] || [])
             })
             .catch(error => console.error('Error fetching data:', error));
     }, []);
@@ -87,7 +88,7 @@ const Grid = () => {
     async function updateGridCards() {
         try {
             const data = await getAllData();
-            setCards(data['data']);
+            setCards(data['data'] || []);
         } catch (error) {
             console.error("Error fetching data: ", error);
         }

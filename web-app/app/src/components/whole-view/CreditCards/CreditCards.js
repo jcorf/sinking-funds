@@ -20,6 +20,7 @@ import {
 import {CSS} from '@dnd-kit/utilities';
 import './CreditCards.css';
 import { updateCreditCardOrder } from '../../utils/api';
+import { url } from '../../utils/lib';
 
 // Custom parsing function that handles incomplete decimals
 const parseDecimalInput = (value) => {
@@ -294,7 +295,7 @@ const CreditCards = () => {
   const fetchCreditCards = async () => {
     try {
       console.log('DEBUG: fetchCreditCards called');
-      const response = await fetch('http://127.0.0.1:5000/get_credit_cards');
+      const response = await fetch(url('/get_credit_cards'), {credentials: 'include'});
       const data = await response.json();
       console.log('DEBUG: fetchCreditCards received data:', data);
       console.log('DEBUG: fetchCreditCards data.data:', data.data);
@@ -325,7 +326,7 @@ const CreditCards = () => {
 
   const fetchAllyBankBalance = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/get_ally_bank_balance');
+      const response = await fetch(url('/get_ally_bank_balance'), {credentials: 'include'});
       const data = await response.json();
       const balance = data.balance || 0;
       setAllyBankBalance(balance);
@@ -361,8 +362,9 @@ const CreditCards = () => {
     updateTotalToTransfer(totalDebt - oldBalance + newBalance);
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/update_credit_card_balance', {
+      const response = await fetch(url('/update_credit_card_balance'), {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ card_name: cardName, field, new_value: value })
       });
@@ -380,8 +382,9 @@ const CreditCards = () => {
     if (!cardName.trim()) return;
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/add_credit_card', {
+      const response = await fetch(url('/add_credit_card'), {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ card_name: cardName })
       });
@@ -405,8 +408,9 @@ const CreditCards = () => {
     updateTotalToTransfer(totalDebt - removedBalance);
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/remove_credit_card', {
+      const response = await fetch(url('/remove_credit_card'), {
         method: 'DELETE',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ card_name: cardName })
       });
@@ -432,8 +436,9 @@ const CreditCards = () => {
 
   const updateAllyBankBalance = async (newBalance) => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/update_ally_bank_balance', {
+      const response = await fetch(url('/update_ally_bank_balance'), {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ balance: newBalance })
       });
@@ -477,8 +482,9 @@ const CreditCards = () => {
 
     try {
       console.log('DEBUG: Making API call to update_covered_sub_balances');
-      const response = await fetch('http://127.0.0.1:5000/update_covered_sub_balances', {
+      const response = await fetch(url('/update_covered_sub_balances'), {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ card_name: cardName, sub_balances: subBalances })
       });
@@ -522,8 +528,9 @@ const CreditCards = () => {
 
     try {
       console.log('DEBUG: Making API call to update_pending_sub_balances');
-      const response = await fetch('http://127.0.0.1:5000/update_pending_sub_balances', {
+      const response = await fetch(url('/update_pending_sub_balances'), {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ card_name: cardName, sub_balances: subBalances })
       });

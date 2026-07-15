@@ -149,12 +149,20 @@ def get_ids():
     return [row[0] for row in rows]
 
 
+VALID_SAVINGS_FIELDS = {"category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order"}
+
+
 def update_field(field_to_change, new_value, filter_value, field_filter="category"):
     try:
+        if field_to_change not in VALID_SAVINGS_FIELDS or field_filter not in VALID_SAVINGS_FIELDS:
+            print(f"Rejected update: invalid field name {field_to_change!r}/{field_filter!r}")
+            return False
         if (validate_primary_key(filter_value)):
-            query = f"UPDATE savings SET {field_to_change} = '{new_value}', last_updated = {nowString()} WHERE {field_filter} = '{filter_value}'"
-            print(query)
-            execute_query(query)
+            # field_to_change/field_filter are column names (validated against
+            # VALID_SAVINGS_FIELDS above) and can't be parameterized like values,
+            # but new_value/nowString()/filter_value are actual values and are.
+            query = f"UPDATE savings SET {field_to_change} = ?, last_updated = ? WHERE {field_filter} = ?"
+            execute_query(query, new_value, nowString(), filter_value)
             print(f"UPDATED {field_filter}={filter_value} {field_to_change} to {new_value}")
         else:
             print(f"NO instances of {field_filter}={filter_value}")

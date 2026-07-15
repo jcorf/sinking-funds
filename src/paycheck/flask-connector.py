@@ -1,11 +1,22 @@
+import os
 import random
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
+from flask_login import login_required, login_user, logout_user, current_user
 
 app = Flask(__name__)
-CORS(app)  # allow CORS for all domains on all routes
-app.config['CORS_HEADERS'] = 'Content-Type'
+app.secret_key = os.environ["FLASK_SECRET_KEY"]
+
+# CORS is only needed in local dev, where the React dev server (:3000) and
+# Flask (:5000) are different origins. In production Flask serves the built
+# frontend itself, so requests are same-origin and CORS is not needed.
+if os.environ.get("FLASK_ENV") != "production":
+    CORS(app, supports_credentials=True)
+    app.config['CORS_HEADERS'] = 'Content-Type'
+
+from auth import login_manager, User, verify_credentials
+login_manager.init_app(app)
 
 from database import (update_field, setup_database, delete_database,
                       add_db, get_category_info, delete_row_based_on_category, get_all_data, get_categories, update_card_order,
@@ -46,7 +57,36 @@ def root():
     return jsonify("Hi")
 
 
+# AUTH ROUTES
+
+@app.route('/login', methods=['POST'])
+@cross_origin(supports_credentials=True)
+def login_route():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    if verify_credentials(username, password):
+        login_user(User("1"))
+        return jsonify({"success": True})
+    return jsonify({"success": False, "error": "invalid credentials"}), 401
+
+
+@app.route('/logout', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def logout_route():
+    logout_user()
+    return jsonify({"success": True})
+
+
+@app.route('/session', methods=['GET'])
+@cross_origin(supports_credentials=True)
+def session_route():
+    return jsonify({"authenticated": current_user.is_authenticated})
+
+
 @app.route('/saved_by_paycheck', methods=['GET'])
+@login_required
 def saved_by_paycheck_route():
     try:
         on_value, on_field = get_on_args()
@@ -61,7 +101,8 @@ def saved_by_paycheck_route():
 
 
 @app.route('/update_field', methods=["POST"])
-@cross_origin()
+@cross_origin(supports_credentials=True)
+@login_required
 def update_field_route():
     field_to_change, new_value = get_args(['field_to_change', 'new_value'], request.get_json())
     if field_to_change == 'to_save':
@@ -83,7 +124,8 @@ def update_to_save_single(on_value, on_field, start_date):
     return to_save
 
 @app.route('/update_to_save_single',methods=['POST'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
+@login_required
 def update_to_save_single_route():
     on_value, on_field = get_on_args()
     start_date = get_start_date_args()
@@ -91,7 +133,8 @@ def update_to_save_single_route():
     return jsonify(to_save)
 
 @app.route('/recalculate_all', methods=['POST','PUT'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
+@login_required
 def update_to_save_all_route():
     start_date = get_start_date_args(request.get_json())
     categories = get_categories()
@@ -100,6 +143,7 @@ def update_to_save_all_route():
     return jsonify({"message" : "recalculated all"})
 
 @app.route('/add_category', methods=['POST', 'PUT'])
+@login_required
 def add_category_route():
     category, saved, goal, goal_date = get_args(['category', 'saved', 'goal', 'goal_date'], request.get_json())
     emoji = request.get_json().get('emoji', ':heart:')  # Default to heart emoji if not provided
@@ -110,6 +154,7 @@ def add_category_route():
 
 
 @app.route('/remove_category', methods=['DELETE'])
+@login_required
 def remove_category_route():
     on_value, on_field = get_on_args(request.get_json())
     result = delete_row_based_on_category(on_value, on_field)
@@ -117,6 +162,7 @@ def remove_category_route():
 
 
 @app.route('/get_category_info', methods=['GET'])
+@login_required
 def get_category_info_route():
     on_field = request.args.get('on_field', 'category')
     on_value = request.args.get('on_value')
@@ -125,6 +171,7 @@ def get_category_info_route():
 
 
 @app.route('/get_data', methods=['GET'])
+@login_required
 def get_data_route():
     result = get_all_data()
     return jsonify({"data" : result})
@@ -141,18 +188,21 @@ DB-RELATED ROUTES
 
 
 @app.route('/setup_database', methods=["POST"])
+@login_required
 def setup_database_route():
     result = setup_database()
     return jsonify(result)
 
 
 @app.route('/delete_database', methods=["POST"])
+@login_required
 def delete_database_route():
     result = delete_database()
     return jsonify(result)
 
 
 @app.route('/add_mock_data', methods=['POST'])
+@login_required
 def add_mock_data_route():
     categories = [
         "emergency fund", "vacation", "pets", "car", "kids"
@@ -167,7 +217,8 @@ def add_mock_data_route():
     return jsonify({"Added Data": "True"})
 
 @app.route('/update_card_order', methods=['POST'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
+@login_required
 def update_card_order_route():
     card_orders = request.get_json().get('card_orders', [])
     result = update_card_order(card_orders)
@@ -177,24 +228,28 @@ def update_card_order_route():
 # CREDIT CARD ROUTES
 
 @app.route('/setup_credit_cards_database', methods=["POST"])
+@login_required
 def setup_credit_cards_database_route():
     result = setup_credit_cards_database()
     return jsonify(result)
 
 
 @app.route('/setup_default_credit_cards', methods=['POST'])
+@login_required
 def setup_default_credit_cards_route():
     result = setup_default_credit_cards()
     return jsonify(result)
 
 
 @app.route('/get_credit_cards', methods=['GET'])
+@login_required
 def get_credit_cards_route():
     result = get_all_credit_cards()
     return jsonify({"data": result})
 
 
 @app.route('/get_credit_card_info', methods=['GET'])
+@login_required
 def get_credit_card_info_route():
     card_name = request.args.get('card_name')
     result = get_credit_card_info(card_name)
@@ -202,6 +257,7 @@ def get_credit_card_info_route():
 
 
 @app.route('/add_credit_card', methods=['POST', 'PUT'])
+@login_required
 def add_credit_card_route():
     data = request.get_json()
     card_name = data.get('card_name')
@@ -214,7 +270,8 @@ def add_credit_card_route():
 
 
 @app.route('/update_credit_card_balance', methods=['POST'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
+@login_required
 def update_credit_card_balance_route():
     data = request.get_json()
     card_name = data.get('card_name')
@@ -225,6 +282,7 @@ def update_credit_card_balance_route():
 
 
 @app.route('/remove_credit_card', methods=['DELETE'])
+@login_required
 def remove_credit_card_route():
     data = request.get_json()
     card_name = data.get('card_name')
@@ -235,19 +293,22 @@ def remove_credit_card_route():
 # ALLY BANK ROUTES
 
 @app.route('/setup_ally_bank_database', methods=["POST"])
+@login_required
 def setup_ally_bank_database_route():
     result = setup_ally_bank_database()
     return jsonify(result)
 
 
 @app.route('/get_ally_bank_balance', methods=['GET'])
+@login_required
 def get_ally_bank_balance_route():
     result = get_ally_bank_balance()
     return jsonify({"balance": result})
 
 
 @app.route('/update_ally_bank_balance', methods=['POST'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
+@login_required
 def update_ally_bank_balance_route():
     data = request.get_json()
     new_balance = data.get('balance', 0)
@@ -256,7 +317,8 @@ def update_ally_bank_balance_route():
 
 
 @app.route('/update_covered_sub_balances', methods=['POST'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
+@login_required
 def update_covered_sub_balances_route():
     data = request.get_json()
     card_name = data.get('card_name')
@@ -266,7 +328,8 @@ def update_covered_sub_balances_route():
 
 
 @app.route('/update_pending_sub_balances', methods=['POST'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
+@login_required
 def update_pending_sub_balances_route():
     data = request.get_json()
     card_name = data.get('card_name')
@@ -276,7 +339,8 @@ def update_pending_sub_balances_route():
 
 
 @app.route('/update_credit_card_order', methods=['POST'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
+@login_required
 def update_credit_card_order_route():
     card_orders = request.get_json().get('card_orders', [])
     result = update_credit_card_order(card_orders)
@@ -284,7 +348,8 @@ def update_credit_card_order_route():
 
 
 @app.route('/add_display_order_column', methods=['POST'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
+@login_required
 def add_display_order_column_route():
     """Migration endpoint to add display_order column to existing credit_cards table"""
     result = add_display_order_to_credit_cards()
@@ -294,4 +359,6 @@ def add_display_order_column_route():
 # @app.route('/updatePaycheckFrequency, methods=["POST"])
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Port 5001, not 5000: macOS's AirPlay Receiver squats on 5000 by default
+    # and will intermittently steal connections meant for this server.
+    app.run(debug=True, port=5001)

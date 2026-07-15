@@ -1,4 +1,8 @@
-const baseUrl = 'http://127.0.0.1:5000'
+// Match whatever host the page was loaded from (localhost vs 127.0.0.1).
+// Browsers treat those as different sites for cookie purposes, so if the
+// frontend is served from one and this pointed at the other, the session
+// cookie set by /login would silently fail to attach to later requests.
+const baseUrl = `http://${window.location.hostname}:5001`
 
 export function findNumPaychecks(coefficient, start, goal) {
     if (start >= goal) {
