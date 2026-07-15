@@ -8,6 +8,7 @@ import {InfoPage} from "./components/whole-view/InfoPage/InfoPage";
 import Recalculate from "./components/whole-view/Recalculate/Recalculate";
 import Dashboard from "./components/whole-view/Dashboard/Dashboard";
 import CreditCards from "./components/whole-view/CreditCards/CreditCards";
+import BudgetCategories from "./components/whole-view/BudgetCategories/BudgetCategories";
 import Login from "./components/whole-view/Login/Login";
 import {getTodayDate} from "./components/utils/lib";
 import {getSession, logout} from "./components/utils/api";
@@ -49,6 +50,7 @@ export default function App() {
                         <span className="nav-bar-buttons"> <Link to="/dashboard">Dashboard</Link></span>
                         <span className="nav-bar-buttons"> <Link to="/sinking-funds">Sinking Funds</Link></span>
                         <span className="nav-bar-buttons"> <Link to="/credit-cards">Credit Cards</Link></span>
+                        <span className="nav-bar-buttons"> <Link to="/budget-categories">Budget Categories</Link></span>
                         <span className="nav-bar-buttons"> <Link to="/recalculate">Recalculate</Link></span>
                     </nav>
                     <span className="nav-bar-buttons logout-button" onClick={handleLogout}>Log out</span>
@@ -60,6 +62,7 @@ export default function App() {
                         <Route path='/users/:id/:categoryName' element={<InfoPage startDate={startDate}/>}/>
                         <Route path='/dashboard' element={<Dashboard/>}/>
                         <Route path='/credit-cards' element={<CreditCards/>}/>
+                        <Route path='/budget-categories' element={<BudgetCategories/>}/>
                         <Route path='/recalculate' element={<Recalculate startDate={startDate} updateStartDate={updateStartDate} />}></Route>
                     </Routes>
                 </div>

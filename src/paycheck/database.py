@@ -438,6 +438,257 @@ def setup_default_credit_cards():
     return True
 
 
+# BUDGET CATEGORY FUNCTIONS
+#
+# All budget categories are assumed to recur on the semi-monthly paycheck
+# schedule. The table still has a legacy `frequency` column (unused, kept
+# only because dropping it would mean altering an existing user's table),
+# but the app no longer reads or writes it.
+
+VALID_BUDGET_CATEGORY_FIELDS = {"category", "amount"}
+
+
+def setup_budget_categories_database():
+    execute_query('''
+    CREATE TABLE IF NOT EXISTS budget_categories (
+        id INTEGER PRIMARY KEY,
+        category TEXT UNIQUE NOT NULL,
+        amount REAL NOT NULL DEFAULT 0,
+        frequency TEXT NOT NULL DEFAULT 'paycheck',
+        display_order INTEGER DEFAULT 0,
+        last_updated DATE NOT NULL
+    )
+    ''')
+    print("SET UP budget categories database")
+    return True
+
+
+def add_budget_category(category, amount=0):
+    try:
+        max_order_query = "SELECT COALESCE(MAX(display_order), -1) FROM budget_categories"
+        max_order_result = select_query(max_order_query)
+        next_order = max_order_result[0][0] + 1 if max_order_result else 0
+
+        query = """INSERT INTO budget_categories (category, amount, frequency, display_order, last_updated)
+                                              VALUES (?, ?, 'paycheck', ?, ?)"""
+        execute_query(query, category, amount, next_order, nowString())
+        print(f"ADDED {category} to budget categories database")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def get_all_budget_categories():
+    if not table_exists('budget_categories'):
+        print("Budget categories table doesn't exist, creating it...")
+        setup_budget_categories_database()
+        print("✅ Budget categories table created")
+
+    query = "SELECT id, category, amount, display_order FROM budget_categories ORDER BY display_order"
+    rows = select_query(query)
+    cols = ["id", "category", "amount", "display_order"]
+    return [listToDict(row, cols) for row in rows]
+
+
+def update_budget_category_field(field_to_change, new_value, category):
+    try:
+        if field_to_change not in VALID_BUDGET_CATEGORY_FIELDS:
+            print(f"Rejected update: invalid field name {field_to_change!r}")
+            return False
+
+        query = f"UPDATE budget_categories SET {field_to_change} = ?, last_updated = ? WHERE category = ?"
+        execute_query(query, new_value, nowString(), category)
+        print(f"UPDATED budget category {category} {field_to_change} to {new_value}")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def delete_budget_category(category):
+    try:
+        query = "DELETE FROM budget_categories WHERE category = ?"
+        execute_query(query, category)
+        print(f"DELETED budget category {category}")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def update_budget_category_order(card_orders):
+    """Update the display order for multiple budget categories"""
+    try:
+        for order, card_id in enumerate(card_orders):
+            query = "UPDATE budget_categories SET display_order = ? WHERE id = ?"
+            execute_query(query, order, card_id)
+        print(f"UPDATED budget category order for {len(card_orders)} categories")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+# PAYCHECK SETTINGS FUNCTIONS (single-row settings, same shape as ally_bank)
+
+VALID_PAYCHECK_SETTINGS_FIELDS = {"net_pay", "pre_tax_retirement", "taxes"}
+
+
+def setup_paycheck_settings_database():
+    execute_query('''
+    CREATE TABLE IF NOT EXISTS paycheck_settings (
+        id INTEGER PRIMARY KEY,
+        net_pay REAL NOT NULL DEFAULT 0,
+        pre_tax_retirement REAL NOT NULL DEFAULT 0,
+        taxes REAL NOT NULL DEFAULT 0,
+        last_updated DATE NOT NULL
+    )
+    ''')
+    result = select_query("SELECT COUNT(*) FROM paycheck_settings")
+    if result[0][0] == 0:
+        execute_query('''
+        INSERT INTO paycheck_settings (net_pay, pre_tax_retirement, taxes, last_updated)
+        VALUES (?, ?, ?, ?)
+        ''', 0, 0, 0, nowString())
+    print("SET UP paycheck settings database")
+    return True
+
+
+def ensure_paycheck_settings_columns():
+    """Add the taxes column to an existing paycheck_settings table if it predates it"""
+    try:
+        from utils.reference.database_constants import DATABASE_NAME
+        import sqlite3
+
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(paycheck_settings)")
+        column_names = [col[1] for col in cursor.fetchall()]
+        conn.close()
+
+        if 'taxes' not in column_names:
+            execute_query("ALTER TABLE paycheck_settings ADD COLUMN taxes REAL NOT NULL DEFAULT 0")
+            print("✅ Added taxes column to paycheck_settings")
+    except Exception as e:
+        print(f"Error checking columns: {e}")
+
+
+def get_paycheck_settings():
+    if not table_exists('paycheck_settings'):
+        print("Paycheck settings table doesn't exist, creating it...")
+        setup_paycheck_settings_database()
+        print("✅ Paycheck settings table created")
+    else:
+        ensure_paycheck_settings_columns()
+
+    query = "SELECT net_pay, pre_tax_retirement, taxes FROM paycheck_settings LIMIT 1"
+    row = select_query(query)
+    cols = ["net_pay", "pre_tax_retirement", "taxes"]
+    return listToDict(row[0], cols) if row else {"net_pay": 0, "pre_tax_retirement": 0, "taxes": 0}
+
+
+def update_paycheck_settings_field(field_to_change, new_value):
+    try:
+        if field_to_change not in VALID_PAYCHECK_SETTINGS_FIELDS:
+            print(f"Rejected update: invalid field name {field_to_change!r}")
+            return False
+
+        query = f"UPDATE paycheck_settings SET {field_to_change} = ?, last_updated = ? WHERE id = 1"
+        execute_query(query, new_value, nowString())
+        print(f"UPDATED paycheck settings {field_to_change} to {new_value}")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+# POST-TAX CONTRIBUTION FUNCTIONS (same shape as budget_categories)
+
+VALID_POST_TAX_CONTRIBUTION_FIELDS = {"category", "amount"}
+
+
+def setup_post_tax_contributions_database():
+    execute_query('''
+    CREATE TABLE IF NOT EXISTS post_tax_contributions (
+        id INTEGER PRIMARY KEY,
+        category TEXT UNIQUE NOT NULL,
+        amount REAL NOT NULL DEFAULT 0,
+        display_order INTEGER DEFAULT 0,
+        last_updated DATE NOT NULL
+    )
+    ''')
+    print("SET UP post-tax contributions database")
+    return True
+
+
+def add_post_tax_contribution(category, amount=0):
+    try:
+        max_order_query = "SELECT COALESCE(MAX(display_order), -1) FROM post_tax_contributions"
+        max_order_result = select_query(max_order_query)
+        next_order = max_order_result[0][0] + 1 if max_order_result else 0
+
+        query = """INSERT INTO post_tax_contributions (category, amount, display_order, last_updated)
+                                                   VALUES (?, ?, ?, ?)"""
+        execute_query(query, category, amount, next_order, nowString())
+        print(f"ADDED {category} to post-tax contributions database")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def get_all_post_tax_contributions():
+    if not table_exists('post_tax_contributions'):
+        print("Post-tax contributions table doesn't exist, creating it...")
+        setup_post_tax_contributions_database()
+        print("✅ Post-tax contributions table created")
+
+    query = "SELECT id, category, amount, display_order FROM post_tax_contributions ORDER BY display_order"
+    rows = select_query(query)
+    cols = ["id", "category", "amount", "display_order"]
+    return [listToDict(row, cols) for row in rows]
+
+
+def update_post_tax_contribution_field(field_to_change, new_value, category):
+    try:
+        if field_to_change not in VALID_POST_TAX_CONTRIBUTION_FIELDS:
+            print(f"Rejected update: invalid field name {field_to_change!r}")
+            return False
+
+        query = f"UPDATE post_tax_contributions SET {field_to_change} = ?, last_updated = ? WHERE category = ?"
+        execute_query(query, new_value, nowString(), category)
+        print(f"UPDATED post-tax contribution {category} {field_to_change} to {new_value}")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def delete_post_tax_contribution(category):
+    try:
+        query = "DELETE FROM post_tax_contributions WHERE category = ?"
+        execute_query(query, category)
+        print(f"DELETED post-tax contribution {category}")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def update_post_tax_contribution_order(card_orders):
+    """Update the display order for multiple post-tax contributions"""
+    try:
+        for order, card_id in enumerate(card_orders):
+            query = "UPDATE post_tax_contributions SET display_order = ? WHERE id = ?"
+            execute_query(query, order, card_id)
+        print(f"UPDATED post-tax contribution order for {len(card_orders)} categories")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
 # TESTS
 if False:
     print("----------------")

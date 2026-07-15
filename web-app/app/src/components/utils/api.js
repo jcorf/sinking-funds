@@ -203,3 +203,186 @@ export async function updateCreditCardOrder(cardOrders) {
         return false;
     }
 }
+
+export async function getBudgetCategories() {
+    try {
+        const response = await fetch(url('/get_budget_categories'), {credentials: 'include'});
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching budget categories:', error);
+        return {data: []};
+    }
+}
+
+export async function addBudgetCategory(category, amount) {
+    try {
+        const response = await fetch(url('/add_budget_category'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category, amount }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error adding budget category:", error);
+        return false;
+    }
+}
+
+export async function updateBudgetCategory(category, field, value) {
+    try {
+        const response = await fetch(url('/update_budget_category'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category, field_to_change: field, new_value: value }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating budget category:", error);
+        return false;
+    }
+}
+
+export async function deleteBudgetCategory(category) {
+    try {
+        const response = await fetch(url('/remove_budget_category'), {
+            method: "DELETE",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error deleting budget category:", error);
+        return false;
+    }
+}
+
+export async function updateBudgetCategoryOrder(cardOrders) {
+    try {
+        const response = await fetch(url('/update_budget_category_order'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ card_orders: cardOrders }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating budget category order:", error);
+        return false;
+    }
+}
+
+export async function getPaycheckSettings() {
+    try {
+        const response = await fetch(url('/get_paycheck_settings'), {credentials: 'include'});
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching paycheck settings:', error);
+        return {net_pay: 0, pre_tax_retirement: 0};
+    }
+}
+
+export async function updatePaycheckSettings(field, value) {
+    try {
+        const response = await fetch(url('/update_paycheck_settings'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ field_to_change: field, new_value: value }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating paycheck settings:", error);
+        return false;
+    }
+}
+
+export async function getPostTaxContributions() {
+    try {
+        const response = await fetch(url('/get_post_tax_contributions'), {credentials: 'include'});
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching post-tax contributions:', error);
+        return {data: []};
+    }
+}
+
+export async function addPostTaxContribution(category, amount) {
+    try {
+        const response = await fetch(url('/add_post_tax_contribution'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category, amount }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error adding post-tax contribution:", error);
+        return false;
+    }
+}
+
+export async function updatePostTaxContribution(category, field, value) {
+    try {
+        const response = await fetch(url('/update_post_tax_contribution'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category, field_to_change: field, new_value: value }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating post-tax contribution:", error);
+        return false;
+    }
+}
+
+export async function deletePostTaxContribution(category) {
+    try {
+        const response = await fetch(url('/remove_post_tax_contribution'), {
+            method: "DELETE",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error deleting post-tax contribution:", error);
+        return false;
+    }
+}
+
+export async function updatePostTaxContributionOrder(cardOrders) {
+    try {
+        const response = await fetch(url('/update_post_tax_contribution_order'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ card_orders: cardOrders }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating post-tax contribution order:", error);
+        return false;
+    }
+}

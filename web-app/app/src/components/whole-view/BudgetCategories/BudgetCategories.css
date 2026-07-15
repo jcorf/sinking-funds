@@ -1,0 +1,328 @@
+.budget-categories {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.budget-categories h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.view-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.view-toggle-btn {
+  box-sizing: border-box;
+  padding: 8px 20px;
+  border: 2px solid #6f42c1;
+  border-radius: 20px;
+  background: transparent;
+  color: #6f42c1;
+  cursor: pointer;
+  font-size: 0.95em;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.view-toggle-btn:hover {
+  opacity: 0.85;
+}
+
+.view-toggle-btn.selected {
+  background: #6f42c1;
+  color: white;
+}
+
+.categories-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 40px;
+}
+
+.budget-category-row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 10px;
+  margin-right: 200px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  min-height: 80px;
+  width: 100%;
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.budget-category-row:hover {
+  box-shadow: 0 0px 8px rgb(0, 140, 255);
+  z-index: 2;
+}
+
+.drag-handle {
+  cursor: grab;
+  padding: 8px 4px;
+  margin-right: 10px;
+  color: #adb5bd;
+  font-size: 16px;
+  letter-spacing: 2px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.drag-handle:hover {
+  color: #6f42c1;
+  background: #f0ebf8;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.dragging-overlay {
+  opacity: 0.9;
+  transform: scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border: 2px solid #6f42c1;
+  background: #f8f5ff;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.category-title-section {
+  flex: 0 0 200px;
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #495057;
+}
+
+.delete-card-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  color: #6f42c1;
+  border: 2px solid #6f42c1;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.budget-category-row:hover .delete-card-btn {
+  opacity: 1;
+}
+
+.delete-card-btn:hover {
+  background: #6f42c1;
+  color: white;
+}
+
+.category-inputs-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  align-items: center;
+}
+
+.amount-field {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.amount-field label {
+  font-size: 0.85em;
+  font-weight: 500;
+  color: #6c757d;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.amount-field input {
+  box-sizing: border-box;
+  width: 120px;
+  padding: 8px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 1em;
+  font-weight: 500;
+  text-align: center;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.amount-field input:focus {
+  outline: none;
+  border-color: #6f42c1;
+  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.1);
+  background: #f8f9ff;
+}
+
+.summary-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.summary-section h2 {
+  margin: 0 0 20px 0;
+  color: #333;
+  text-align: center;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  text-align: center;
+}
+
+.summary-stats > div {
+  font-size: 1.1em;
+  font-weight: 500;
+  color: #495057;
+}
+
+.add-card-row {
+  justify-content: center;
+  border: 2px dashed #6c757d !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.add-card-row input {
+  width: 300px;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  font-size: 1em;
+  text-align: center;
+  color: #6c757d;
+}
+
+.add-card-row input:focus {
+  outline: none;
+  color: #007bff;
+}
+
+@media (max-width: 768px) {
+  .budget-category-row {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+
+  .category-title-section {
+    flex: none;
+  }
+
+  .category-inputs-section {
+    flex-direction: column;
+    gap: 15px;
+
+  }
+
+  .budget-categories {
+    padding: 100px;
+  }
+}
+
+/* Paycheck Breakdown view */
+
+.paycheck-inputs-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.paycheck-inputs-section h2 {
+  margin: 0 0 15px 0;
+  color: #333;
+  text-align: center;
+}
+
+.paycheck-input-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 12px;
+}
+
+.paycheck-input-row:last-child {
+  margin-bottom: 0;
+}
+
+.paycheck-input-row label {
+  font-weight: 500;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.paycheck-input-row input {
+  box-sizing: border-box;
+  width: 150px;
+  padding: 8px 12px;
+  border: 2px solid #6f42c1;
+  border-radius: 6px;
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #6f42c1;
+  text-align: center;
+  background: white;
+}
+
+.paycheck-input-row input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.25);
+  background: #f8f9ff;
+}
+
+.post-tax-heading {
+  margin: 10px 0 0 0;
+  color: #333;
+  text-align: center;
+}
+
+.leftover-section {
+  border: 2px solid #6f42c1;
+}
+
+.leftover-total {
+  font-size: 1.4em !important;
+  color: #6f42c1 !important;
+  font-weight: 700 !important;
+}
