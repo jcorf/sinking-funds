@@ -111,13 +111,12 @@ export function InfoPage({startDate}) {
                 <div className="content">
                     <div className="info">
                         <div className="info-box"><div className="description">saved: $</div><TextField ref={savedRef} value={categoryData['saved']}
-                                                                     fieldName='saved' categoryName={categoryName}/></div>
+                                                                     fieldName='saved'/></div>
                         <div className="info-box"><div className="description">goal: $</div><TextField ref={goalRef} value={categoryData['goal']}
                                                                     fieldName='goal'
-                                                                    categoryName={categoryName}
                         /></div>
                         <div className="info-box"><div className="description">by:&nbsp;</div><TextField ref={goalDateRef} value={categoryData['goal_date']}
-                                                                      fieldName='goal_date'  categoryName={categoryName}/></div>
+                                                                      fieldName='goal_date'/></div>
                         <div>to save: ${categoryData['calculated_to_save']}</div>
                     </div>
                     <div className="table-container">

@@ -2,7 +2,7 @@ import React, {useEffect, useState, useImperativeHandle, forwardRef} from "react
 import {updateField} from "../../utils/api";
 import {useNavigate, useParams} from "react-router-dom";
 
-const TextField = forwardRef(({value, fieldName, categoryName, startDate}, ref) => {
+const TextField = forwardRef(({value, fieldName}, ref) => {
 
     const {id, categoryName2} = useParams();
     const [oldValue, setOldValue] = useState({value});
@@ -20,12 +20,12 @@ const TextField = forwardRef(({value, fieldName, categoryName, startDate}, ref) 
             if (text.value !== oldValue) {
                 setOldValue(text.value);
                 setEditingField(null); // Exit editing mode
-                if (field !== "category") {
-                    updateField(field, text.value, categoryName, startDate);
-                }
-                else {
-                    updateField(field, text.value, id, "id", startDate);
-                }
+                // Always identify the row by id, not by category name: if this
+                // field and the category name are both being saved together,
+                // a name change would make a name-based lookup for any other
+                // field miss the row (it's already renamed by the time that
+                // request is processed).
+                updateField(field, text.value, id, "id");
                 return true; // Indicate that a save occurred
             }
             return false; // No save needed
@@ -65,12 +65,7 @@ const TextField = forwardRef(({value, fieldName, categoryName, startDate}, ref) 
             setOldValue(text.value);
             e.preventDefault(); // Prevent browser save dialog
             setEditingField(null); // Exit editing mode
-            if (field !== "category") {
-                updateField(field, text.value, categoryName, startDate);
-            }
-            else {
-                updateField(field, text.value, id, "id", startDate);
-            }
+            updateField(field, text.value, id, "id");
             goToSinkingFunds()
         }
 

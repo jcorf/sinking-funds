@@ -1,7 +1,7 @@
 .budget-categories {
   padding: 20px;
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 60px auto 0; /* Add margin to account for fixed navbar */
 }
 
 .budget-categories h1 {
