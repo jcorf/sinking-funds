@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import {BrowserRouter as Router, Link, Route, Routes} from "react-router-dom";
 
 import './App.css';
@@ -8,14 +8,39 @@ import {InfoPage} from "./components/whole-view/InfoPage/InfoPage";
 import Recalculate from "./components/whole-view/Recalculate/Recalculate";
 import Dashboard from "./components/whole-view/Dashboard/Dashboard";
 import CreditCards from "./components/whole-view/CreditCards/CreditCards";
+import Login from "./components/whole-view/Login/Login";
 import {getTodayDate} from "./components/utils/lib";
+import {getSession, logout} from "./components/utils/api";
 
 export default function App() {
     const [startDate, setStartDate] = useState(getTodayDate());
-    console.log(startDate)
+    const [authChecked, setAuthChecked] = useState(false);
+    const [authenticated, setAuthenticated] = useState(false);
+
+    useEffect(() => {
+        getSession().then((session) => {
+            setAuthenticated(!!session.authenticated);
+            setAuthChecked(true);
+        });
+    }, []);
+
     function updateStartDate(date) {
         setStartDate(date);
     }
+
+    async function handleLogout() {
+        await logout();
+        setAuthenticated(false);
+    }
+
+    if (!authChecked) {
+        return null;
+    }
+
+    if (!authenticated) {
+        return <Login onLoginSuccess={() => setAuthenticated(true)} />;
+    }
+
     return (
         <Router>
             <div>
@@ -26,6 +51,7 @@ export default function App() {
                         <span className="nav-bar-buttons"> <Link to="/credit-cards">Credit Cards</Link></span>
                         <span className="nav-bar-buttons"> <Link to="/recalculate">Recalculate</Link></span>
                     </nav>
+                    <span className="nav-bar-buttons logout-button" onClick={handleLogout}>Log out</span>
                 </div>
                 <div>
                     <Routes>

@@ -42,18 +42,46 @@ else
     echo "ℹ️  No existing database found at $DATABASE_PATH, skipping backup"
 fi
 
-# Check if Python dependencies are installed
-echo "🔍 Checking Python dependencies..."
-cd src/paycheck
-if ! python -c "import flask, flask_cors" 2>/dev/null; then
-    echo "⚠️  Flask dependencies not found. Installing..."
-    pip install flask flask-cors
+# Set up the Python virtual environment and install dependencies
+echo "🔍 Checking Python virtual environment..."
+if [ ! -d "src/paycheck/venv" ]; then
+    echo "📦 Creating virtual environment at src/paycheck/venv..."
+    python3 -m venv src/paycheck/venv
+fi
+source src/paycheck/venv/bin/activate
+pip install -q -r src/paycheck/requirements.txt
+
+# Set up a login for the app on first run, stored in a gitignored .env file
+ENV_FILE=".env"
+if [ ! -f "$ENV_FILE" ]; then
+    echo ""
+    echo "🔐 No .env file found — let's set up a login for this app."
+    read -p "Choose a username: " NEW_APP_USERNAME
+    read -s -p "Choose a password: " NEW_APP_PASSWORD
+    echo ""
+    NEW_APP_PASSWORD_HASH=$(python -c "from werkzeug.security import generate_password_hash; import sys; print(generate_password_hash(sys.argv[1]))" "$NEW_APP_PASSWORD")
+    NEW_FLASK_SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
+    # Values are single-quoted because the password hash contains '$' characters
+    # (e.g. scrypt:32768:8:1$salt$hash) which `source` would otherwise try to
+    # expand as shell variables, silently corrupting the hash.
+    cat > "$ENV_FILE" <<EOF
+APP_USERNAME='$NEW_APP_USERNAME'
+APP_PASSWORD_HASH='$NEW_APP_PASSWORD_HASH'
+FLASK_SECRET_KEY='$NEW_FLASK_SECRET_KEY'
+EOF
+    echo "✅ Saved your login to $ENV_FILE (gitignored — never committed)"
 fi
 
+set -a
+source "$ENV_FILE"
+set +a
+
 # Start Flask backend
-echo "🐍 Starting Flask backend on http://127.0.0.1:5000..."
+echo "🐍 Starting Flask backend on http://127.0.0.1:5001..."
+cd src/paycheck
 python flask-connector.py &
 FLASK_PID=$!
+cd ../..
 
 # Wait a moment for Flask to start
 sleep 3
@@ -68,7 +96,7 @@ echo "✅ Flask backend started (PID: $FLASK_PID)"
 
 # Start React frontend
 echo "⚛️  Starting React frontend on http://localhost:3000..."
-cd ../../web-app/app
+cd web-app/app
 
 # Check if node_modules exists
 if [ ! -d "node_modules" ]; then
@@ -93,8 +121,9 @@ echo "✅ React frontend started (PID: $REACT_PID)"
 
 echo ""
 echo "🎉 Sinking Funds Calculator is running!"
-echo "📊 Backend:  http://127.0.0.1:5000"
+echo "📊 Backend:  http://127.0.0.1:5001"
 echo "🌐 Frontend: http://localhost:3000"
+echo "🔑 Log in with the username/password from .env"
 echo ""
 echo "Press Ctrl+C to stop both servers"
 

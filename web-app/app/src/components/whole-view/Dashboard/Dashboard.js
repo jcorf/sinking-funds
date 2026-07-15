@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import PieChart from './PieChart';
 import BulletList from './BulletList';
+import {url} from "../../utils/lib";
 
 const Dashboard = () => {
     const [summary, setSummary] = useState({
@@ -29,7 +30,7 @@ const Dashboard = () => {
 
     const fetchSummaryData = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:5000/get_data');
+            const response = await fetch(url('/get_data'), {credentials: 'include'});
             const data = await response.json();
             
             if (data.data && Array.isArray(data.data)) {
