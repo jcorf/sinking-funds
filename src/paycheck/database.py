@@ -150,11 +150,15 @@ def get_ids():
 
 
 VALID_SAVINGS_FIELDS = {"category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order"}
+# "id" is never something you'd SET via this endpoint, but it's a legitimate
+# way to FILTER which row to update (e.g. renaming a category, or any update
+# that needs to survive a category name changing in the same request).
+VALID_SAVINGS_FILTER_FIELDS = VALID_SAVINGS_FIELDS | {"id"}
 
 
 def update_field(field_to_change, new_value, filter_value, field_filter="category"):
     try:
-        if field_to_change not in VALID_SAVINGS_FIELDS or field_filter not in VALID_SAVINGS_FIELDS:
+        if field_to_change not in VALID_SAVINGS_FIELDS or field_filter not in VALID_SAVINGS_FILTER_FIELDS:
             print(f"Rejected update: invalid field name {field_to_change!r}/{field_filter!r}")
             return False
         if (validate_primary_key(filter_value)):
