@@ -438,6 +438,98 @@ def setup_default_credit_cards():
     return True
 
 
+# BUDGET CATEGORY FUNCTIONS
+#
+# All budget categories are assumed to recur on the semi-monthly paycheck
+# schedule. The table still has a legacy `frequency` column (unused, kept
+# only because dropping it would mean altering an existing user's table),
+# but the app no longer reads or writes it.
+
+VALID_BUDGET_CATEGORY_FIELDS = {"category", "amount"}
+
+
+def setup_budget_categories_database():
+    execute_query('''
+    CREATE TABLE IF NOT EXISTS budget_categories (
+        id INTEGER PRIMARY KEY,
+        category TEXT UNIQUE NOT NULL,
+        amount REAL NOT NULL DEFAULT 0,
+        frequency TEXT NOT NULL DEFAULT 'paycheck',
+        display_order INTEGER DEFAULT 0,
+        last_updated DATE NOT NULL
+    )
+    ''')
+    print("SET UP budget categories database")
+    return True
+
+
+def add_budget_category(category, amount=0):
+    try:
+        max_order_query = "SELECT COALESCE(MAX(display_order), -1) FROM budget_categories"
+        max_order_result = select_query(max_order_query)
+        next_order = max_order_result[0][0] + 1 if max_order_result else 0
+
+        query = """INSERT INTO budget_categories (category, amount, frequency, display_order, last_updated)
+                                              VALUES (?, ?, 'paycheck', ?, ?)"""
+        execute_query(query, category, amount, next_order, nowString())
+        print(f"ADDED {category} to budget categories database")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def get_all_budget_categories():
+    if not table_exists('budget_categories'):
+        print("Budget categories table doesn't exist, creating it...")
+        setup_budget_categories_database()
+        print("✅ Budget categories table created")
+
+    query = "SELECT id, category, amount, display_order FROM budget_categories ORDER BY display_order"
+    rows = select_query(query)
+    cols = ["id", "category", "amount", "display_order"]
+    return [listToDict(row, cols) for row in rows]
+
+
+def update_budget_category_field(field_to_change, new_value, category):
+    try:
+        if field_to_change not in VALID_BUDGET_CATEGORY_FIELDS:
+            print(f"Rejected update: invalid field name {field_to_change!r}")
+            return False
+
+        query = f"UPDATE budget_categories SET {field_to_change} = ?, last_updated = ? WHERE category = ?"
+        execute_query(query, new_value, nowString(), category)
+        print(f"UPDATED budget category {category} {field_to_change} to {new_value}")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def delete_budget_category(category):
+    try:
+        query = "DELETE FROM budget_categories WHERE category = ?"
+        execute_query(query, category)
+        print(f"DELETED budget category {category}")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def update_budget_category_order(card_orders):
+    """Update the display order for multiple budget categories"""
+    try:
+        for order, card_id in enumerate(card_orders):
+            query = "UPDATE budget_categories SET display_order = ? WHERE id = ?"
+            execute_query(query, order, card_id)
+        print(f"UPDATED budget category order for {len(card_orders)} categories")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
 # TESTS
 if False:
     print("----------------")

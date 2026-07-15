@@ -23,7 +23,9 @@ from database import (update_field, setup_database, delete_database,
                       setup_credit_cards_database, add_credit_card, get_all_credit_cards, get_credit_card_info,
                       update_credit_card_balance, delete_credit_card, setup_default_credit_cards,
                       setup_ally_bank_database, get_ally_bank_balance, update_ally_bank_balance,
-                      update_covered_sub_balances, update_pending_sub_balances, update_credit_card_order, add_display_order_to_credit_cards
+                      update_covered_sub_balances, update_pending_sub_balances, update_credit_card_order, add_display_order_to_credit_cards,
+                      add_budget_category, get_all_budget_categories, update_budget_category_field,
+                      delete_budget_category, update_budget_category_order
                      )
 from paycheck import saved_by_paycheck, save_per_paycheck
 from utils.utils import nowString
@@ -353,6 +355,55 @@ def update_credit_card_order_route():
 def add_display_order_column_route():
     """Migration endpoint to add display_order column to existing credit_cards table"""
     result = add_display_order_to_credit_cards()
+    return jsonify({"success": result})
+
+
+# BUDGET CATEGORY ROUTES
+
+@app.route('/get_budget_categories', methods=['GET'])
+@login_required
+def get_budget_categories_route():
+    result = get_all_budget_categories()
+    return jsonify({"data": result})
+
+
+@app.route('/add_budget_category', methods=['POST', 'PUT'])
+@login_required
+def add_budget_category_route():
+    data = request.get_json()
+    category = data.get('category')
+    amount = data.get('amount', 0)
+    result = add_budget_category(category, float(amount))
+    return jsonify(result)
+
+
+@app.route('/update_budget_category', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_budget_category_route():
+    data = request.get_json()
+    category = data.get('category')
+    field_to_change = data.get('field_to_change')
+    new_value = data.get('new_value')
+    result = update_budget_category_field(field_to_change, new_value, category)
+    return jsonify({"success": result})
+
+
+@app.route('/remove_budget_category', methods=['DELETE'])
+@login_required
+def remove_budget_category_route():
+    data = request.get_json()
+    category = data.get('category')
+    result = delete_budget_category(category)
+    return jsonify(result)
+
+
+@app.route('/update_budget_category_order', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_budget_category_order_route():
+    card_orders = request.get_json().get('card_orders', [])
+    result = update_budget_category_order(card_orders)
     return jsonify({"success": result})
 
 

@@ -203,3 +203,81 @@ export async function updateCreditCardOrder(cardOrders) {
         return false;
     }
 }
+
+export async function getBudgetCategories() {
+    try {
+        const response = await fetch(url('/get_budget_categories'), {credentials: 'include'});
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching budget categories:', error);
+        return {data: []};
+    }
+}
+
+export async function addBudgetCategory(category, amount) {
+    try {
+        const response = await fetch(url('/add_budget_category'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category, amount }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error adding budget category:", error);
+        return false;
+    }
+}
+
+export async function updateBudgetCategory(category, field, value) {
+    try {
+        const response = await fetch(url('/update_budget_category'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category, field_to_change: field, new_value: value }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating budget category:", error);
+        return false;
+    }
+}
+
+export async function deleteBudgetCategory(category) {
+    try {
+        const response = await fetch(url('/remove_budget_category'), {
+            method: "DELETE",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error deleting budget category:", error);
+        return false;
+    }
+}
+
+export async function updateBudgetCategoryOrder(cardOrders) {
+    try {
+        const response = await fetch(url('/update_budget_category_order'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ card_orders: cardOrders }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating budget category order:", error);
+        return false;
+    }
+}
