@@ -25,7 +25,10 @@ from database import (update_field, setup_database, delete_database,
                       setup_ally_bank_database, get_ally_bank_balance, update_ally_bank_balance,
                       update_covered_sub_balances, update_pending_sub_balances, update_credit_card_order, add_display_order_to_credit_cards,
                       add_budget_category, get_all_budget_categories, update_budget_category_field,
-                      delete_budget_category, update_budget_category_order
+                      delete_budget_category, update_budget_category_order,
+                      get_paycheck_settings, update_paycheck_settings_field,
+                      add_post_tax_contribution, get_all_post_tax_contributions, update_post_tax_contribution_field,
+                      delete_post_tax_contribution, update_post_tax_contribution_order
                      )
 from paycheck import saved_by_paycheck, save_per_paycheck
 from utils.utils import nowString
@@ -404,6 +407,75 @@ def remove_budget_category_route():
 def update_budget_category_order_route():
     card_orders = request.get_json().get('card_orders', [])
     result = update_budget_category_order(card_orders)
+    return jsonify({"success": result})
+
+
+# PAYCHECK SETTINGS ROUTES
+
+@app.route('/get_paycheck_settings', methods=['GET'])
+@login_required
+def get_paycheck_settings_route():
+    result = get_paycheck_settings()
+    return jsonify(result)
+
+
+@app.route('/update_paycheck_settings', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_paycheck_settings_route():
+    data = request.get_json()
+    field_to_change = data.get('field_to_change')
+    new_value = data.get('new_value')
+    result = update_paycheck_settings_field(field_to_change, new_value)
+    return jsonify({"success": result})
+
+
+# POST-TAX CONTRIBUTION ROUTES
+
+@app.route('/get_post_tax_contributions', methods=['GET'])
+@login_required
+def get_post_tax_contributions_route():
+    result = get_all_post_tax_contributions()
+    return jsonify({"data": result})
+
+
+@app.route('/add_post_tax_contribution', methods=['POST', 'PUT'])
+@login_required
+def add_post_tax_contribution_route():
+    data = request.get_json()
+    category = data.get('category')
+    amount = data.get('amount', 0)
+    result = add_post_tax_contribution(category, float(amount))
+    return jsonify(result)
+
+
+@app.route('/update_post_tax_contribution', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_post_tax_contribution_route():
+    data = request.get_json()
+    category = data.get('category')
+    field_to_change = data.get('field_to_change')
+    new_value = data.get('new_value')
+    result = update_post_tax_contribution_field(field_to_change, new_value, category)
+    return jsonify({"success": result})
+
+
+@app.route('/remove_post_tax_contribution', methods=['DELETE'])
+@login_required
+def remove_post_tax_contribution_route():
+    data = request.get_json()
+    category = data.get('category')
+    result = delete_post_tax_contribution(category)
+    return jsonify(result)
+
+
+@app.route('/update_post_tax_contribution_order', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_post_tax_contribution_order_route():
+    card_orders = request.get_json().get('card_orders', [])
+    result = update_post_tax_contribution_order(card_orders)
     return jsonify({"success": result})
 
 

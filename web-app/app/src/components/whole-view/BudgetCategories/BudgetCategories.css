@@ -10,6 +10,36 @@
   color: #333;
 }
 
+.view-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.view-toggle-btn {
+  box-sizing: border-box;
+  padding: 8px 20px;
+  border: 2px solid #6f42c1;
+  border-radius: 20px;
+  background: transparent;
+  color: #6f42c1;
+  cursor: pointer;
+  font-size: 0.95em;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.view-toggle-btn:hover {
+  opacity: 0.85;
+}
+
+.view-toggle-btn.selected {
+  background: #6f42c1;
+  color: white;
+}
+
 .categories-container {
   display: flex;
   flex-direction: column;
@@ -226,4 +256,73 @@
   .budget-categories {
     padding: 100px;
   }
+}
+
+/* Paycheck Breakdown view */
+
+.paycheck-inputs-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.paycheck-inputs-section h2 {
+  margin: 0 0 15px 0;
+  color: #333;
+  text-align: center;
+}
+
+.paycheck-input-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 12px;
+}
+
+.paycheck-input-row:last-child {
+  margin-bottom: 0;
+}
+
+.paycheck-input-row label {
+  font-weight: 500;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.paycheck-input-row input {
+  box-sizing: border-box;
+  width: 150px;
+  padding: 8px 12px;
+  border: 2px solid #6f42c1;
+  border-radius: 6px;
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #6f42c1;
+  text-align: center;
+  background: white;
+}
+
+.paycheck-input-row input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.25);
+  background: #f8f9ff;
+}
+
+.post-tax-heading {
+  margin: 10px 0 0 0;
+  color: #333;
+  text-align: center;
+}
+
+.leftover-section {
+  border: 2px solid #6f42c1;
+}
+
+.leftover-total {
+  font-size: 1.4em !important;
+  color: #6f42c1 !important;
+  font-weight: 700 !important;
 }
