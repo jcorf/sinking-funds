@@ -18,6 +18,10 @@
 
 set -e
 
+# Run from the repo root no matter where the script was invoked from, since
+# every path below is relative to it.
+cd "$(dirname "$0")"
+
 REAL_DB="src/paycheck/sinkingFunds.db"
 TEST_DB="src/paycheck/sinkingFunds_test.db"
 TEST_API_PORT=5002

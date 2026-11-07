@@ -5,6 +5,10 @@
 
 set -e  # Exit on any error
 
+# Run from the repo root no matter where the script was invoked from, since
+# every path below is relative to it.
+cd "$(dirname "$0")"
+
 echo "🚀 Starting Sinking Funds Calculator..."
 
 # Function to handle cleanup on script exit
