@@ -298,6 +298,31 @@
     border-top: 1px solid var(--line);
 }
 
+.ct-slider-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Quiet text-style action */
+.ct-link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--sage);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ct-link:hover,
+.ct-link:focus-visible {
+    text-decoration: underline;
+    outline: none;
+}
+
 .ct-slider-head label {
     font-size: 1rem;
 }
@@ -656,5 +681,178 @@
 
     .ct-add .ct-fields {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ---------- Periods ---------- */
+
+.ct-periods-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ct-periods-head h3 {
+    margin: 0;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 1.25rem;
+}
+
+.ct-periods-hint {
+    margin: 4px 0 14px;
+    font-size: 0.92rem;
+}
+
+.ct-match {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    margin-bottom: 14px;
+    font-size: 0.95rem;
+}
+
+.ct-match > span:first-child {
+    font-weight: 600;
+}
+
+.ct-small {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.ct-small input {
+    box-sizing: border-box;
+    width: 64px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: #fff;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: right;
+    color: var(--sage-ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ct-small:has(.ct-small-suffix) input {
+    padding-right: 24px;
+}
+
+.ct-small-suffix {
+    position: absolute;
+    right: 10px;
+    color: var(--sage-ink-muted);
+    pointer-events: none;
+}
+
+.ct-small input:hover {
+    border-color: var(--sage);
+}
+
+.ct-small input:focus {
+    outline: none;
+    border-color: var(--sage);
+    box-shadow: 0 0 0 3px var(--sage-ring);
+}
+
+.ct-small.is-disabled input {
+    border-color: transparent;
+    background: transparent;
+}
+
+.ct-period-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ct-period {
+    display: grid;
+    grid-template-columns: minmax(120px, 1.2fr) auto auto minmax(0, 1.4fr) auto;
+    align-items: end;
+    gap: 8px 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--sage-tint);
+}
+
+.ct-period-when {
+    align-self: center;
+    font-weight: 600;
+}
+
+.ct-period-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.ct-period-field .sf-money,
+.ct-period-field .sf-money input {
+    width: 130px;
+}
+
+.ct-period-result {
+    align-self: center;
+    min-width: 0;
+    font-size: 0.95rem;
+    color: var(--sage-ink-muted);
+}
+
+.ct-period-result strong {
+    color: var(--sage-ink);
+}
+
+.ct-period-remove {
+    align-self: center;
+}
+
+.ct-period-note {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.88rem;
+}
+
+.ct-add-period {
+    display: block;
+    margin-top: 12px;
+}
+
+.ct-status {
+    margin: 14px 0 0;
+    line-height: 1.5;
+}
+
+.ct-over {
+    color: var(--sage-error);
+}
+
+@media (max-width: 700px) {
+    .ct-period {
+        grid-template-columns: 1fr 1fr auto;
+    }
+
+    .ct-period-when {
+        grid-column: 1 / -1;
+    }
+
+    .ct-period-result {
+        grid-column: 1 / -1;
+    }
+
+    .ct-period-field .sf-money,
+    .ct-period-field .sf-money input {
+        width: 100%;
     }
 }

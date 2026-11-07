@@ -34,3 +34,69 @@ export function countForAmount(remaining, available, amount) {
     if (!(amount > 0) || remaining <= 0) return available;
     return Math.min(Math.max(1, Math.ceil(remaining / amount - 1e-9)), available);
 }
+
+// Contribute different amounts over up to three back-to-back periods.
+//
+//   periods  [{ count, amount }], first period starting with the next paycheck.
+//            `amount` is dollars per paycheck, or null for "the rest": whatever
+//            the fixed periods leave, shared evenly by the open periods.
+//
+// Paychecks after the last period get nothing. `diff` says how far the plan is
+// from the maximum: positive means short, negative means over.
+export function buildPeriodPlan({ annualMax, ytd, paydays, periods }) {
+    const remaining = Math.max(0, toCents(annualMax - ytd));
+    const available = paydays.length;
+    let used = 0;
+    const spans = periods.map((p) => {
+        const count = Math.max(0, Math.min(Math.round(Number(p.count)) || 0, available - used));
+        const open = p.amount === null || p.amount === undefined || p.amount === '';
+        const span = { start: used, count, open, fixed: open ? 0 : Math.max(0, Number(p.amount) || 0) };
+        used += count;
+        return span;
+    });
+
+    const fixedTotal = toCents(spans.reduce((sum, p) => sum + (p.open ? 0 : p.fixed * p.count), 0));
+    const openCount = spans.reduce((sum, p) => sum + (p.open ? p.count : 0), 0);
+    const pool = Math.max(0, toCents(remaining - fixedTotal));
+    const openPer = openCount ? Math.ceil((pool / openCount) * 100 - 1e-9) / 100 : 0;
+
+    const amounts = new Array(available).fill(0);
+    let openSeen = 0;
+    spans.forEach((p) => {
+        for (let i = 0; i < p.count; i += 1) {
+            if (!p.open) {
+                amounts[p.start + i] = p.fixed;
+            } else {
+                openSeen += 1;
+                // The last open paycheck takes up the cents.
+                amounts[p.start + i] = openSeen === openCount ? Math.max(0, toCents(pool - openPer * (openCount - 1))) : openPer;
+            }
+        }
+    });
+
+    let running = toCents(ytd);
+    const rows = paydays.map((date, i) => {
+        running = toCents(running + amounts[i]);
+        return { date, amount: amounts[i], total: running };
+    });
+    const total = toCents(amounts.reduce((sum, a) => sum + a, 0));
+    const lastIndex = amounts.reduce((last, a, i) => (a > 0 ? i : last), -1);
+
+    return {
+        remaining,
+        available,
+        rows,
+        total,
+        diff: toCents(remaining - total),
+        reached: remaining === 0,
+        lastDate: lastIndex >= 0 ? paydays[lastIndex] : null,
+        spans: spans.map((p) => ({
+            count: p.count,
+            open: p.open,
+            per: p.count ? amounts[p.start] : 0,
+            startDate: p.count ? paydays[p.start] : null,
+            endDate: p.count ? paydays[p.start + p.count - 1] : null,
+        })),
+        usedCount: used,
+    };
+}

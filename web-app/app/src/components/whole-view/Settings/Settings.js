@@ -146,6 +146,15 @@ export default function Settings() {
                     <Rule label="Which paychecks" detail="The rest stay at $0 once you reach the maximum">
                         The next ones, starting with the first after “as of”
                     </Rule>
+                    <Rule label="Periods" detail="Up to three back-to-back stretches of paychecks, starting with the next one">
+                        Each has its own amount per paycheck
+                    </Rule>
+                    <Rule label="The rest" detail="Leave an amount empty: the open periods share what the fixed ones leave, and the last paycheck takes up any cents">
+                        Left to contribute − fixed amounts
+                    </Rule>
+                    <Rule label="Match minimum" detail="A reminder only: a period under it just gets a note, since a smaller contribution earns a smaller match">
+                        Match % × Gross Pay
+                    </Rule>
                     <Rule label="Percent, pre-tax accounts" detail="The % switch uses gross pay">
                         Per paycheck ÷ Gross Pay
                     </Rule>

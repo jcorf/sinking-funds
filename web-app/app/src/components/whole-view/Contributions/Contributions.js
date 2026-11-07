@@ -19,9 +19,9 @@ import {
     updatePreTaxBenefit,
 } from '../../utils/api';
 import { getTodayDate } from '../../utils/lib';
-import { MoneyInput } from '../SinkingFunds/GoalParts';
+import { MoneyInput, parseMoney } from '../SinkingFunds/GoalParts';
 import { formatDate, formatMoney, plural, toCents } from '../SinkingFunds/goalMath';
-import { buildPlan, countForAmount } from './contributionMath';
+import { buildPeriodPlan, buildPlan, countForAmount } from './contributionMath';
 import './Contributions.css';
 
 // Plan a yearly maximum (401k, Roth IRA, HSA...) across the paychecks left.
@@ -53,6 +53,8 @@ const LIST_TARGETS = {
 };
 
 const shortDate = (d) => formatDate(d, { weekday: true, year: false });
+// Period ranges read better without weekdays: "Jan 15 – May 29".
+const plainDate = (d) => formatDate(d, { year: false });
 // "As of" before the year's first paycheck, so all 24 paychecks are still ahead.
 const yearStart = (paydays) => `${paydays[0].slice(0, 4)}-01-01`;
 // Each account remembers whether it shows dollars, a percent of gross pay, or
@@ -126,7 +128,7 @@ function PercentInput({ value, label, onCommit, disabled }) {
     );
 }
 
-function ApplyPanel({ plan, perPaycheck, stopsAfter, onClose }) {
+function ApplyPanel({ plan, perPaycheck, afterNote, onClose }) {
     const targets = TARGETS[plan.tax_type] || TARGETS.pre;
     const [target, setTarget] = useState(targets.some((t) => t.key === plan.apply_to) ? plan.apply_to : targets[0].key);
     const [current, setCurrent] = useState(undefined); // undefined = loading
@@ -184,9 +186,7 @@ function ApplyPanel({ plan, perPaycheck, stopsAfter, onClose }) {
                 <p className="ct-apply-note sf-muted">Checking your Paycheck page…</p>
             ) : state === 'done' ? (
                 <p className="ct-apply-note ct-ok" role="status">
-                    Done. {where} is now {formatMoney(perPaycheck)}. {stopsAfter
-                        ? `Set it back after ${shortDate(stopsAfter)}, when you reach the maximum.`
-                        : ''}
+                    Done. {where} is now {formatMoney(perPaycheck)}. {afterNote}
                 </p>
             ) : (
                 <p className="ct-apply-note">
@@ -204,6 +204,248 @@ function ApplyPanel({ plan, perPaycheck, stopsAfter, onClose }) {
                 )}
                 <button type="button" className="ct-pill" onClick={onClose}>{state === 'done' ? 'Close' : 'Cancel'}</button>
             </div>
+        </div>
+    );
+}
+
+
+// `periods` is stored as JSON text (see the backend): null means "use the slider".
+function parsePeriods(text) {
+    if (!text) return null;
+    try {
+        const list = JSON.parse(text);
+        return Array.isArray(list) && list.length ? list : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// A money box where empty means "the rest".
+function OptionalMoneyInput({ value, label, placeholder, disabled, onCommit }) {
+    const format = (v) => (v === null || v === undefined ? '' : Number(v).toFixed(2));
+    const [text, setText] = useState(format(value));
+    const focused = useRef(false);
+
+    useEffect(() => {
+        if (!focused.current) setText(format(value));
+    }, [value]);
+
+    const commit = () => {
+        focused.current = false;
+        const trimmed = text.trim();
+        if (trimmed === '') {
+            setText('');
+            if (value !== null && value !== undefined) onCommit(null);
+            return;
+        }
+        const amount = parseMoney(trimmed);
+        setText(amount.toFixed(2));
+        if (amount !== value) onCommit(amount);
+    };
+
+    return (
+        <span className={`sf-money ${disabled ? 'is-disabled' : ''}`}>
+            <span className="sf-money-sign" aria-hidden="true">$</span>
+            <input
+                type="text"
+                inputMode="decimal"
+                aria-label={label}
+                placeholder={placeholder}
+                value={text}
+                disabled={disabled}
+                onFocus={(e) => {
+                    focused.current = true;
+                    e.target.select();
+                }}
+                onChange={(e) => setText(e.target.value)}
+                onBlur={commit}
+                onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+            />
+        </span>
+    );
+}
+
+// A small whole-number box (how many paychecks), or an optional percent.
+function SmallInput({ value, label, suffix, disabled, optional = false, onCommit }) {
+    const format = (v) => (v === null || v === undefined ? '' : String(Math.round(v * 10) / 10));
+    const [text, setText] = useState(format(value));
+    const focused = useRef(false);
+
+    useEffect(() => {
+        if (!focused.current) setText(format(value));
+    }, [value]);
+
+    const commit = () => {
+        focused.current = false;
+        const trimmed = text.trim();
+        if (trimmed === '' && optional) {
+            setText('');
+            if (value !== null && value !== undefined) onCommit(null);
+            return;
+        }
+        const n = parseFloat(trimmed);
+        if (!(n >= 0) || (!optional && n < 1)) {
+            setText(format(value));
+            return;
+        }
+        setText(format(n));
+        if (n !== value) onCommit(n);
+    };
+
+    return (
+        <span className={`ct-small ${disabled ? 'is-disabled' : ''}`}>
+            <input
+                type="text"
+                inputMode="decimal"
+                aria-label={label}
+                value={text}
+                disabled={disabled}
+                onFocus={(e) => {
+                    focused.current = true;
+                    e.target.select();
+                }}
+                onChange={(e) => setText(e.target.value)}
+                onBlur={commit}
+                onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+            />
+            {suffix && <span className="ct-small-suffix" aria-hidden="true">{suffix}</span>}
+        </span>
+    );
+}
+
+function RowsTable({ rows }) {
+    return (
+        <details className="ct-details">
+            <summary>Paycheck by paycheck</summary>
+            <table className="ct-table">
+                <thead>
+                    <tr>
+                        <th>Paycheck</th>
+                        <th className="ct-right">Contribution</th>
+                        <th className="ct-right">Total so far</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows.map((row) => (
+                        <tr key={row.date} className={row.amount === 0 ? 'ct-skipped' : ''}>
+                            <td>{shortDate(row.date)}</td>
+                            <td className="ct-right">{row.amount === 0 ? '—' : formatMoney(row.amount)}</td>
+                            <td className="ct-right">{formatMoney(row.total)}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </details>
+    );
+}
+
+const MAX_PERIODS = 3;
+
+// Different amounts over back-to-back paychecks, e.g. the last two at the
+// employer match minimum and the rest spread over the first two.
+function PeriodsEditor({ plan, periods, result, pay, locked, onPeriods, onMatch, onBack }) {
+    const isPost = plan.tax_type === 'post';
+    const round1 = (n) => Math.round(n * 10) / 10;
+    const matchPer = plan.match_pct > 0 && pay.gross > 0 ? Math.ceil(pay.gross * plan.match_pct) / 100 : 0;
+    const available = result.available;
+    const used = periods.reduce((sum, p) => sum + p.count, 0);
+
+    const change = (index, fields) => onPeriods(periods.map((p, i) => (i === index ? { ...p, ...fields } : p)));
+    const setCount = (index, count) => {
+        const others = periods.reduce((sum, p, i) => (i === index ? sum : sum + p.count), 0);
+        change(index, { count: Math.max(1, Math.min(Math.round(count), Math.max(1, available - others))) });
+    };
+    const addPeriod = () => {
+        if (periods.length >= MAX_PERIODS) return;
+        if (used < available) {
+            onPeriods([...periods, { count: available - used, amount: null }]);
+        } else {
+            const last = periods[periods.length - 1];
+            if (last.count < 2) return;
+            onPeriods([...periods.slice(0, -1), { ...last, count: last.count - 1 }, { count: 1, amount: null }]);
+        }
+    };
+    const removePeriod = (index) => onPeriods(periods.filter((_, i) => i !== index));
+
+    const percentText = (per) => {
+        if (!(per > 0)) return '';
+        const base = isPost ? pay.net : pay.gross;
+        return base > 0 ? ` · ${round1((per / base) * 100)}% of ${isPost ? 'net pay' : 'gross'}` : '';
+    };
+
+    let status;
+    if (result.diff > 0.004) {
+        status = <p className="ct-status sf-muted">This adds up to {formatMoney(result.total)}, {formatMoney(result.diff)} short of the {formatMoney(result.remaining)} left.</p>;
+    } else if (result.diff < -0.004) {
+        status = <p className="ct-status ct-over">The fixed amounts add up to {formatMoney(-result.diff)} more than what's left.</p>;
+    } else if (result.lastDate) {
+        status = <p className="ct-status">Reaches your maximum on <strong>{shortDate(result.lastDate)}</strong>.{result.usedCount < available && <> Nothing for the last {plural(available - result.usedCount, 'paycheck')}.</>}</p>;
+    }
+
+    return (
+        <div className="ct-periods">
+            <div className="ct-periods-head">
+                <h3>Periods</h3>
+                {!locked && <button type="button" className="ct-link" onClick={onBack}>Back to the slider</button>}
+            </div>
+            <p className="ct-periods-hint sf-muted">
+                Different amounts over back-to-back paychecks. Leave an amount empty for the rest.
+            </p>
+
+            <label className="ct-match">
+                <span>Match minimum</span>
+                <SmallInput value={plan.match_pct} label="Employer match, percent of gross pay" suffix="%" optional disabled={locked} onCommit={onMatch} />
+                <span className="sf-muted">
+                    {matchPer > 0 ? `of gross = ${formatMoney(matchPer)} a paycheck` : 'of gross pay, optional'}
+                </span>
+            </label>
+
+            <ul className="ct-period-list">
+                {periods.map((p, i) => {
+                    const span = result.spans[i];
+                    const under = matchPer > 0 && span && span.count > 0 && span.per > 0 && span.per < matchPer - 0.005;
+                    return (
+                        <li key={i} className="ct-period">
+                            <div className="ct-period-when">
+                                {span && span.count > 0
+                                    ? <>{plainDate(span.startDate)}{span.count > 1 && <> – {plainDate(span.endDate)}</>}</>
+                                    : <span className="sf-muted">No paychecks left for this one</span>}
+                            </div>
+                            <label className="ct-period-field">
+                                <span>Paychecks</span>
+                                <SmallInput value={p.count} label={`Paychecks in period ${i + 1}`} disabled={locked} onCommit={(n) => setCount(i, n)} />
+                            </label>
+                            <label className="ct-period-field">
+                                <span>Amount each</span>
+                                <OptionalMoneyInput value={p.amount} label={`Amount each paycheck in period ${i + 1}`} placeholder="The rest" disabled={locked} onCommit={(amount) => change(i, { amount })} />
+                            </label>
+                            <div className="ct-period-result">
+                                {span && span.count > 0 ? (
+                                    <>
+                                        <strong>{formatMoney(span.per)}</strong> each{percentText(span.per)}
+                                    </>
+                                ) : null}
+                            </div>
+                            {!locked && periods.length > 1 && (
+                                <button type="button" className="ct-icon-btn ct-period-remove" onClick={() => removePeriod(i)} aria-label={`Remove period ${i + 1}`} title="Remove this period">
+                                    <Trash2 size={16} aria-hidden="true" />
+                                </button>
+                            )}
+                            {under && (
+                                <p className="ct-period-note sf-muted">
+                                    Under your {plan.match_pct}% match minimum ({formatMoney(matchPer)}), so the match may be smaller.
+                                    {!locked && <> <button type="button" className="ct-link" onClick={() => change(i, { amount: matchPer })}>Set to {formatMoney(matchPer)}</button></>}
+                                </p>
+                            )}
+                        </li>
+                    );
+                })}
+            </ul>
+
+            {!locked && periods.length < MAX_PERIODS && (used < available || periods[periods.length - 1].count > 1) && (
+                <button type="button" className="ct-link ct-add-period" onClick={addPeriod}>+ Add a period</button>
+            )}
+            {status}
         </div>
     );
 }
@@ -255,6 +497,20 @@ function PlanCard({ plan, paydays, pay, unit, locked, collapsed, onToggle, onUni
         count: dragCount,
     });
 
+    const periods = parsePeriods(plan.periods);
+    const periodView = periods
+        ? buildPeriodPlan({ annualMax: plan.annual_max, ytd: plan.ytd_amount, paydays: upcoming, periods })
+        : null;
+
+    const splitIntoPeriods = () => {
+        const n = Math.max(2, view.count || view.available);
+        const first = Math.ceil(n / 2);
+        const gross = pay.gross;
+        const match = plan.match_pct > 0 && gross > 0 ? Math.ceil(gross * plan.match_pct) / 100 : null;
+        save('periods', JSON.stringify([{ count: first, amount: null }, { count: n - first, amount: match }]));
+    };
+    const savePeriods = (list) => save('periods', JSON.stringify(list));
+
     // A post-tax account's percent is of net pay (it comes out of take-home pay); a
     // pre-tax account's is of gross pay. The note below shows both either way.
     const isPost = plan.tax_type === 'post';
@@ -281,7 +537,9 @@ function PlanCard({ plan, paydays, pay, unit, locked, collapsed, onToggle, onUni
 
     const miniText = view.reached
         ? 'Maximum reached'
-        : view.count > 0
+        : periods
+            ? plural(periods.length, 'period')
+            : view.count > 0
             ? `${showPercent ? `${round1(shownPct)}%` : formatMoney(view.per)} × ${plural(view.count, 'paycheck')}`
             : '';
 
@@ -407,11 +665,27 @@ function PlanCard({ plan, paydays, pay, unit, locked, collapsed, onToggle, onUni
                 </p>
             ) : (
                 <div className="ct-plan">
+                    {periods ? (
+                        <PeriodsEditor
+                            plan={plan}
+                            periods={periods}
+                            result={periodView}
+                            pay={pay}
+                            locked={locked}
+                            onPeriods={savePeriods}
+                            onMatch={(pct) => save('match_pct', pct)}
+                            onBack={() => save('periods', null)}
+                        />
+                    ) : (
+                    <>
                     <div className="ct-slider">
                         <div className="ct-slider-head">
                             <label htmlFor={`ct-slider-${plan.id}`}>
                                 Contribute from <strong>{plural(shownCount, 'paycheck')}</strong> of {view.available}
                             </label>
+                            {!locked && view.available > 1 && (
+                                <button type="button" className="ct-link" onClick={splitIntoPeriods}>Split into periods</button>
+                            )}
                         </div>
                         {view.available > 1 ? (
                             <>
@@ -481,33 +755,22 @@ function PlanCard({ plan, paydays, pay, unit, locked, collapsed, onToggle, onUni
                         )}
                     </div>
 
-                    <details className="ct-details">
-                        <summary>Paycheck by paycheck</summary>
-                        <table className="ct-table">
-                            <thead>
-                                <tr>
-                                    <th>Paycheck</th>
-                                    <th className="ct-right">Contribution</th>
-                                    <th className="ct-right">Total so far</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {view.rows.map((row) => (
-                                    <tr key={row.date} className={row.amount === 0 ? 'ct-skipped' : ''}>
-                                        <td>{shortDate(row.date)}</td>
-                                        <td className="ct-right">{row.amount === 0 ? '—' : formatMoney(row.amount)}</td>
-                                        <td className="ct-right">{formatMoney(row.total)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </details>
+                    </>
+                    )}
+
+                    <RowsTable rows={periods ? periodView.rows : view.rows} />
 
                     {locked ? null : applying ? (
                         <ApplyPanel
                             plan={plan}
-                            perPaycheck={view.per}
-                            stopsAfter={view.count < view.available ? view.lastDate : null}
+                            perPaycheck={periods ? periodView.spans[0].per : view.per}
+                            afterNote={periods
+                                ? (periods.length > 1 && periodView.spans[0].endDate
+                                    ? `Change it after ${shortDate(periodView.spans[0].endDate)}, when the next period starts.`
+                                    : '')
+                                : (view.count < view.available
+                                    ? `Set it back after ${shortDate(view.lastDate)}, when you reach the maximum.`
+                                    : '')}
                             onClose={() => setApplying(false)}
                         />
                     ) : (
