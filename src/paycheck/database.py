@@ -437,6 +437,35 @@ def post_pending_transaction(card_name, index):
         return False
 
 
+def pay_credit_card(card_name, amount):
+    """Record a payment to a card: subtract it from that card's posted balance and
+    from the Allocated (Ally bucket) balance together."""
+    try:
+        amount = round(float(amount), 2)
+        if amount <= 0:
+            print("Payment amount must be positive")
+            return False
+        card = get_credit_card_info(card_name)
+        if not card:
+            print(f"Card {card_name} not found")
+            return False
+        bucket = get_ally_bank_balance()
+        if bucket is None:
+            print("Ally bank balance unavailable")
+            return False
+
+        posted = round(card['posted_transactions'] - amount, 2)
+        total_balance = posted + card['pending_transactions'] - card['covered_transactions']
+        query = "UPDATE credit_cards SET posted_transactions = ?, total_balance = ?, last_updated = ? WHERE card_name = ?"
+        execute_query(query, posted, total_balance, nowString(), card_name)
+        update_ally_bank_balance(round(bucket - amount, 2))
+        print(f"PAID {amount} to {card_name} (posted {card['posted_transactions']} -> {posted})")
+        return True
+    except Exception as e:
+        print("Exception paying credit card:", e)
+        return False
+
+
 def delete_credit_card(card_name):
     try:
         query = "DELETE FROM credit_cards WHERE card_name = ?"

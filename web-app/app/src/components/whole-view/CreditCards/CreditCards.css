@@ -582,6 +582,75 @@
   box-shadow: 0 0 0 3px var(--sage-ring);
 }
 
+/* ---------- Right column: Cards vs bucket, then Pay a card ---------- */
+
+.cc-side {
+  position: sticky;
+  top: calc(var(--nav-height) + 12px);
+  display: grid;
+  gap: 16px;
+}
+
+/* The column sticks as a whole on wide screens; on narrow ones the net panel
+   becomes a bottom sheet instead */
+@media (min-width: 901px) {
+  .cc-side .cc-net {
+    position: static;
+  }
+}
+
+.cc-pay {
+  padding: 20px 20px 22px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(29, 42, 30, 0.06);
+}
+
+.cc-pay-form {
+  display: grid;
+  gap: 12px;
+}
+
+.cc-pay-field {
+  display: grid;
+  gap: 4px;
+  color: var(--sage-ink-muted);
+  font-size: 0.9rem;
+}
+
+.cc-pay-field select,
+.cc-pay-field input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  color: var(--sage-ink);
+}
+
+.cc-pay-field select:focus,
+.cc-pay-field input:focus {
+  outline: none;
+  border-color: var(--sage);
+  box-shadow: 0 0 0 3px var(--sage-ring);
+}
+
+.cc-pay-form .cc-text-button {
+  justify-self: start;
+}
+
+.cc-pay-note {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--sage-ink-muted);
+}
+
+.cc-pay-note.is-ok {
+  color: var(--sage);
+}
+
 /* ---------- Cards vs bucket panel ---------- */
 
 .cc-net {
@@ -690,6 +759,10 @@
 
   .cc-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cc-side {
+    position: static;
   }
 
   /* Rows reflow: name + balance, then the three amounts labelled */

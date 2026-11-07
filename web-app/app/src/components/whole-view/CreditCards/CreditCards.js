@@ -402,6 +402,83 @@ function NetPanel({ totalOwed, bucket, ready, locked, onBucket }) {
 }
 
 /* ---------------------------------------------------------------------------
+   "Pay a card" panel: a payment of any amount comes off the chosen card's
+   Posted balance and off the Allocated (bucket) amount.
+   --------------------------------------------------------------------------- */
+
+function PayPanel({ cards, bucket, onPay }) {
+  const [cardId, setCardId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [paying, setPaying] = useState(false);
+  const [message, setMessage] = useState(null); // { ok, text }
+
+  const card = cards.find((c) => String(c.id) === String(cardId));
+  const value = toCents(amount);
+  const valid = !!card && value > 0;
+  const overBucket = valid && bucket !== null && value > bucket + 0.004;
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!valid || paying) return;
+    setPaying(true);
+    setMessage(null);
+    const ok = await onPay(card, value);
+    setPaying(false);
+    if (ok) {
+      setMessage({ ok: true, text: `Paid ${formatMoney(value)} to ${card.card_name}.` });
+      setAmount('');
+    } else {
+      setMessage({ ok: false, text: "Couldn't record that payment. Check that the app's backend is running." });
+    }
+  };
+
+  return (
+    <aside className="cc-pay" aria-label="Pay a card">
+      <h2 className="cc-net-title">Pay a card</h2>
+      <form onSubmit={submit} className="cc-pay-form">
+        <label className="cc-pay-field">
+          <span>Card</span>
+          <select value={cardId} onChange={(e) => setCardId(e.target.value)}>
+            <option value="">Choose a card…</option>
+            {cards.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.card_name} ({formatMoney(c.total_balance)})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="cc-pay-field">
+          <span>Amount</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </label>
+        {card && toCents(card.total_balance) > 0 && (
+          <button type="button" className="cc-text-button" onClick={() => setAmount(String(toCents(card.total_balance)))}>
+            Use full balance ({formatMoney(card.total_balance)})
+          </button>
+        )}
+        {overBucket && <p className="cc-pay-note">That's more than the {formatMoney(bucket)} allocated.</p>}
+        <button type="submit" className="sf-btn-primary cc-btn-sm" disabled={!valid || paying}>
+          {paying ? 'Paying…' : 'Make payment'}
+        </button>
+        {message && (
+          <p className={message.ok ? 'cc-pay-note is-ok' : 'cc-error'} role={message.ok ? 'status' : 'alert'}>
+            {message.text}
+          </p>
+        )}
+      </form>
+    </aside>
+  );
+}
+
+/* ---------------------------------------------------------------------------
    Page
    --------------------------------------------------------------------------- */
 
@@ -501,6 +578,18 @@ const CreditCards = () => {
   const postPending = async (card, index) => {
     setError('');
     const ok = await postJson('/post_pending_transaction', { card_name: card.card_name, index });
+    await refresh();
+    return ok;
+  };
+
+  const payCard = async (card, amount) => {
+    setError('');
+    const ok = await postJson('/pay_credit_card', { card_name: card.card_name, amount });
+    if (ok) {
+      const fresh = await getAllyBankBalance();
+      cache.bucket = fresh;
+      setBucket(fresh);
+    }
     await refresh();
     return ok;
   };
@@ -670,13 +759,16 @@ const CreditCards = () => {
           </section>
         </div>
 
-        <NetPanel
-          totalOwed={totalOwed}
-          bucket={bucket}
-          ready={loaded && bucketLoaded}
-          locked={locked}
-          onBucket={updateBucket}
-        />
+        <div className="cc-side">
+          <NetPanel
+            totalOwed={totalOwed}
+            bucket={bucket}
+            ready={loaded && bucketLoaded}
+            locked={locked}
+            onBucket={updateBucket}
+          />
+          {!locked && <PayPanel cards={cards} bucket={bucket} onPay={payCard} />}
+        </div>
       </div>
     </div>
   );
