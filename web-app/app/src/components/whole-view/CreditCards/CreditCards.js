@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import useSheetHeight from '../Tools/useSheetHeight';
 import {
   DndContext,
   closestCenter,
@@ -316,6 +317,8 @@ function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onRem
 
 function NetPanel({ totalOwed, bucket, ready, locked, onBucket }) {
   const [expanded, setExpanded] = useState(false);
+  const asideRef = useRef(null);
+  useSheetHeight(asideRef);
   // Until both the cards and the bucket have loaded, show placeholders rather
   // than a net computed from partial data (which flashed red, then green).
   const net = ready && bucket !== null ? toCents(totalOwed - bucket) : null;
@@ -335,7 +338,7 @@ function NetPanel({ totalOwed, bucket, ready, locked, onBucket }) {
   const shownNet = net === null ? '—' : formatMoney(Math.abs(net));
 
   return (
-    <aside className={`cc-net is-${state} ${expanded ? 'is-expanded' : ''}`} aria-label="Cards vs bucket">
+    <aside ref={asideRef} className={`cc-net is-${state} ${expanded ? 'is-expanded' : ''}`} aria-label="Cards vs bucket">
       <button type="button" className="cc-net-bar" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
         <span className="cc-net-bar-item">
           <span className="cc-net-bar-label">{label}</span>

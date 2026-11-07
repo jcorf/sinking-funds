@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import useSheetHeight from '../Tools/useSheetHeight';
 import {
   DndContext,
   closestCenter,
@@ -405,6 +406,8 @@ function MathLine({ label, amount, operator, emphasis }) {
 
 function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross, ready = true }) {
   const [expanded, setExpanded] = useState(false);
+  const asideRef = useRef(null);
+  useSheetHeight(asideRef);
   const available = gross - preTax - taxes - postTax;
   const leftover = available - categories;
   // With no gross pay entered there is nothing to be "over" yet. Until every
@@ -419,6 +422,7 @@ function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross, r
 
   return (
     <aside
+      ref={asideRef}
       className={`bc-math ${expanded ? 'is-expanded' : ''} ${over ? 'is-over' : ''}`}
       aria-label="This Paycheck"
     >
