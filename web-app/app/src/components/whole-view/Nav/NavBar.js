@@ -10,7 +10,7 @@ const LINKS = [
     { to: '/dashboard', label: 'Overview', match: (p) => p === '/' || p.startsWith('/dashboard') },
     // A goal's detail page (/users/:id/:name) belongs to Sinking Funds.
     { to: '/sinking-funds', label: 'Sinking Funds', match: (p) => p.startsWith('/sinking-funds') || p.startsWith('/users/') },
-    { to: '/credit-cards', label: 'CC Payment', match: (p) => p.startsWith('/credit-cards') },
+    { to: '/credit-cards', label: 'Credit Cards', match: (p) => p.startsWith('/credit-cards') },
     { to: '/budget-categories', label: 'Paycheck', match: (p) => p.startsWith('/budget-categories') },
 ];
 

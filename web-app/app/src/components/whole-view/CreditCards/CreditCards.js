@@ -529,7 +529,7 @@ const CreditCards = () => {
   return (
     <div className="cc-page">
       <header className="cc-page-header">
-        <h1>CC Payment</h1>
+        <h1>Credit Cards</h1>
         <button
           type="button"
           className={`cc-lock ${locked ? '' : 'is-unlocked'}`}

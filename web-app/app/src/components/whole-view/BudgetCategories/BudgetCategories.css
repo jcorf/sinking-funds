@@ -29,7 +29,7 @@
 }
 
 .bc-page h1 {
-  text-align: center;
+  text-align: left;
   margin: 8px 0 32px;
   font-family: var(--serif);
   font-weight: 400;
@@ -41,19 +41,20 @@
 
 .bc-page-header {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* Title on the left like the other pages; Lock on the right */
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   margin: 8px 0 32px;
 }
 
 .bc-page-header h1 {
-  grid-column: 2;
+  grid-column: 1;
   margin: 0;
 }
 
 .bc-lock {
-  grid-column: 3;
+  grid-column: 2;
   justify-self: end;
   display: inline-flex;
   align-items: center;

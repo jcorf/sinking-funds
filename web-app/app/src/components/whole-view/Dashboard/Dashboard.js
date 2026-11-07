@@ -161,7 +161,7 @@ export default function Dashboard() {
     }
     if (net !== null && net > 0.004) {
         todos.push(
-            <TodoItem key="bucket" icon={CreditCard} action="CC Payment" onAction={() => navigate('/credit-cards')}>
+            <TodoItem key="bucket" icon={CreditCard} action="Credit Cards" onAction={() => navigate('/credit-cards')}>
                 <strong>Move {formatMoney(net)} into the bucket.</strong> Your cards owe more than it holds.
             </TodoItem>
         );
