@@ -95,6 +95,11 @@ if [ ! -f ".env" ]; then
 fi
 set -a
 source ".env"
+# Optional test-only login (gitignored test.env) so the test instance can use
+# throwaway credentials without touching the real app's login in .env.
+if [ -f "test.env" ]; then
+    source "test.env"
+fi
 set +a
 
 echo "🐍 Starting test backend on http://127.0.0.1:$TEST_API_PORT..."
