@@ -16,6 +16,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Lock, LockOpen } from 'lucide-react';
 import './BudgetCategories.css';
 import {
   getBudgetCategories,
@@ -246,7 +247,7 @@ function MoneyInput({ id, value, label, onPreview, onCommit }) {
   );
 }
 
-function AmountRow({ item, list }) {
+function AmountRow({ item, list, locked }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -255,38 +256,48 @@ function AmountRow({ item, list }) {
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`bc-row ${isDragging ? 'is-dragging' : ''}`}
+      className={`bc-row ${isDragging ? 'is-dragging' : ''} ${locked ? 'is-locked' : ''}`}
     >
-      <button
-        type="button"
-        className="bc-drag"
-        aria-label={`Reorder ${item.category}`}
-        {...attributes}
-        {...listeners}
-      >
-        <GripIcon />
-      </button>
+      {locked ? (
+        <span className="bc-drag-spacer" aria-hidden="true" />
+      ) : (
+        <button
+          type="button"
+          className="bc-drag"
+          aria-label={`Reorder ${item.category}`}
+          {...attributes}
+          {...listeners}
+        >
+          <GripIcon />
+        </button>
+      )}
       <span className="bc-row-name">{item.category}</span>
-      <MoneyInput
-        value={item.amount}
-        label={`${item.category} per paycheck`}
-        onPreview={(amount) => list.previewAmount(item.id, amount)}
-        onCommit={(amount) => list.commitAmount(item.category, amount)}
-      />
-      <button
-        type="button"
-        className="bc-delete"
-        onClick={() => list.removeItem(item.category)}
-        aria-label={`Delete ${item.category}`}
-        title={`Delete ${item.category}`}
-      >
-        <CloseIcon />
-      </button>
+      {locked ? (
+        <span className="bc-amount-text">{formatCurrency(item.amount || 0)}</span>
+      ) : (
+        <>
+          <MoneyInput
+            value={item.amount}
+            label={`${item.category} per paycheck`}
+            onPreview={(amount) => list.previewAmount(item.id, amount)}
+            onCommit={(amount) => list.commitAmount(item.category, amount)}
+          />
+          <button
+            type="button"
+            className="bc-delete"
+            onClick={() => list.removeItem(item.category)}
+            aria-label={`Delete ${item.category}`}
+            title={`Delete ${item.category}`}
+          >
+            <CloseIcon />
+          </button>
+        </>
+      )}
     </li>
   );
 }
 
-function AmountList({ list, addPlaceholder, emptyText }) {
+function AmountList({ list, addPlaceholder, emptyText, locked }) {
   const [activeId, setActiveId] = useState(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -307,10 +318,13 @@ function AmountList({ list, addPlaceholder, emptyText }) {
     >
       <SortableContext items={list.items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <ul className="bc-list">
-          {list.items.length === 0 && emptyText && <li className="bc-empty">{emptyText}</li>}
+          {list.items.length === 0 && (emptyText || locked) && (
+            <li className="bc-empty">{locked ? 'Nothing here yet. Unlock to add one.' : emptyText}</li>
+          )}
           {list.items.map((item) => (
-            <AmountRow key={item.id} item={item} list={list} />
+            <AmountRow key={item.id} item={item} list={list} locked={locked} />
           ))}
+          {!locked && (
           <li className="bc-add">
             <input
               type="text"
@@ -324,6 +338,7 @@ function AmountList({ list, addPlaceholder, emptyText }) {
               }}
             />
           </li>
+          )}
         </ul>
       </SortableContext>
       <DragOverlay>
@@ -450,6 +465,25 @@ const BudgetCategories = () => {
   const postTaxInvestments = useAmountList(POST_TAX_INVESTMENT_API);
   const postTaxBenefits = useAmountList(POST_TAX_BENEFIT_API);
   const [collapsed, toggleCollapsed] = useCollapsed();
+  // Locked (the default) shows clean read-only amounts; unlock to edit.
+  const [locked, setLocked] = useState(() => {
+    try {
+      return window.localStorage.getItem('budget-categories:locked') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+  const toggleLocked = () => {
+    setLocked((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem('budget-categories:locked', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   // Standing values (the backend field is still called net_pay, but it holds gross pay).
   const [settings, setSettings] = useState({ net_pay: 0, pre_tax_retirement: 0, taxes: 0 });
@@ -489,7 +523,19 @@ const BudgetCategories = () => {
 
   return (
     <div className="bc-page">
-      <h1>Budget Categories</h1>
+      <header className="bc-page-header">
+        <h1>Budget Categories</h1>
+        <button
+          type="button"
+          className={`bc-lock ${locked ? '' : 'is-unlocked'}`}
+          onClick={toggleLocked}
+          aria-pressed={!locked}
+          title={locked ? 'Unlock to edit amounts, reorder, add or delete' : 'Lock to show a clean read-only view'}
+        >
+          {locked ? <Lock size={15} aria-hidden="true" /> : <LockOpen size={15} aria-hidden="true" />}
+          {locked ? 'Unlock to edit' : 'Lock'}
+        </button>
+      </header>
 
       <div className="bc-layout">
         <div className="bc-main">
@@ -505,6 +551,7 @@ const BudgetCategories = () => {
               list={categories}
               addPlaceholder="Add a category…"
               emptyText="No categories yet. Add your first one below."
+              locked={locked}
             />
           </section>
 
@@ -519,13 +566,19 @@ const BudgetCategories = () => {
                   <label className="bc-row-name" htmlFor={id}>
                     {label}
                   </label>
-                  <MoneyInput
-                    id={id}
-                    value={settings[field]}
-                    label={`${label} per paycheck`}
-                    onPreview={previewSetting(field)}
-                    onCommit={commitSetting(field)}
-                  />
+                  {locked ? (
+                    <span className="bc-amount-text" id={id}>
+                      {formatCurrency(settings[field] || 0)}
+                    </span>
+                  ) : (
+                    <MoneyInput
+                      id={id}
+                      value={settings[field]}
+                      label={`${label} per paycheck`}
+                      onPreview={previewSetting(field)}
+                      onCommit={commitSetting(field)}
+                    />
+                  )}
                 </li>
               ))}
             </ul>
@@ -537,7 +590,7 @@ const BudgetCategories = () => {
               collapsed={!!collapsed.preTaxBenefits}
               onToggle={() => toggleCollapsed('preTaxBenefits')}
             >
-              <AmountList list={preTaxBenefits} addPlaceholder="Add a pre-tax benefit…" />
+              <AmountList list={preTaxBenefits} addPlaceholder="Add a pre-tax benefit…" locked={locked} />
             </SetupSection>
 
             <SetupSection
@@ -547,7 +600,7 @@ const BudgetCategories = () => {
               collapsed={!!collapsed.postTaxInvestments}
               onToggle={() => toggleCollapsed('postTaxInvestments')}
             >
-              <AmountList list={postTaxInvestments} addPlaceholder="Add a post-tax investment…" />
+              <AmountList list={postTaxInvestments} addPlaceholder="Add a post-tax investment…" locked={locked} />
             </SetupSection>
 
             <SetupSection
@@ -557,7 +610,7 @@ const BudgetCategories = () => {
               collapsed={!!collapsed.postTaxBenefits}
               onToggle={() => toggleCollapsed('postTaxBenefits')}
             >
-              <AmountList list={postTaxBenefits} addPlaceholder="Add a post-tax benefit…" />
+              <AmountList list={postTaxBenefits} addPlaceholder="Add a post-tax benefit…" locked={locked} />
             </SetupSection>
           </section>
         </div>

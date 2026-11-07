@@ -3,8 +3,9 @@
    page; shared names like .drag-handle would leak into Credit Cards. */
 
 .bc-page {
-  --bc-accent: #6f42c1;
-  --bc-accent-soft: #f3eefb;
+  /* Sage (DESIGN.md direction); was Ledger Purple */
+  --bc-accent: var(--sage);
+  --bc-accent-soft: var(--sage-tint);
   --bc-ink: #212529;
   --bc-ink-2: #495057;
   --bc-ink-3: #6c757d;
@@ -31,6 +32,77 @@
   text-align: center;
   margin: 8px 0 32px;
   color: #333;
+}
+
+.bc-page-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 32px;
+}
+
+.bc-page-header h1 {
+  grid-column: 2;
+  margin: 0;
+}
+
+.bc-lock {
+  grid-column: 3;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--bc-line-strong);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--bc-ink-2);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.bc-lock:hover {
+  border-color: var(--bc-accent);
+  color: var(--bc-accent);
+}
+
+.bc-lock.is-unlocked {
+  border-color: var(--bc-accent);
+  background: var(--bc-accent);
+  color: #fff;
+}
+
+.bc-lock:focus-visible {
+  outline: 3px solid var(--sage-ring);
+  outline-offset: 2px;
+}
+
+/* Locked: read-only amounts aligned where the inputs sit */
+.bc-drag-spacer {
+  flex: none;
+  width: 28px;
+}
+
+.bc-amount-text {
+  flex: none;
+  min-width: 132px;
+  padding-right: 12px;
+  margin-right: 38px;
+  text-align: right;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--bc-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.bc-row.is-locked:hover,
+.bc-row.is-locked:focus-within {
+  background: var(--bc-surface);
 }
 
 .bc-layout {
@@ -110,7 +182,7 @@
 
 .bc-row:hover,
 .bc-row:focus-within {
-  background: #fcfbfe;
+  background: #f8faf4;
 }
 
 .bc-row.is-dragging {
@@ -227,13 +299,13 @@
 }
 
 .bc-money input:hover {
-  border-color: #c5b3e6;
+  border-color: #a9b79a;
 }
 
 .bc-money input:focus {
   outline: none;
   border-color: var(--bc-accent);
-  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.18);
+  box-shadow: 0 0 0 3px var(--sage-ring);
 }
 
 /* Static rows have no delete button; keep inputs aligned with sortable rows. */
@@ -454,6 +526,22 @@
 }
 
 /* ---------- Narrow / zoomed in: math becomes a bottom bar ---------- */
+
+@media (max-width: 600px) {
+  .bc-page-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .bc-page-header h1 {
+    grid-column: 1;
+    text-align: left;
+    font-size: 1.6rem;
+  }
+
+  .bc-lock {
+    grid-column: 2;
+  }
+}
 
 @media (max-width: 900px) {
   .bc-page {

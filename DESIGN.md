@@ -155,7 +155,7 @@ A neutral base moving to **muted sage green** as the one app-wide color. Purple 
 - **Sage Error** (`sage-error`): error text and invalid-field borders on sage surfaces.
 
 ### Legacy accents
-- **Ledger Purple** (`accent-purple`): the accent on Credit Cards and Budget Categories. Used for focus rings, input focus borders, the drag handle on hover, the Leftover figure, and links. Its soft tint (`accent-purple-soft`) is the hover and focus wash behind small controls.
+- **Ledger Purple** (`accent-purple`): legacy accent still on Credit Cards. (Budget Categories is now sage.)
 - **Savings Blue** (`accent-blue`, deeper `accent-blue-deep`): legacy accent still on Dashboard and Recalculate. (Sinking Funds and the goal detail page are now sage.)
 
 > **Decided:** muted sage green replaces both purple and blue. Redesign a page into sage as a whole. Until a page is redesigned it keeps its existing accent; never mix accents on one page.
@@ -238,13 +238,16 @@ Borders are 1px hairlines. The 2px colored borders on older inputs and chips are
 Quiet until you touch it.
 - **Shape:** 6px corners, 38px tall, 132px wide (116px on narrow screens).
 - **Style:** white with a 1px firm-hairline border. The value is right-aligned in tabular figures, with a muted `$` on the left inside the box.
-- **States:** the border tints purple on hover. On focus it turns accent purple with a 3px soft purple ring, and the whole value is selected. Enter saves, the same as leaving the field.
+- **States:** the border tints sage on hover. On focus it turns accent sage with a 3px soft sage ring, and the whole value is selected. Enter saves, the same as leaving the field.
 - **Behavior:** totals update as you type; the value is saved once, when you leave the field, and only if it changed.
 
 ### List rows
 - **Structure:** drag handle (a grip icon, gray until hovered), name, money input, then a delete button.
 - **Delete:** hidden until the row is hovered or has keyboard focus (intentional), then a circular icon button that turns red on hover.
 - **Container:** rows sit inside one white, 10px-rounded list with hairline dividers. Adding happens in a borderless last row ("Add a category…"); press Enter to add.
+
+### Lock / unlock (Budget Categories)
+A pill button in the page header. **Locked is the default** (remembered per browser): amounts show as right-aligned tabular text in the same column the inputs use, and drag handles, delete, and the "Add…" rows are hidden, giving a clean read-only view. **Unlock to edit** restores the inputs; the button turns solid sage and reads **Lock**.
 
 ### Results panel ("This paycheck")
 The signature component.
