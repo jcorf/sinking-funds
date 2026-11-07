@@ -155,9 +155,10 @@
 .nb-logout {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    width: 40px;
     height: 40px;
-    padding: 0 16px;
+    padding: 0;
     margin-left: auto;
     border: 1px solid var(--line-strong);
     border-radius: 999px;

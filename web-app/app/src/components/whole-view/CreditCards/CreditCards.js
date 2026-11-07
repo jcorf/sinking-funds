@@ -353,13 +353,13 @@ function NetPanel({ totalOwed, bucket, ready, locked, onBucket }) {
           </div>
           <div className="cc-net-line">
             <dt>
-              <span className="cc-op">−</span>Saved in bucket
+              <span className="cc-op">−</span>Allocated
             </dt>
             <dd>
               {locked || !ready ? (
                 <span className="cc-num">{!ready || bucket === null ? '—' : formatMoney(bucket)}</span>
               ) : (
-                <MoneyInput value={bucket || 0} label="Saved in bucket" onCommit={onBucket} />
+                <MoneyInput value={bucket || 0} label="Allocated" onCommit={onBucket} />
               )}
             </dd>
           </div>
@@ -529,7 +529,7 @@ const CreditCards = () => {
   return (
     <div className="cc-page">
       <header className="cc-page-header">
-        <h1>Credit Cards</h1>
+        <h1>CC Payment</h1>
         <button
           type="button"
           className={`cc-lock ${locked ? '' : 'is-unlocked'}`}
@@ -549,7 +549,6 @@ const CreditCards = () => {
               <h2>Cards</h2>
               <span className="cc-section-total">
                 <span className="cc-num">{loaded ? formatMoney(totalOwed) : '—'}</span>
-                <span className="cc-muted"> owed</span>
               </span>
             </header>
 

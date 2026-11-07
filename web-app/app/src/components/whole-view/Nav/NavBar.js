@@ -7,11 +7,11 @@ import { isTestEnv } from '../../utils/lib';
 import './NavBar.css';
 
 const LINKS = [
-    { to: '/dashboard', label: 'Dashboard', match: (p) => p === '/' || p.startsWith('/dashboard') },
+    { to: '/dashboard', label: 'Overview', match: (p) => p === '/' || p.startsWith('/dashboard') },
     // A goal's detail page (/users/:id/:name) belongs to Sinking Funds.
     { to: '/sinking-funds', label: 'Sinking Funds', match: (p) => p.startsWith('/sinking-funds') || p.startsWith('/users/') },
-    { to: '/credit-cards', label: 'Credit Cards', match: (p) => p.startsWith('/credit-cards') },
-    { to: '/budget-categories', label: 'Budget Categories', match: (p) => p.startsWith('/budget-categories') },
+    { to: '/credit-cards', label: 'CC Payment', match: (p) => p.startsWith('/credit-cards') },
+    { to: '/budget-categories', label: 'Paycheck', match: (p) => p.startsWith('/budget-categories') },
 ];
 
 // Floating sage nav: jar mark + wordmark, page links (current page as a soft
@@ -117,9 +117,8 @@ export default function NavBar({ onLogout }) {
                     })}
                 </nav>
 
-                <button type="button" className="nb-logout" onClick={onLogout}>
-                    <LogOut size={16} aria-hidden="true" />
-                    Log out
+                <button type="button" className="nb-logout" onClick={onLogout} aria-label="Log out" title="Log out">
+                    <LogOut size={18} aria-hidden="true" />
                 </button>
             </header>
         </div>

@@ -161,7 +161,7 @@ export default function Dashboard() {
     }
     if (net !== null && net > 0.004) {
         todos.push(
-            <TodoItem key="bucket" icon={CreditCard} action="Credit Cards" onAction={() => navigate('/credit-cards')}>
+            <TodoItem key="bucket" icon={CreditCard} action="CC Payment" onAction={() => navigate('/credit-cards')}>
                 <strong>Move {formatMoney(net)} into the bucket.</strong> Your cards owe more than it holds.
             </TodoItem>
         );
@@ -200,7 +200,7 @@ export default function Dashboard() {
 
     return (
         <div className="db-page">
-            <h1 className="db-title">Dashboard</h1>
+            <h1 className="db-title">Overview</h1>
 
             <section className="db-section" aria-labelledby="db-todo-title">
                 <h2 id="db-todo-title">Needs doing</h2>
@@ -311,7 +311,7 @@ export default function Dashboard() {
                                     </div>
                                     <div>
                                         <dt>
-                                            <span className="db-op">−</span>Saved in bucket
+                                            <span className="db-op">−</span>Allocated
                                         </dt>
                                         <dd className="db-num">{bucket === null ? '—' : formatMoney(bucket)}</dd>
                                     </div>

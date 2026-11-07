@@ -448,9 +448,10 @@ function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross, r
           <MathLine label="Gross pay" amount={money(gross)} />
           <MathLine operator="−" label="Pre-tax" amount={money(preTax)} />
           <MathLine operator="−" label="Taxes" amount={money(taxes)} />
+          <MathLine label="Net pay" amount={money(gross - preTax - taxes)} emphasis />
           <MathLine operator="−" label="Post-tax" amount={money(postTax)} />
           <MathLine label="Available to budget" amount={money(available)} emphasis />
-          <MathLine operator="−" label="Categories" amount={money(categories)} />
+          <MathLine operator="−" label="Pre-budgeted" amount={money(categories)} />
         </dl>
 
         <div className="bc-leftover" aria-live="polite">
@@ -549,7 +550,7 @@ const BudgetCategories = () => {
   return (
     <div className="bc-page">
       <header className="bc-page-header">
-        <h1>Budget Categories</h1>
+        <h1>Paycheck</h1>
         <button
           type="button"
           className={`bc-lock ${locked ? '' : 'is-unlocked'}`}
@@ -610,17 +611,17 @@ const BudgetCategories = () => {
 
             <SetupSection
               id="pre-tax-benefits"
-              label="Pre-tax benefits"
+              label="Pre-Tax Contributions"
               total={preTaxBenefits.loaded ? preTaxBenefits.total : null}
               collapsed={!!collapsed.preTaxBenefits}
               onToggle={() => toggleCollapsed('preTaxBenefits')}
             >
-              <AmountList list={preTaxBenefits} addPlaceholder="Add a pre-tax benefit…" locked={locked} />
+              <AmountList list={preTaxBenefits} addPlaceholder="Add a pre-tax contribution…" locked={locked} />
             </SetupSection>
 
             <SetupSection
               id="post-tax-investments"
-              label="Post-tax retirement & investments"
+              label="Post-Tax Retirement & Investments"
               total={postTaxInvestments.loaded ? postTaxInvestments.total : null}
               collapsed={!!collapsed.postTaxInvestments}
               onToggle={() => toggleCollapsed('postTaxInvestments')}
@@ -630,12 +631,12 @@ const BudgetCategories = () => {
 
             <SetupSection
               id="post-tax-benefits"
-              label="Post-tax benefits"
+              label="Post-Tax Other Contributions"
               total={postTaxBenefits.loaded ? postTaxBenefits.total : null}
               collapsed={!!collapsed.postTaxBenefits}
               onToggle={() => toggleCollapsed('postTaxBenefits')}
             >
-              <AmountList list={postTaxBenefits} addPlaceholder="Add a post-tax benefit…" locked={locked} />
+              <AmountList list={postTaxBenefits} addPlaceholder="Add a post-tax contribution…" locked={locked} />
             </SetupSection>
           </section>
         </div>
