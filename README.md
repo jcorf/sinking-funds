@@ -67,6 +67,10 @@ sinking-funds/
 - Node.js 22.12.0
 - npm 10.9.0
 
+### Desktop app (macOS)
+
+Run `./make_desktop_app.sh` once to put **Sinking Funds.app** on your Desktop. Double-click it to see whether the app and the test instance are running and to start, stop, or open either one, no Terminal needed. (Run `./start_app.sh` in Terminal once first to set up your login.)
+
 ### Backend Setup
 
 1. Navigate to the backend directory:
