@@ -16,7 +16,8 @@ body:has(.sf-reconcile) .td-dock {
 }
 
 @media (max-width: 900px) {
-    body:has(.bc-math) .td-dock {
+    body:has(.bc-math) .td-dock,
+    body:has(.cc-net) .td-dock {
         --td-bottom: 84px;
     }
 }

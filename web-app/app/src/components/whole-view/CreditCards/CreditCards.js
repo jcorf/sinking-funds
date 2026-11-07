@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -12,837 +12,610 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  rectSortingStrategy,
-} from '@dnd-kit/sortable';
-import {
+  verticalListSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
-import {CSS} from '@dnd-kit/utilities';
+import { CSS } from '@dnd-kit/utilities';
+import { ChevronRight, GripVertical, Lock, LockOpen, Plus, X } from 'lucide-react';
 import './CreditCards.css';
-import { updateCreditCardOrder } from '../../utils/api';
+import { getAllyBankBalance, updateCreditCardOrder } from '../../utils/api';
 import { url } from '../../utils/lib';
+import { formatMoney, toCents } from '../SinkingFunds/goalMath';
+import { MoneyInput } from '../SinkingFunds/GoalParts';
 
-// Custom parsing function that handles incomplete decimals
-const parseDecimalInput = (value) => {
-  if (!value || value === '') return 0.0;
-  if (value === '.' || value === '0.') return 0.0;
-  if (value.endsWith('.')) return parseFloat(value.slice(0, -1)) || 0.0;
-  const parsed = parseFloat(value);
-  return isNaN(parsed) ? 0.0 : parsed;
+/* ---------------------------------------------------------------------------
+   Data helpers. Balance model (unchanged): total = posted + pending − covered.
+   Pending and Covered are the sums of their itemized transaction lists.
+   --------------------------------------------------------------------------- */
+
+const parseSubs = (json) => {
+  try {
+    const list = JSON.parse(json || '[]');
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
 };
 
-// Source Pill Selector Component
-const SourcePillSelector = ({ value, onChange }) => {
-  const [showCustomInput, setShowCustomInput] = useState(false);
-  const [customSource, setCustomSource] = useState('');
+const sumSubs = (subs) => toCents(subs.reduce((s, x) => s + (parseFloat(x.amount) || 0), 0));
 
-  const pillOptions = [
-    { label: 'venmo', value: 'venmo', color: '#007bff' }, // Blue
-    { label: 'future', value: 'future', color: '#28a745' }, // Green
-    { label: 'actual', value: 'actual', color: '#5f1a52' }, // Green
-    { label: 'other', value: 'other', color: '#6c757d' } // Gray for other button
-  ];
+async function postJson(path, body, method = 'POST') {
+  try {
+    const response = await fetch(url(path), {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) return false;
+    const result = await response.json().catch(() => ({}));
+    // Some routes return a bare true/false, others { success }.
+    if (result === false) return false;
+    return !(result && result.success === false);
+  } catch {
+    return false;
+  }
+}
 
-  const getPillColor = (source) => {
-    if (source === 'venmo') return '#007bff';
-    if (source === 'actual') return '#5f1a52';
-    if (source === 'future') return '#28a745';
-    return '#fd7e14'; // Orange for custom sources
-  };
+const SOURCES = [
+  { value: 'venmo', label: 'Venmo' },
+  { value: 'future', label: 'Future' },
+  { value: 'actual', label: 'Actual' },
+];
 
-  const handlePillClick = (pillValue) => {
-    if (pillValue === 'other') {
-      setShowCustomInput(true);
-      setCustomSource('');
-    } else {
-      onChange(pillValue);
-      setShowCustomInput(false);
-    }
-  };
+const sourceLabel = (value) => {
+  if (!value) return null;
+  const known = SOURCES.find((s) => s.value === value);
+  return known ? known.label : value;
+};
 
-  const handleCustomSubmit = () => {
-    if (customSource.trim()) {
-      onChange(customSource.trim());
-      setShowCustomInput(false);
-      setCustomSource('');
-    }
-  };
+/* ---------------------------------------------------------------------------
+   Source picker: Venmo / Future / Actual, or a custom word.
+   --------------------------------------------------------------------------- */
 
-  const handleCustomKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleCustomSubmit();
-    }
+function SourcePicker({ value, onChange }) {
+  const isCustom = value && !SOURCES.some((s) => s.value === value);
+  const [custom, setCustom] = useState(isCustom ? value : '');
+  const [editingCustom, setEditingCustom] = useState(false);
+
+  return (
+    <span className="cc-sources" role="group" aria-label="Source">
+      {SOURCES.map((s) => (
+        <button
+          key={s.value}
+          type="button"
+          className={`cc-tag cc-tag-${s.value} ${value === s.value ? 'is-selected' : ''}`}
+          aria-pressed={value === s.value}
+          onClick={() => onChange(value === s.value ? '' : s.value)}
+        >
+          {s.label}
+        </button>
+      ))}
+      {editingCustom ? (
+        <input
+          className="cc-tag-input"
+          aria-label="Custom source"
+          value={custom}
+          autoFocus
+          onChange={(e) => setCustom(e.target.value)}
+          onBlur={() => {
+            setEditingCustom(false);
+            if (custom.trim()) onChange(custom.trim());
+          }}
+          onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+        />
+      ) : (
+        <button
+          type="button"
+          className={`cc-tag cc-tag-custom ${isCustom ? 'is-selected' : ''}`}
+          aria-pressed={!!isCustom}
+          onClick={() => setEditingCustom(true)}
+        >
+          {isCustom ? value : 'Other…'}
+        </button>
+      )}
+    </span>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+   Itemized transactions for one card's Pending or Covered amount. Defined at
+   module level (stable identity), with its own draft until Save.
+   --------------------------------------------------------------------------- */
+
+function TransactionList({ kind, subs, locked, onSave, onClose }) {
+  const [draft, setDraft] = useState(() => subs.map((s) => ({ ...s })));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const title = kind === 'pending' ? 'Pending transactions' : 'Covered transactions';
+  const changed = JSON.stringify(draft) !== JSON.stringify(subs);
+  const total = sumSubs(draft);
+
+  const update = (i, field, value) => setDraft((d) => d.map((row, j) => (j === i ? { ...row, [field]: value } : row)));
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    const cleaned = draft
+      .filter((row) => (row.name || '').trim() || (parseFloat(row.amount) || 0) !== 0)
+      .map((row) => ({ name: (row.name || '').trim(), amount: toCents(row.amount), source: row.source || '' }));
+    const ok = await onSave(cleaned);
+    setSaving(false);
+    if (ok) onClose();
+    else setError("Couldn't save these transactions. Check that the app's backend is running.");
   };
 
   return (
-    <div className="source-selector">
-      <div className="pill-container">
-        {pillOptions.map(pill => (
+    <div className="cc-txns" role="region" aria-label={title}>
+      <div className="cc-txns-header">
+        <h3>{title}</h3>
+        <span className="cc-num cc-txns-total">{formatMoney(total)}</span>
+      </div>
+
+      {draft.length === 0 && <p className="cc-muted cc-txns-empty">No transactions.</p>}
+
+      <ul className="cc-txns-list">
+        {draft.map((row, i) =>
+          locked ? (
+            <li key={i} className="cc-txn cc-txn--read">
+              <span className="cc-txn-name">{row.name || <span className="cc-muted">Untitled</span>}</span>
+              {row.source && <span className="cc-tag is-static">{sourceLabel(row.source)}</span>}
+              <span className="cc-num cc-txn-amount">{formatMoney(row.amount)}</span>
+            </li>
+          ) : (
+            <li key={i} className="cc-txn">
+              <input
+                className="cc-txn-desc"
+                aria-label="Description"
+                placeholder="Description"
+                value={row.name || ''}
+                onChange={(e) => update(i, 'name', e.target.value)}
+              />
+              <MoneyInput
+                value={row.amount}
+                label={`${row.name || 'Transaction'} amount`}
+                onPreview={(v) => update(i, 'amount', v)}
+                onCommit={(v) => update(i, 'amount', v)}
+              />
+              <SourcePicker value={row.source} onChange={(v) => update(i, 'source', v)} />
+              <button
+                type="button"
+                className="cc-icon-button cc-txn-remove"
+                aria-label={`Remove ${row.name || 'transaction'}`}
+                onClick={() => setDraft((d) => d.filter((_, j) => j !== i))}
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            </li>
+          )
+        )}
+      </ul>
+
+      {!locked && (
+        <div className="cc-txns-footer">
           <button
-            key={pill.value}
             type="button"
-            className={`source-pill ${value === pill.value ? 'selected' : ''}`}
-            style={{
-              backgroundColor: value === pill.value ? pill.color : 'transparent',
-              borderColor: pill.color,
-              color: value === pill.value ? 'white' : pill.color
-            }}
-            onClick={() => handlePillClick(pill.value)}
+            className="cc-text-button"
+            onClick={() => setDraft((d) => [...d, { name: '', amount: 0, source: '' }])}
           >
-            {pill.label}
+            <Plus size={14} aria-hidden="true" /> Add transaction
           </button>
-        ))}
-        {value && value !== 'venmo' && value !== 'future' && value !== 'actual' && (
-          <span
-            className="source-pill custom-pill"
-            style={{
-              backgroundColor: getPillColor(value),
-              borderColor: getPillColor(value),
-              color: 'white'
-            }}
-          >
-            {value}
-            <button
-              type="button"
-              className="pill-remove"
-              onClick={() => onChange('')}
-              title="Remove custom source"
-            >
-              ×
+          <span className="cc-txns-buttons">
+            <button type="button" className="sf-btn-quiet cc-btn-sm" onClick={onClose}>
+              {changed ? 'Cancel' : 'Close'}
+            </button>
+            <button type="button" className="sf-btn-primary cc-btn-sm" disabled={!changed || saving} onClick={save}>
+              {saving ? 'Saving…' : 'Save'}
             </button>
           </span>
-        )}
-      </div>
-      {showCustomInput && (
-        <div className="custom-source-input">
-          <input
-            type="text"
-            placeholder="Enter custom source..."
-            value={customSource}
-            onChange={(e) => setCustomSource(e.target.value)}
-            onKeyPress={handleCustomKeyPress}
-            autoFocus
-          />
-          <button
-            type="button"
-            className="custom-add-btn"
-            onClick={handleCustomSubmit}
-          >
-            Add
-          </button>
-          <button
-            type="button"
-            className="custom-cancel-btn"
-            onClick={() => {
-              setShowCustomInput(false);
-              setCustomSource('');
-            }}
-          >
-            Cancel
-          </button>
         </div>
       )}
-    </div>
-  );
-};
-
-// Defined at module level (not inside CreditCards) so React keeps the same
-// component identity across renders; otherwise every parent re-render would
-// remount the open dropdown and wipe its unsaved rows and input focus.
-const CoveredSubBalancesDropdown = ({ cardName, subBalances, onClose, updateCoveredSubBalances }) => {
-  const [localSubBalances, setLocalSubBalances] = useState(subBalances);
-
-  useEffect(() => {
-    setLocalSubBalances(subBalances);
-  }, [subBalances]);
-
-  const addSubBalance = () => {
-    setLocalSubBalances([...localSubBalances, { name: '', amount: 0, source: '' }]);
-  };
-
-  const updateSubBalance = (index, field, value) => {
-    const updated = [...localSubBalances];
-    updated[index] = { ...updated[index], [field]: value };
-    setLocalSubBalances(updated);
-  };
-
-  const removeSubBalance = (index) => {
-    setLocalSubBalances(localSubBalances.filter((_, i) => i !== index));
-  };
-
-  const saveSubBalances = () => {
-    console.log('DEBUG: CoveredSubBalancesDropdown saveSubBalances clicked');
-    console.log('DEBUG: cardName =', cardName);
-    console.log('DEBUG: localSubBalances =', localSubBalances);
-    updateCoveredSubBalances(cardName, localSubBalances);
-    onClose();
-  };
-
-  return (
-    <div className="covered-dropdown">
-      <div className="dropdown-header">
-        <h4>Covered Transactions</h4>
-        <button onClick={onClose} className="close-btn">×</button>
-      </div>
-      <div className="sub-balances-list">
-        {localSubBalances.map((sub, index) => (
-          <div key={index} className="sub-balance-item">
-            <input
-              type="text"
-              placeholder="Description"
-              value={sub.name}
-              onChange={(e) => updateSubBalance(index, 'name', e.target.value)}
-            />
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="Amount"
-              value={sub.amount}
-              onChange={(e) => updateSubBalance(index, 'amount', e.target.value)}
-              onBlur={(e) => {
-                const value = parseDecimalInput(e.target.value);
-                updateSubBalance(index, 'amount', value);
-              }}
-            />
-            <SourcePillSelector
-              value={sub.source}
-              onChange={(value) => updateSubBalance(index, 'source', value)}
-            />
-            <button onClick={() => removeSubBalance(index)} className="remove-sub">×</button>
-          </div>
-        ))}
-      </div>
-      <div className="dropdown-actions">
-        <button onClick={addSubBalance} className="add-sub-btn">+ Add Transaction</button>
-        <button onClick={saveSubBalances} className="save-btn">Save</button>
-      </div>
-    </div>
-  );
-};
-
-const PendingSubBalancesDropdown = ({ cardName, subBalances, onClose, updatePendingSubBalances = () => {} }) => {
-  const [localSubBalances, setLocalSubBalances] = useState(subBalances);
-
-  useEffect(() => {
-    setLocalSubBalances(subBalances);
-  }, [subBalances]);
-
-  const addSubBalance = () => {
-    setLocalSubBalances([...localSubBalances, { name: '', amount: 0, source: '' }]);
-  };
-
-  const updateSubBalance = (index, field, value) => {
-    const updated = [...localSubBalances];
-    updated[index] = { ...updated[index], [field]: value };
-    setLocalSubBalances(updated);
-  };
-
-  const removeSubBalance = (index) => {
-    setLocalSubBalances(localSubBalances.filter((_, i) => i !== index));
-  };
-
-  const saveSubBalances = () => {
-    updatePendingSubBalances(cardName, localSubBalances);
-    onClose();
-  };
-
-  return (
-    <div className="pending-dropdown">
-      <div className="dropdown-header">
-        <h4>Pending Transactions</h4>
-        <button onClick={onClose} className="close-btn">×</button>
-      </div>
-      <div className="sub-balances-list">
-        {localSubBalances.map((sub, index) => (
-          <div key={index} className="sub-balance-item">
-            <input
-              type="text"
-              placeholder="Description"
-              value={sub.name}
-              onChange={(e) => updateSubBalance(index, 'name', e.target.value)}
-            />
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="Amount"
-              value={sub.amount}
-              onChange={(e) => updateSubBalance(index, 'amount', e.target.value)}
-              onBlur={(e) => {
-                const value = parseDecimalInput(e.target.value);
-                updateSubBalance(index, 'amount', value);
-              }}
-            />
-            <SourcePillSelector
-              value={sub.source}
-              onChange={(value) => updateSubBalance(index, 'source', value)}
-            />
-            <button onClick={() => removeSubBalance(index)} className="remove-sub">×</button>
-          </div>
-        ))}
-      </div>
-      <div className="dropdown-actions">
-        <button onClick={addSubBalance} className="add-sub-btn">+ Add Transaction</button>
-        <button onClick={saveSubBalances} className="save-btn">Save</button>
-      </div>
-    </div>
-  );
-};
-
-// Sortable Credit Card Row Component
-function SortableCreditCardRow({ card, removeCreditCard, updateCardBalance, formatCurrency, parseSubBalances, coveredDropdownCard, setCoveredDropdownCard, pendingDropdownCard, setPendingDropdownCard, updateCoveredSubBalances, updatePendingSubBalances }) {
-  const [localPosted, setLocalPosted] = useState(card.posted_transactions.toString());
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({id: card.id});
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  const subBalances = parseSubBalances(card.covered_sub_balances);
-
-  // Update local state when card data changes
-  useEffect(() => {
-    setLocalPosted(parseFloat(card.posted_transactions).toFixed(2));
-  }, [card.posted_transactions]);
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="credit-card-row"
-    >
-      {/* Drag Handle */}
-      <div className="drag-handle" {...attributes} {...listeners}>
-        ⋮⋮
-      </div>
-      
-      <button
-        className="delete-card-btn"
-        onClick={() => removeCreditCard(card.card_name)}
-        title={`Delete ${card.card_name} card`}
-      >
-        ×
-      </button>
-      {/* Left Section: Title */}
-      <div className="card-title-section">
-        <h3>{card.card_name}</h3>
-      </div>
-
-      {/* Middle Section: Balance Inputs */}
-      <div className="card-inputs-section">
-        <div className="balance-field">
-          <label>Posted</label>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={localPosted}
-            onChange={(e) => setLocalPosted(e.target.value)}
-            onBlur={() => {
-              const value = parseDecimalInput(localPosted);
-              updateCardBalance(card.card_name, 'posted_transactions', value);
-            }}
-          />
-        </div>
-
-        <div className="balance-field pending-field">
-          <label
-            onClick={() => setPendingDropdownCard(card.id)}
-            style={{ cursor: 'pointer', textDecoration: 'underline' }}
-          >
-            Pending
-          </label>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={parseFloat(card.pending_transactions).toFixed(2)}
-            readOnly
-          />
-          {pendingDropdownCard === card.id && (
-            <PendingSubBalancesDropdown
-              cardName={card.card_name}
-              subBalances={parseSubBalances(card.pending_sub_balances || '[]')}
-              onClose={() => setPendingDropdownCard(null)}
-              updatePendingSubBalances={updatePendingSubBalances}
-            />
-          )}
-        </div>
-
-        <div className="balance-field covered-field">
-          <label
-            onClick={() => setCoveredDropdownCard(card.id)}
-            style={{ cursor: 'pointer', textDecoration: 'underline' }}
-          >
-            Covered
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={parseFloat(card.covered_transactions).toFixed(2)}
-            readOnly
-          />
-          {coveredDropdownCard === card.id && (
-            <CoveredSubBalancesDropdown
-              cardName={card.card_name}
-              subBalances={subBalances}
-              onClose={() => setCoveredDropdownCard(null)}
-              updateCoveredSubBalances={updateCoveredSubBalances}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Right Section: Total */}
-      <div className="card-total-section">
-        <div className="total-balance">
-          <strong>{formatCurrency(card.total_balance)}</strong>
-        </div>
-      </div>
+      {error && (
+        <p className="cc-error" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
 
-const CreditCards = () => {
-  const [creditCards, setCreditCards] = useState([]);
-  const [allyBankBalance, setAllyBankBalance] = useState(0);
-  const [allyBankInputValue, setAllyBankInputValue] = useState('0');
-  const [totalDebt, setTotalDebt] = useState(0);
-  const [totalToTransfer, setTotalToTransfer] = useState(0);
-  const [coveredDropdownCard, setCoveredDropdownCard] = useState(null);
-  const [pendingDropdownCard, setPendingDropdownCard] = useState(null);
-  const [activeId, setActiveId] = useState(null);
+/* ---------------------------------------------------------------------------
+   One card row.
+   --------------------------------------------------------------------------- */
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // Only activate drag after moving 8px
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onRemove }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
+  const pendingSubs = parseSubs(card.pending_sub_balances);
+  const coveredSubs = parseSubs(card.covered_sub_balances);
+  const balance = toCents(card.total_balance);
+  const negative = balance < -0.004;
+
+  const toggleButton = (kind, amount, count) => (
+    <button
+      type="button"
+      className={`cc-amount-toggle ${expanded === kind ? 'is-open' : ''}`}
+      aria-expanded={expanded === kind}
+      onClick={() => onToggle(kind)}
+      title={`${count} ${kind} ${count === 1 ? 'transaction' : 'transactions'}`}
+    >
+      <span className="cc-num">{formatMoney(amount)}</span>
+      <ChevronRight size={14} aria-hidden="true" className="cc-chev" />
+    </button>
   );
 
-  useEffect(() => {
-    fetchCreditCards();
-    fetchAllyBankBalance();
-  }, []);
-
-  const fetchCreditCards = async () => {
-    try {
-      console.log('DEBUG: fetchCreditCards called');
-      const response = await fetch(url('/get_credit_cards'), {credentials: 'include'});
-      const data = await response.json();
-      console.log('DEBUG: fetchCreditCards received data:', data);
-      console.log('DEBUG: fetchCreditCards data.data:', data.data);
-
-      const cardsData = data.data || [];
-      console.log('DEBUG: Setting credit cards state with:', cardsData.length, 'cards');
-
-      // Log each card's data
-      cardsData.forEach((card, index) => {
-        console.log(`DEBUG: Card ${index}: ${card.card_name} - posted: ${card.posted_transactions}, pending: ${card.pending_transactions}, covered: ${card.covered_transactions}`);
-      });
-
-      setCreditCards(cardsData);
-
-      // Calculate total debt
-      let debt = 0;
-      cardsData.forEach(card => {
-        debt += card.total_balance;
-      });
-      console.log('DEBUG: Total debt calculated:', debt);
-      setTotalDebt(debt);
-      updateTotalToTransfer(debt);
-    } catch (error) {
-      console.error('Error fetching credit cards:', error);
-      console.error('Error details:', error);
-    }
-  };
-
-  const fetchAllyBankBalance = async () => {
-    try {
-      const response = await fetch(url('/get_ally_bank_balance'), {credentials: 'include'});
-      const data = await response.json();
-      const balance = data.balance || 0;
-      setAllyBankBalance(balance);
-      setAllyBankInputValue(balance.toString());
-      updateTotalToTransfer(totalDebt);
-    } catch (error) {
-      console.error('Error fetching Ally Bank balance:', error);
-    }
-  };
-
-  const updateTotalToTransfer = (debt) => {
-    setTotalToTransfer(debt - allyBankBalance);
-  };
-
-  const calculateTotalBalance = (card, field, value) => {
-    const updatedCard = { ...card, [field]: value };
-    return updatedCard.posted_transactions + updatedCard.pending_transactions - updatedCard.covered_transactions;
-  };
-
-  const updateCardBalance = async (cardName, field, value) => {
-    // Optimistically update local state
-    const card = creditCards.find(c => c.card_name === cardName);
-    if (!card) return;
-
-    const oldBalance = card.total_balance;
-    const newBalance = calculateTotalBalance(card, field, value);
-
-    setCreditCards(prevCards => prevCards.map(c =>
-      c.card_name === cardName ? { ...c, [field]: value, total_balance: newBalance } : c
-    ));
-
-    setTotalDebt(prevDebt => prevDebt - oldBalance + newBalance);
-    updateTotalToTransfer(totalDebt - oldBalance + newBalance);
-
-    try {
-      const response = await fetch(url('/update_credit_card_balance'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ card_name: cardName, field, new_value: value })
-      });
-      await response.json();
-      // Fetch to ensure consistency
-      fetchCreditCards();
-    } catch (error) {
-      console.error('Error updating card balance:', error);
-      // Revert on error
-      fetchCreditCards();
-    }
-  };
-
-  const addCreditCard = async (cardName) => {
-    if (!cardName.trim()) return;
-
-    try {
-      const response = await fetch(url('/add_credit_card'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ card_name: cardName })
-      });
-      await response.json();
-      fetchCreditCards();
-    } catch (error) {
-      console.error('Error adding credit card:', error);
-    }
-  };
-
-  const removeCreditCard = async (cardName) => {
-    if (!window.confirm(`Are you sure you want to delete the ${cardName} credit card?`)) return;
-
-    // Optimistically remove from local state
-    const card = creditCards.find(c => c.card_name === cardName);
-    if (!card) return;
-
-    const removedBalance = card.total_balance;
-    setCreditCards(prevCards => prevCards.filter(c => c.card_name !== cardName));
-    setTotalDebt(prevDebt => prevDebt - removedBalance);
-    updateTotalToTransfer(totalDebt - removedBalance);
-
-    try {
-      const response = await fetch(url('/remove_credit_card'), {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ card_name: cardName })
-      });
-      await response.json();
-      // Fetch to ensure consistency
-      fetchCreditCards();
-    } catch (error) {
-      console.error('Error removing credit card:', error);
-      // Revert on error
-      fetchCreditCards();
-    }
-  };
-
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
-
-
-
-  const updateAllyBankBalance = async (newBalance) => {
-    try {
-      const response = await fetch(url('/update_ally_bank_balance'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ balance: newBalance })
-      });
-      await response.json();
-      setAllyBankBalance(newBalance);
-      // Use newBalance directly: allyBankBalance state is still the old value here
-      setTotalToTransfer(totalDebt - newBalance);
-    } catch (error) {
-      console.error('Error updating Ally Bank balance:', error);
-    }
-  };
-
-  const updateCoveredSubBalances = async (cardName, subBalances) => {
-    console.log('DEBUG: updateCoveredSubBalances called');
-    console.log('DEBUG: cardName =', cardName);
-    console.log('DEBUG: subBalances =', subBalances);
-    console.log('DEBUG: subBalances type =', typeof subBalances);
-    console.log('DEBUG: subBalances length =', subBalances ? subBalances.length : 'undefined');
-
-    // Calculate new covered total
-    const totalCovered = subBalances.reduce((sum, sub) => sum + (parseFloat(sub.amount) || 0), 0);
-    console.log('DEBUG: totalCovered calculated as:', totalCovered);
-
-    // Optimistically update local state
-    const card = creditCards.find(c => c.card_name === cardName);
-    if (!card) return;
-
-    console.log('DEBUG: Card before update:', card);
-    const oldBalance = card.total_balance;
-    const newBalance = card.posted_transactions + card.pending_transactions - totalCovered;
-
-    setCreditCards(prevCards => {
-      const updated = prevCards.map(c =>
-        c.card_name === cardName ? { ...c, covered_transactions: totalCovered, covered_sub_balances: JSON.stringify(subBalances), total_balance: newBalance } : c
-      );
-      console.log('DEBUG: Cards after optimistic update:', updated);
-      return updated;
-    });
-
-    setTotalDebt(prevDebt => prevDebt - oldBalance + newBalance);
-    updateTotalToTransfer(totalDebt - oldBalance + newBalance);
-
-    try {
-      console.log('DEBUG: Making API call to update_covered_sub_balances');
-      const response = await fetch(url('/update_covered_sub_balances'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ card_name: cardName, sub_balances: subBalances })
-      });
-      const result = await response.json();
-      console.log('DEBUG: API response:', result);
-      // Fetch to ensure consistency
-      console.log('DEBUG: Calling fetchCreditCards to refresh data');
-      fetchCreditCards();
-    } catch (error) {
-      console.error('Error updating covered sub-balances:', error);
-      // Revert on error
-      fetchCreditCards();
-    }
-  };
-
-  const updatePendingSubBalances = async (cardName, subBalances) => {
-    console.log('DEBUG: updatePendingSubBalances called for', cardName, 'with subBalances:', subBalances);
-
-    // Calculate new pending total
-    const totalPending = subBalances.reduce((sum, sub) => sum + (parseFloat(sub.amount) || 0), 0);
-    console.log('DEBUG: totalPending calculated as:', totalPending);
-
-    // Optimistically update local state
-    const card = creditCards.find(c => c.card_name === cardName);
-    if (!card) return;
-
-    console.log('DEBUG: Card before update:', card);
-    const oldBalance = card.total_balance;
-    const newBalance = card.posted_transactions + totalPending - card.covered_transactions;
-
-    setCreditCards(prevCards => {
-      const updated = prevCards.map(c =>
-        c.card_name === cardName ? { ...c, pending_transactions: totalPending, pending_sub_balances: JSON.stringify(subBalances), total_balance: newBalance } : c
-      );
-      console.log('DEBUG: Cards after optimistic update:', updated);
-      return updated;
-    });
-
-    setTotalDebt(prevDebt => prevDebt - oldBalance + newBalance);
-    updateTotalToTransfer(totalDebt - oldBalance + newBalance);
-
-    try {
-      console.log('DEBUG: Making API call to update_pending_sub_balances');
-      const response = await fetch(url('/update_pending_sub_balances'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ card_name: cardName, sub_balances: subBalances })
-      });
-      const result = await response.json();
-      console.log('DEBUG: Pending API response:', result);
-
-      if (result.success) {
-        console.log('DEBUG: API call successful, calling fetchCreditCards');
-        // Fetch to ensure consistency
-        fetchCreditCards();
-      } else {
-        console.error('DEBUG: API call failed:', result);
-        // Revert on error
-        fetchCreditCards();
-      }
-    } catch (error) {
-      console.error('Error updating pending sub-balances:', error);
-      // Revert on error
-      fetchCreditCards();
-    }
-  };
-
-  const parseSubBalances = (subBalancesJson) => {
-    try {
-      return JSON.parse(subBalancesJson || '[]');
-    } catch {
-      return [];
-    }
-  };
-
-  // Drag and drop handlers
-  function handleDragStart(event) {
-    setActiveId(event.active.id);
-  }
-
-  function handleDragEnd(event) {
-    const {active, over} = event;
-    setActiveId(null);
-
-    if (active.id !== over.id) {
-      setCreditCards((items) => {
-        const oldIndex = items.findIndex(item => item.id === active.id);
-        const newIndex = items.findIndex(item => item.id === over.id);
-
-        const reorderedItems = arrayMove(items, oldIndex, newIndex);
-
-        // Update the order in the database
-        const cardOrders = reorderedItems.map(item => item.id);
-        updateCreditCardOrder(cardOrders);
-
-        return reorderedItems;
-      });
-    }
-  }
-
   return (
-    <div className="credit-cards">
-      <h1>Credit Card Balances</h1>
-
-      <div className="ally-bank-section">
-        <h2>Saved in Bucket</h2>
-        <div className="ally-bank-balance">
-          <label>Available Balance:</label>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={allyBankInputValue}
-            onChange={(e) => setAllyBankInputValue(e.target.value)}
-            onBlur={() => {
-              // Save once on blur rather than per keystroke, so a half-typed
-              // value ("12.") is never persisted and requests can't race.
-              const numericValue = parseDecimalInput(allyBankInputValue);
-              setAllyBankInputValue(numericValue.toFixed(2));
-              if (numericValue !== allyBankBalance) {
-                updateAllyBankBalance(numericValue);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') e.target.blur();
-            }}
-          />
-        </div>
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`cc-row ${isDragging ? 'is-dragging' : ''} ${locked ? 'is-locked' : ''} ${expanded ? 'is-expanded' : ''}`}
+    >
+      <div className="cc-row-grid">
+        {locked ? (
+          <span className="cc-drag-spacer" aria-hidden="true" />
+        ) : (
+          <button type="button" className="cc-drag" aria-label={`Reorder ${card.card_name}`} {...attributes} {...listeners}>
+            <GripVertical size={16} aria-hidden="true" />
+          </button>
+        )}
+        <span className="cc-name">{card.card_name}</span>
+        <span className="cc-col cc-col-posted" data-label="Posted">
+          {locked ? (
+            <span className="cc-num">{formatMoney(card.posted_transactions)}</span>
+          ) : (
+            <MoneyInput
+              value={card.posted_transactions}
+              label={`${card.card_name} posted`}
+              onCommit={(v) => onPosted(v)}
+            />
+          )}
+        </span>
+        <span className="cc-col" data-label="Pending">
+          {toggleButton('pending', card.pending_transactions, pendingSubs.length)}
+        </span>
+        <span className="cc-col" data-label="Covered">
+          {toggleButton('covered', card.covered_transactions, coveredSubs.length)}
+        </span>
+        <span className={`cc-col cc-balance ${negative ? 'is-negative' : ''}`} data-label="Balance">
+          <span className="cc-num" title={negative ? 'More is covered than this card owes' : undefined}>
+            {formatMoney(balance)}
+          </span>
+          {negative && <small>over-covered</small>}
+        </span>
+        {!locked ? (
+          <button
+            type="button"
+            className="cc-delete"
+            onClick={onRemove}
+            aria-label={`Delete ${card.card_name}`}
+            title={`Delete ${card.card_name}`}
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
+        ) : (
+          <span className="cc-delete-spacer" aria-hidden="true" />
+        )}
       </div>
 
-      <div className="cards-container">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={creditCards.map(card => card.id)} strategy={rectSortingStrategy}>
-            {creditCards.map(card => (
-              <SortableCreditCardRow
-                key={card.id}
-                card={card}
-                removeCreditCard={removeCreditCard}
-                updateCardBalance={updateCardBalance}
-                formatCurrency={formatCurrency}
-                parseSubBalances={parseSubBalances}
-                coveredDropdownCard={coveredDropdownCard}
-                setCoveredDropdownCard={setCoveredDropdownCard}
-                pendingDropdownCard={pendingDropdownCard}
-                setPendingDropdownCard={setPendingDropdownCard}
-                updateCoveredSubBalances={updateCoveredSubBalances}
-                updatePendingSubBalances={updatePendingSubBalances}
-              />
-            ))}
-          </SortableContext>
-          <DragOverlay>
-            {activeId ? (
-              <div className="credit-card-row dragging-overlay">
-                {(() => {
-                  const activeCard = creditCards.find(card => card.id === activeId);
-                  return activeCard ? (
-                    <>
-                      <div className="drag-handle">⋮⋮</div>
-                      <button className="delete-card-btn">×</button>
-                      <div className="card-title-section">
-                        <h3>{activeCard.card_name}</h3>
-                      </div>
-                      <div className="card-inputs-section">
-                        <div className="balance-field">
-                          <label>Posted</label>
-                          <input type="text" value={parseFloat(activeCard.posted_transactions).toFixed(2)} readOnly />
-                        </div>
-                        <div className="balance-field">
-                          <label>Pending</label>
-                          <input type="text" value={parseFloat(activeCard.pending_transactions).toFixed(2)} readOnly />
-                        </div>
-                        <div className="balance-field covered-field">
-                          <label>Covered</label>
-                          <input type="number" value={parseFloat(activeCard.covered_transactions).toFixed(2)} readOnly />
-                        </div>
-                      </div>
-                      <div className="card-total-section">
-                        <div className="total-balance">
-                          <strong>{formatCurrency(activeCard.total_balance)}</strong>
-                        </div>
-                      </div>
-                    </>
-                  ) : null;
-                })()}
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+      {expanded && (
+        <TransactionList
+          key={`${card.id}-${expanded}-${locked}`}
+          kind={expanded}
+          subs={expanded === 'pending' ? pendingSubs : coveredSubs}
+          locked={locked}
+          onSave={(subs) => onSaveSubs(expanded, subs)}
+          onClose={() => onToggle(expanded)}
+        />
+      )}
+    </li>
+  );
+}
 
-        <div className="summary-section">
-          <h2>Summary</h2>
-          <div className="summary-stats">
-            <div>Already Allocated: {formatCurrency(allyBankBalance)}</div>
-            <div>Total Debt: {formatCurrency(totalDebt)}</div>
-            <div className="total-to-transfer">Net Change: {formatCurrency(totalToTransfer)}</div>
+/* ---------------------------------------------------------------------------
+   "Cards vs bucket" panel: total owed − bucket = net change.
+   --------------------------------------------------------------------------- */
+
+function NetPanel({ totalOwed, bucket, locked, onBucket }) {
+  const [expanded, setExpanded] = useState(false);
+  const net = toCents(totalOwed - (bucket || 0));
+  const state = net > 0.004 ? 'short' : net < -0.004 ? 'ahead' : 'even';
+  const label = { short: 'Move into the bucket', ahead: 'Bucket covers your cards', even: 'Bucket matches your cards' }[state];
+  const note = {
+    short: `Your cards owe ${formatMoney(net)} more than the bucket holds.`,
+    ahead: `${formatMoney(-net)} to spare.`,
+    even: 'Nothing to move.',
+  }[state];
+
+  return (
+    <aside className={`cc-net is-${state} ${expanded ? 'is-expanded' : ''}`} aria-label="Cards vs bucket">
+      <button type="button" className="cc-net-bar" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
+        <span className="cc-net-bar-item">
+          <span className="cc-net-bar-label">{label}</span>
+          <span className="cc-net-bar-value cc-num">{formatMoney(Math.abs(net))}</span>
+        </span>
+        <ChevronRight size={16} aria-hidden="true" className={`cc-net-bar-chev ${expanded ? 'is-open' : ''}`} />
+      </button>
+
+      <div className="cc-net-body">
+        <h2 className="cc-net-title">Cards vs bucket</h2>
+        <dl className="cc-net-list">
+          <div className="cc-net-line">
+            <dt>Total owed</dt>
+            <dd className="cc-num">{formatMoney(totalOwed)}</dd>
           </div>
+          <div className="cc-net-line">
+            <dt>
+              <span className="cc-op">−</span>Saved in bucket
+            </dt>
+            <dd>
+              {locked ? (
+                <span className="cc-num">{bucket === null ? '—' : formatMoney(bucket)}</span>
+              ) : (
+                <MoneyInput value={bucket || 0} label="Saved in bucket" onCommit={onBucket} />
+              )}
+            </dd>
+          </div>
+        </dl>
+        <div className="cc-net-result" aria-live="polite">
+          <div className="cc-net-label">{label}</div>
+          <div className="cc-net-value cc-num">{formatMoney(Math.abs(net))}</div>
+          <p className="cc-net-note">{note}</p>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+   Page
+   --------------------------------------------------------------------------- */
+
+const LOCK_KEY = 'credit-cards:locked';
+
+const CreditCards = () => {
+  const [cards, setCards] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [bucket, setBucket] = useState(null);
+  const [expanded, setExpanded] = useState({}); // { [cardId]: 'pending' | 'covered' }
+  const [activeId, setActiveId] = useState(null);
+  const [error, setError] = useState('');
+  const [locked, setLocked] = useState(() => {
+    try {
+      return window.localStorage.getItem(LOCK_KEY) !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const refresh = useCallback(async () => {
+    try {
+      const response = await fetch(url('/get_credit_cards'), { credentials: 'include' });
+      const data = await response.json();
+      setCards(data.data || []);
+    } catch {
+      setError("Couldn't load your cards.");
+    } finally {
+      setLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    getAllyBankBalance().then(setBucket);
+  }, [refresh]);
+
+  const toggleLocked = () => {
+    setLocked((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(LOCK_KEY, String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  const totalOwed = toCents(cards.reduce((sum, c) => sum + (Number(c.total_balance) || 0), 0));
+
+  const fail = (msg) => setError(msg);
+
+  const updatePosted = async (card, value) => {
+    setError('');
+    const posted = toCents(value);
+    setCards((prev) =>
+      prev.map((c) =>
+        c.id === card.id
+          ? { ...c, posted_transactions: posted, total_balance: toCents(posted + c.pending_transactions - c.covered_transactions) }
+          : c
+      )
+    );
+    const ok = await postJson('/update_credit_card_balance', {
+      card_name: card.card_name,
+      field: 'posted_transactions',
+      new_value: posted,
+    });
+    if (!ok) fail(`Couldn't save ${card.card_name}'s posted balance.`);
+    refresh();
+  };
+
+  const saveSubs = async (card, kind, subs) => {
+    setError('');
+    const ok = await postJson(`/update_${kind}_sub_balances`, { card_name: card.card_name, sub_balances: subs });
+    await refresh();
+    return ok;
+  };
+
+  // Saved once when the field is left (not per keystroke); Net change uses
+  // the new value immediately because it's derived from state on render.
+  const updateBucket = async (value) => {
+    setError('');
+    const previous = bucket;
+    setBucket(toCents(value));
+    const ok = await postJson('/update_ally_bank_balance', { balance: toCents(value) });
+    if (!ok) {
+      setBucket(previous);
+      fail("Couldn't save the bucket balance.");
+    }
+  };
+
+  const addCard = async (name) => {
+    if (!name.trim()) return;
+    if (cards.some((c) => c.card_name.toLowerCase() === name.trim().toLowerCase())) {
+      fail(`You already have a card called "${name.trim()}".`);
+      return;
+    }
+    setError('');
+    const ok = await postJson('/add_credit_card', { card_name: name.trim() });
+    if (!ok) fail("Couldn't add the card.");
+    refresh();
+  };
+
+  const removeCard = async (card) => {
+    if (!window.confirm(`Delete the ${card.card_name} card? This can't be undone.`)) return;
+    setCards((prev) => prev.filter((c) => c.id !== card.id));
+    const ok = await postJson('/remove_credit_card', { card_name: card.card_name }, 'DELETE');
+    if (!ok) fail(`Couldn't delete ${card.card_name}.`);
+    refresh();
+  };
+
+  const toggleExpanded = (cardId, kind) =>
+    setExpanded((prev) => ({ ...prev, [cardId]: prev[cardId] === kind ? null : kind }));
+
+  const handleDragEnd = ({ active, over }) => {
+    setActiveId(null);
+    if (!over || active.id === over.id) return;
+    setCards((items) => {
+      const reordered = arrayMove(
+        items,
+        items.findIndex((c) => c.id === active.id),
+        items.findIndex((c) => c.id === over.id)
+      );
+      updateCreditCardOrder(reordered.map((c) => c.id));
+      return reordered;
+    });
+  };
+
+  const activeCard = cards.find((c) => c.id === activeId);
+
+  return (
+    <div className="cc-page">
+      <header className="cc-page-header">
+        <h1>Credit Cards</h1>
+        <button
+          type="button"
+          className={`cc-lock ${locked ? '' : 'is-unlocked'}`}
+          onClick={toggleLocked}
+          aria-pressed={!locked}
+          title={locked ? 'Unlock to edit balances, transactions, and cards' : 'Lock to show a clean read-only view'}
+        >
+          {locked ? <Lock size={15} aria-hidden="true" /> : <LockOpen size={15} aria-hidden="true" />}
+          {locked ? 'Unlock to edit' : 'Lock'}
+        </button>
+      </header>
+
+      <div className="cc-layout">
+        <div className="cc-main">
+          <section>
+            <header className="cc-section-header">
+              <h2>Cards</h2>
+              <span className="cc-section-total">
+                <span className="cc-num">{formatMoney(totalOwed)}</span>
+                <span className="cc-muted"> owed</span>
+              </span>
+            </header>
+
+            {error && (
+              <p className="cc-error cc-page-error" role="alert">
+                {error}
+              </p>
+            )}
+
+            <div className="cc-list">
+              {cards.length > 0 && (
+                <div className={`cc-row-grid cc-col-heads ${locked ? 'is-locked' : ''}`} aria-hidden="true">
+                  <span />
+                  <span>Card</span>
+                  <span className="cc-col">Posted</span>
+                  <span className="cc-col">Pending</span>
+                  <span className="cc-col">Covered</span>
+                  <span className="cc-col">Balance</span>
+                  <span />
+                </div>
+              )}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={(e) => setActiveId(e.active.id)}
+                onDragCancel={() => setActiveId(null)}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                  <ul className="cc-rows">
+                    {loaded && cards.length === 0 && (
+                      <li className="cc-empty">
+                        {locked ? 'No cards yet. Unlock to add one.' : 'No cards yet. Add your first one below.'}
+                      </li>
+                    )}
+                    {cards.map((card) => (
+                      <CardRow
+                        key={card.id}
+                        card={card}
+                        locked={locked}
+                        expanded={expanded[card.id] || null}
+                        onToggle={(kind) => toggleExpanded(card.id, kind)}
+                        onPosted={(v) => updatePosted(card, v)}
+                        onSaveSubs={(kind, subs) => saveSubs(card, kind, subs)}
+                        onRemove={() => removeCard(card)}
+                      />
+                    ))}
+                    {!locked && (
+                      <li className="cc-add">
+                        <Plus size={16} aria-hidden="true" />
+                        <input
+                          type="text"
+                          placeholder="Add a card…"
+                          aria-label="Add a card"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              addCard(e.target.value);
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </li>
+                    )}
+                  </ul>
+                </SortableContext>
+                <DragOverlay>
+                  {activeCard ? (
+                    <div className="cc-row cc-row--overlay">
+                      <div className="cc-row-grid">
+                        <span className="cc-drag">
+                          <GripVertical size={16} aria-hidden="true" />
+                        </span>
+                        <span className="cc-name">{activeCard.card_name}</span>
+                        <span />
+                        <span />
+                        <span />
+                        <span className="cc-col cc-balance">
+                          <span className="cc-num">{formatMoney(activeCard.total_balance)}</span>
+                        </span>
+                        <span />
+                      </div>
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            </div>
+          </section>
         </div>
 
-        <div className="credit-card-row add-card-row">
-          <input
-            type="text"
-            placeholder="Add new card..."
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                addCreditCard(e.target.value);
-                e.target.value = '';
-              }
-            }}
-          />
-        </div>
+        <NetPanel totalOwed={totalOwed} bucket={bucket} locked={locked} onBucket={updateBucket} />
       </div>
     </div>
   );

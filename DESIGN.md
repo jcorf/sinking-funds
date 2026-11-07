@@ -155,7 +155,7 @@ A neutral base moving to **muted sage green** as the one app-wide color. Purple 
 - **Sage Error** (`sage-error`): error text and invalid-field borders on sage surfaces.
 
 ### Legacy accents
-- **Ledger Purple** (`accent-purple`): legacy accent still on Credit Cards. (Budget Categories is now sage.)
+- **Ledger Purple** (`accent-purple`): retired. Credit Cards and Budget Categories are now sage.
 - **Savings Blue** (`accent-blue`, deeper `accent-blue-deep`): legacy accent still on Dashboard and Recalculate. (Sinking Funds and the goal detail page are now sage.)
 
 > **Decided:** muted sage green replaces both purple and blue. Redesign a page into sage as a whole. Until a page is redesigned it keeps its existing accent; never mix accents on one page.
@@ -257,6 +257,9 @@ A pill button in the page header. **Locked is the default** (remembered per brow
 Two quiet round buttons pinned bottom-left (calculator, notes); each turns solid sage while its panel is open. Panels are white, 12px corners, floating shadow, Castoro titles, and open above the dock, side by side when both are open (stacking on narrow screens). The dock lifts above bottom-pinned bars (the Sinking Funds reconcile bar; the Budget Categories phone bar).
 - **Calculator:** immediate-execution keypad (C, backspace, %, ÷ × − +, ±, ., =) with keyboard input while focused, a tape of the last 8 lines, and Copy result. Money-like results keep cents ("192.98 + 86.12 = 279.10"). Never `eval`; nothing saved.
 - **Notes:** one autosaving notepad stored in the database (`notes` table), with "Saved 9:40 PM" / retry status.
+
+### Credit Cards
+Sage, Budget Categories structure: Castoro title with the Lock / Unlock pill (locked by default), one card list with column heads (Posted · Pending · Covered · Balance) on shared edges, balances in ink (red plus "over-covered" only when negative). Pending and Covered are toggles that expand the row inline to their transactions (description, amount, source tag: Venmo / Future / Actual / custom, words always shown in sage tints); editable with Save / Cancel when unlocked. Pinned "Cards vs bucket" panel: Total owed − Saved in bucket = big Net change with words ("Move into the bucket" in red when short, "Bucket covers your cards" in sage when ahead); bottom bar below 900px.
 
 ### Results panel ("This paycheck")
 The signature component.
