@@ -15,7 +15,7 @@ A personal finance web app for tracking "sinking funds" (savings goals), credit 
 To experiment without touching real data, run a second, isolated instance alongside it:
 
 ```bash
-./start_test.sh          # fresh copy of the real db -> localhost:3001 / :5002
+./start_test.sh          # fresh fake sample data -> localhost:3001 / :5002
 ./start_test.sh --keep   # reuse the test db from last run
 ./start_test.sh --empty  # start from an empty db
 ```
@@ -67,4 +67,4 @@ Prefix every commit subject with its type: `(fix)`, `(feature)`, or `(other)` â€
 
 ## Data sensitivity
 
-This repo is pushed to a **public** GitHub remote (`origin` = jcorf/sinking-funds). The current branch, `local-db-dont-push-publicly`, exists specifically to hold real personal financial data in `src/paycheck/sinkingFunds.db` without pushing it to a public branch. Note `.gitignore` only ignores `src/paycheck/*.db` (the live db) â€” `src/paycheck/backups/*.db` is **not** gitignored, so backup snapshots are untracked-but-visible, not automatically excluded. Do not push this branch, and do not merge db files into `main` without explicit confirmation.
+This repo is pushed to a **public** GitHub remote (`origin` = jcorf/sinking-funds). The current branch, `local-db-dont-push-publicly`, exists specifically to hold real personal financial data in `src/paycheck/sinkingFunds.db` without pushing it to a public branch. Backups: the real app keeps **one** rolling backup, `src/paycheck/backups/sinkingFunds_latest.db` (gitignored), overwritten on start, stop, and logout via `backup_db.sh` / the backend's logout route. The test instance uses fake sample data (`seed_demo_data.py`) and never backs up. Do not push this branch, and do not merge db files into `main` without explicit confirmation.

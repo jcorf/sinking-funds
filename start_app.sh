@@ -21,6 +21,7 @@ cleanup() {
     if [ ! -z "$REACT_PID" ]; then
         kill $REACT_PID 2>/dev/null || true
     fi
+    ./backup_db.sh
     echo "✅ Servers stopped. Goodbye!"
     exit 0
 }
@@ -28,21 +29,8 @@ cleanup() {
 # Set up signal handlers for graceful shutdown
 trap cleanup SIGINT SIGTERM
 
-# Create database backup with timestamp
-echo "📦 Creating database backup..."
-BACKUP_DIR="src/paycheck/backups"
-mkdir -p "$BACKUP_DIR"
-
-DATABASE_PATH="src/paycheck/sinkingFunds.db"
-
-if [ -f "$DATABASE_PATH" ]; then
-    TIMESTAMP=$(date +"%Y_%m_%d_%H_%M")
-    BACKUP_FILE="$BACKUP_DIR/sinkingFunds_$TIMESTAMP.db"
-    cp "$DATABASE_PATH" "$BACKUP_FILE"
-    echo "✅ Database backed up to: $BACKUP_FILE"
-else
-    echo "ℹ️  No existing database found at $DATABASE_PATH, skipping backup"
-fi
+# One rolling backup of the real db (also made on stop and on logout)
+./backup_db.sh
 
 # Set up the Python virtual environment and install dependencies
 echo "🔍 Checking Python virtual environment..."
@@ -83,7 +71,9 @@ echo "🐍 Starting Flask backend on http://127.0.0.1:5001..."
 cd src/paycheck
 # Always run the real app against the real db, even if SINKING_FUNDS_DB
 # happens to be set in this shell (e.g. left over from start_test.sh).
-SINKING_FUNDS_DB="$(pwd)/sinkingFunds.db" PORT=5001 python flask-connector.py &
+# SINKING_FUNDS_BACKUP_PATH turns on the backup-on-logout for the real app.
+SINKING_FUNDS_DB="$(pwd)/sinkingFunds.db" SINKING_FUNDS_BACKUP_PATH="$(pwd)/backups/sinkingFunds_latest.db" \
+    PORT=5001 python flask-connector.py &
 FLASK_PID=$!
 cd ../..
 

@@ -94,7 +94,31 @@ def login_route():
 @login_required
 def logout_route():
     logout_user()
+    backup_on_logout()
     return jsonify({"success": True})
+
+
+def backup_on_logout():
+    """Overwrite the single real-db backup (only the real app sets
+    SINKING_FUNDS_BACKUP_PATH; the test instance never backs up)."""
+    target = os.environ.get("SINKING_FUNDS_BACKUP_PATH")
+    if not target:
+        return
+    try:
+        import sqlite3
+        from utils.reference.database_constants import DATABASE_NAME
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        tmp = target + ".tmp"
+        src = sqlite3.connect(DATABASE_NAME)
+        dst = sqlite3.connect(tmp)
+        with dst:
+            src.backup(dst)
+        src.close()
+        dst.close()
+        os.replace(tmp, target)
+        print(f"📦 Backed up database on logout -> {target}")
+    except Exception as e:
+        print(f"Backup on logout failed: {e}")
 
 
 @app.route('/session', methods=['GET'])
