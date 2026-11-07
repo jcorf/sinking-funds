@@ -77,6 +77,7 @@
 }
 
 .nb-links {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -86,6 +87,8 @@
 }
 
 .nb-link {
+    position: relative;
+    z-index: 1; /* above the glass pill */
     padding: 9px 14px;
     border-radius: 999px;
     color: var(--sage-ink);
@@ -103,6 +106,45 @@
     background: var(--sage-tint);
     color: var(--sage);
     font-weight: 600;
+}
+
+/* Once the glass pill is measured it carries the highlight instead */
+.nb-links.has-pill .nb-link.is-current {
+    background: transparent;
+}
+
+/* ---------- Glass indicator ---------- */
+.nb-pill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    border-radius: 999px;
+    /* Glass: translucent sage over a soft sheen, frosted, with a bright top
+       edge and a faint sage rim */
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 55%),
+        rgba(207, 222, 190, 0.55);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
+    backdrop-filter: blur(10px) saturate(160%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(63, 92, 58, 0.12),
+        0 0 0 1px rgba(63, 92, 58, 0.14),
+        0 4px 12px rgba(63, 92, 58, 0.14);
+    pointer-events: none;
+    will-change: transform, width;
+}
+
+/* One smooth glide to the new tab (expo-out) */
+.nb-pill.is-glide {
+    transition:
+        transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        width 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nb-pill.is-still {
+    transition: none;
 }
 
 .nb-link:focus-visible {
@@ -162,7 +204,8 @@
 
 @media (prefers-reduced-motion: reduce) {
     .nb-link,
-    .nb-logout {
-        transition: none;
+    .nb-logout,
+    .nb-pill {
+        transition: none !important;
     }
 }

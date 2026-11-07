@@ -39,3 +39,59 @@ code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* ---------- Page change (NavBar) ----------
+   Tab clicks run inside document.startViewTransition: page content
+   cross-fades with a small slide in the direction of travel, while the nav
+   (whose glass pill glides on its own), the tools dock and the TEST badge
+   stay put. */
+.nb-wrap { view-transition-name: site-nav; }
+.td-dock { view-transition-name: tools-dock; }
+.test-env-badge { view-transition-name: test-badge; }
+
+::view-transition-old(site-nav),
+::view-transition-old(tools-dock),
+::view-transition-old(test-badge) {
+    display: none;
+}
+
+::view-transition-new(site-nav),
+::view-transition-new(tools-dock),
+::view-transition-new(test-badge) {
+    animation: none;
+}
+
+::view-transition-old(root) {
+    animation: 140ms cubic-bezier(0.4, 0, 1, 1) both page-out;
+}
+
+::view-transition-new(root) {
+    animation: 240ms cubic-bezier(0.16, 1, 0.3, 1) both page-in;
+}
+
+@keyframes page-out {
+    to {
+        opacity: 0;
+        transform: translateX(var(--page-out-x, -14px));
+    }
+}
+
+@keyframes page-in {
+    from {
+        opacity: 0;
+        transform: translateX(var(--page-in-x, 14px));
+    }
+}
+
+html[data-nav-dir='back'] {
+    --page-out-x: 14px;
+    --page-in-x: -14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation: none !important;
+    }
+}

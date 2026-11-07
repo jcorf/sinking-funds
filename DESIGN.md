@@ -277,6 +277,7 @@ A full-width text button: chevron (rotates 90° when open), title-weight label, 
 
 ### Navigation
 - **Style:** a floating white capsule (30px corners, 1px hairline, soft shadow) on a page-colored band, sticky at the top (never `position: fixed`). Left: the jar mark in a solid sage circle + "Sinking Funds" in Castoro. Middle: page links in the sans; the current page is a soft sage pill (`sage-tint`, sage text, 600), and a goal's detail page counts as Sinking Funds. Right: a quiet outlined **Log out** pill.
+- **Tab motion (user-requested):** the current tab sits on a single **glass pill** (translucent sage over a white sheen, `backdrop-filter: blur(10px) saturate(160%)`, bright inset top edge, faint sage rim). Changing tabs, it glides straight to the new tab in one smooth move (320ms, expo-out; a stretch-across variant was tried and dropped as too much); it jumps without animating on first paint, resize, or a wrapped second row. The page itself changes through a View Transition: content fades out with a 14px slide and the new page fades in from the other side, in the direction of travel, while the nav, tools dock and TEST badge stay still. Both are off under `prefers-reduced-motion`, and browsers without View Transitions just navigate.
 - **Test instance:** amber (`test-amber`) 2px outline and a small uppercase TEST tag beside the wordmark (plus the TEST DATA corner badge).
 - **Narrow / zoomed:** links drop to their own row inside the capsule; the wordmark hides under 420px. `--nav-height` (index.css) is what pinned panels offset from.
 
