@@ -42,6 +42,7 @@ import {
 import { resolveIcon } from '../SinkingFunds/goalIcons';
 import { GoalIcon, IconPicker, MoneyInput } from '../SinkingFunds/GoalParts';
 import { JarMark } from '../Login/Login';
+import { celebrate, newlyFunded } from '../SinkingFunds/celebrate';
 
 // Applies saved-amount changes one at a time (SQLite + recalculation per
 // write) and returns the changes that succeeded, for undo. Each change
@@ -415,9 +416,19 @@ const Grid = () => {
 
     const refresh = useCallback(async () => {
         const data = await getAllData();
-        setGoals((data && data.data) || []);
+        const list = (data && data.data) || [];
+        setGoals(list);
         setLoaded(true);
+        return list;
     }, []);
+
+    // Confetti + a line in the toast when an action pushes goals over their goal.
+    const fundedNote = (before, after) => {
+        const funded = newlyFunded(before, after);
+        if (!funded.length) return '';
+        celebrate();
+        return `${funded.map((g) => g.category).join(', ')} ${funded.length === 1 ? 'is' : 'are'} fully funded!`;
+    };
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -464,6 +475,7 @@ const Grid = () => {
     const existingNames = useMemo(() => new Set(goals.map((g) => g.category.toLowerCase())), [goals]);
 
     const logChanges = async (entries) => {
+        const before = goals;
         setBusy(true);
         // Logging fills the plan's first paycheck, so the plan then starts the
         // day after it (the following payday becomes the first row).
@@ -475,7 +487,8 @@ const Grid = () => {
             startTo: goal.plan_start ? shiftDate(goal.plan_start, 1) : getTodayDate(),
         }));
         const applied = await applySavedChanges(changes);
-        await refresh();
+        const after = await refresh();
+        const celebration = fundedNote(before, after);
         setBusy(false);
         setLogOpen(false);
         const total = applied.reduce((sum, c) => sum + (c.to - c.from), 0);
@@ -483,7 +496,8 @@ const Grid = () => {
         setToast({
             message:
                 `Logged ${formatMoney(total)} to ${plural(applied.length, 'goal')}` +
-                (failed ? `. ${plural(failed, 'goal')} couldn't be saved.` : ''),
+                (failed ? `. ${plural(failed, 'goal')} couldn't be saved.` : '') +
+                (celebration ? `. ${celebration}` : ''),
             changes: applied,
         });
     };
@@ -536,13 +550,15 @@ const Grid = () => {
     // Saves only changed goals; each keeps its plan start, so per-paycheck
     // amounts recalculate from the same first payday.
     const saveDrafts = async () => {
+        const before = goals;
         setBusy(true);
         const changes = draftChanges.map((g) => {
             const start = g.calculated_from || getTodayDate();
             return { id: g.id, from: toCents(g.saved), to: toCents(drafts[g.id]), startFrom: start, startTo: start };
         });
         const applied = await applySavedChanges(changes);
-        await refresh();
+        const after = await refresh();
+        const celebration = fundedNote(before, after);
         setBusy(false);
         const failed = changes.filter((c) => !applied.includes(c));
         if (failed.length) {
@@ -553,7 +569,7 @@ const Grid = () => {
         }
         setEditing(false);
         setDrafts({});
-        setToast({ message: `Updated ${plural(applied.length, 'goal')}`, changes: applied });
+        setToast({ message: `Updated ${plural(applied.length, 'goal')}.${celebration ? ` ${celebration}` : ''}`, changes: applied });
     };
 
     // "Other date…" in the pill: recalculate every goal from any start date.

@@ -6,6 +6,7 @@ import { deleteCategory, getCategoryData, getNextPayday, getPaycheckSchedule, up
 import { formatDate, formatMoney, formatPercent, goalStatus, plural, shiftDate, toCents } from '../SinkingFunds/goalMath';
 import { getTodayDate } from '../../utils/lib';
 import { IconPicker, MoneyInput } from '../SinkingFunds/GoalParts';
+import { celebrate, newlyFunded } from '../SinkingFunds/celebrate';
 
 export function InfoPage() {
     const { id, categoryName } = useParams();
@@ -32,7 +33,13 @@ export function InfoPage() {
         // the paycheck the per-paycheck amount (and "Log") applies to.
         const sched = await getPaycheckSchedule(data.category, data.calculated_from || getTodayDate());
         setSchedule(sched && !sched.error ? sched : {});
+        return data;
     }, []);
+
+    // Confetti when a change pushes this goal over its goal (not top-ups).
+    const celebrateIfFunded = (before, after) => {
+        if (after && newlyFunded([before], [after]).length) celebrate();
+    };
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -52,7 +59,8 @@ export function InfoPage() {
     };
 
     const saveAndReload = async (field, value) => {
-        if (await save(field, value)) await load(goal.category);
+        const before = goal;
+        if (await save(field, value)) celebrateIfFunded(before, await load(goal.category));
     };
 
     const rename = async () => {
@@ -78,7 +86,7 @@ export function InfoPage() {
         const startTo = goal.plan_start && status.perPaycheck > 0 ? shiftDate(goal.plan_start, 1) : getTodayDate();
         if (await save('saved', toCents(from + amount).toFixed(2), startTo)) {
             setUndoStack((s) => [...s, { saved: from, start: startFrom }]);
-            await load(goal.category);
+            celebrateIfFunded(goal, await load(goal.category));
         }
         setBusy(false);
     };
