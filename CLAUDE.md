@@ -12,10 +12,12 @@ A personal finance web app for tracking "sinking funds" (savings goals), credit 
 ./start_app.sh          # starts both backend and frontend, backs up the db first
 ```
 
+Or without a terminal: `./make_desktop_app.sh` builds **Sinking Funds.app** on the Desktop, a native dialog that shows what's running and starts/stops/opens the real app or the test instance. It drives `./app_control.sh status | start real|test | stop real|test | open real|test`, which runs the start scripts in the background (logs in `.run/`).
+
 To experiment without touching real data, run a second, isolated instance alongside it:
 
 ```bash
-./start_test.sh          # fresh copy of the real db -> localhost:3001 / :5002
+./start_test.sh          # fresh fake sample data -> localhost:3001 / :5002
 ./start_test.sh --keep   # reuse the test db from last run
 ./start_test.sh --empty  # start from an empty db
 ```
@@ -36,29 +38,29 @@ npm install
 npm start
 ```
 
-Frontend tests: `cd web-app/app && npm test` (CRA default scaffold — there is no meaningful test coverage beyond `App.test.js`). There is no backend test suite, no requirements.txt/Pipfile, and no linter config beyond CRA's built-in `eslintConfig` in `web-app/app/package.json`.
+There are no automated tests (frontend or backend). Python dependencies are in `src/paycheck/requirements.txt`; the only linting is CRA's built-in `eslintConfig` in `web-app/app/package.json`.
 
-Database setup/reset is done via POST endpoints rather than a migration tool: `/setup_database`, `/delete_database`, `/add_mock_data` (see [database.py](src/paycheck/database.py)). Tables also self-create lazily — e.g. `get_all_data()`, `get_all_credit_cards()`, `get_ally_bank_balance()` check `table_exists()` and call the relevant `setup_*_database()` if missing.
+There is no migration tool: tables self-create lazily — e.g. `get_all_data()`, `get_all_credit_cards()`, `get_ally_bank_balance()` check `table_exists()` and call the relevant `setup_*_database()` if missing, and `ensure_*_columns()` helpers add columns to older databases (see [database.py](src/paycheck/database.py)). For a clean slate, use the test instance (`./start_test.sh --empty`).
 
 ## Repo layout gotcha
 
-`web-app/package.json` at the repo root (with `emoji-picker-react`, `react-beautiful-dnd`) is a leftover — it is **not** the real app. The actual frontend lives entirely under `web-app/app/`.
+The frontend lives entirely under `web-app/app/` (there is nothing else in `web-app/`).
 
 ## Backend architecture
 
 - [flask-connector.py](src/paycheck/flask-connector.py) — all HTTP routes. Thin wrappers that parse query args/JSON body and call into `database.py`/`paycheck.py`. Three route groups: sinking funds (`/get_data`, `/add_category`, `/update_field`, `/recalculate_all`, ...), credit cards (`/get_credit_cards`, `/update_credit_card_balance`, ...), and Ally Bank (`/get_ally_bank_balance`, `/update_ally_bank_balance`).
 - [database.py](src/paycheck/database.py) — all SQL logic for three tables: `savings`, `credit_cards`, `ally_bank`. Uses raw `sqlite3` via `utils/database_utils.py` (`execute_query`/`select_query`), opening/closing a new connection per call — no ORM, no connection pooling. **Many queries build SQL with f-strings instead of parameterized queries** (e.g. `update_field`, `delete_row_based_on_category`, `get_category_info`) — be careful not to introduce new injection points when touching these, and prefer the parameterized style already used elsewhere (e.g. `add_savings_category`) for new code.
 - `validate_primary_key()` in database.py is the gatekeeper used before mutating a row by category name or numeric id — most write paths call it first.
-- [paycheck.py](src/paycheck/paycheck.py) + [schedules/bimonthly.py](src/paycheck/schedules/bimonthly.py) — the actual savings-per-paycheck math, dispatched by a `frequency` string. Only `"bimonthly"` is implemented (paydays = 15th and last day of month, shifted back to Friday if it falls on a weekend). Adding a new pay schedule means adding a new module under `schedules/` and a new branch in `paycheck.py`'s dispatch functions (`saved_by_paycheck`, `save_per_paycheck`, `remaining_paychecks`).
+- [paycheck.py](src/paycheck/paycheck.py) + [schedules/bimonthly.py](src/paycheck/schedules/bimonthly.py) — the actual savings-per-paycheck math, dispatched by a `frequency` string. Only `"bimonthly"` is implemented (paydays = 15th and last day of month, shifted back to Friday if it falls on a weekend). Adding a new pay schedule means adding a new module under `schedules/` and a new branch in `paycheck.py`'s dispatch functions (`saved_by_paycheck`, `save_per_paycheck`).
 - [utils/reference/database_constants.py](src/paycheck/utils/reference/database_constants.py) — single `DATABASE_NAME` constant (`sinkingFunds.db`) used everywhere via import.
 - Credit card balance model: `total_balance = posted_transactions + pending_transactions - covered_transactions`. `covered_sub_balances`/`pending_sub_balances` store itemized breakdowns as JSON strings; updating them (`update_covered_sub_balances`/`update_pending_sub_balances`) recalculates the aggregate field and `total_balance` together — keep both in sync if editing this logic.
 - `notebooks/` contains the original Jupyter-prototype versions of the calculation logic (`sinkingFunds.py`, `calculateFunctions.py`). It's not imported by the running app — treat it as historical reference only, not a dependency.
 
 ## Frontend architecture
 
-- Entry point [App.js](web-app/app/src/App.js) sets up routes (`/dashboard`, `/sinking-funds`, `/credit-cards`, `/recalculate`, `/users/:id/:categoryName`) and holds the shared `startDate` state used across Recalculate/InfoPage.
-- [components/utils/api.js](web-app/app/src/components/utils/api.js) is the only place that talks to the Flask backend (all `fetch` calls). [components/utils/lib.js](web-app/app/src/components/utils/lib.js) builds query-string URLs (`url()`, `obj()`) and has date helpers (`getTodayDate`, `getOneYearDate`) and the emoji picker list.
-- `components/whole-view/` holds one folder per page/feature (Grid, InfoCard, InfoPage, AddCard, Recalculate, Dashboard, CreditCards, EmojiPicker, TextField, Summary), each with its own `.js`/`.css` pair.
+- Entry point [App.js](web-app/app/src/App.js) sets up routes (`/dashboard`, `/sinking-funds`, `/credit-cards`, `/budget-categories`, `/settings`, `/users/:id/:categoryName`) and mounts the bottom-left tools dock (calculator + notes). Recalculating lives in the Sinking Funds status pill; each goal's plan start (`calculated_from` / `plan_start`) drives its schedule.
+- [components/utils/api.js](web-app/app/src/components/utils/api.js) is the only place that talks to the Flask backend (all `fetch` calls). [components/utils/lib.js](web-app/app/src/components/utils/lib.js) builds query-string URLs (`url()`, `obj()`), has `getTodayDate()`, and `isTestEnv`.
+- `components/whole-view/` holds one folder per page/feature (Grid = Sinking Funds overview, InfoPage = goal detail, SinkingFunds = their shared parts, BudgetCategories, CreditCards, Dashboard, Login, Settings = read-only list of the math rules, Tools = calculator/notes dock, Nav), each with its own `.js`/`.css` pair. CRA loads every stylesheet on every page, so page CSS uses a class prefix (`sf-`, `gd-`, `bc-`, `lg-`, `td-`, `st-`).
 - Drag-and-drop reordering (sinking fund cards and credit cards) uses `@dnd-kit`; reorder is persisted via `updateCardOrder`/`updateCreditCardOrder` in api.js, which hit `/update_card_order`/`/update_credit_card_order`.
 
 ## Commit conventions
@@ -67,4 +69,4 @@ Prefix every commit subject with its type: `(fix)`, `(feature)`, or `(other)` �
 
 ## Data sensitivity
 
-This repo is pushed to a **public** GitHub remote (`origin` = jcorf/sinking-funds). The current branch, `local-db-dont-push-publicly`, exists specifically to hold real personal financial data in `src/paycheck/sinkingFunds.db` without pushing it to a public branch. Note `.gitignore` only ignores `src/paycheck/*.db` (the live db) — `src/paycheck/backups/*.db` is **not** gitignored, so backup snapshots are untracked-but-visible, not automatically excluded. Do not push this branch, and do not merge db files into `main` without explicit confirmation.
+This repo is pushed to a **public** GitHub remote (`origin` = jcorf/sinking-funds). The current branch, `local-db-dont-push-publicly`, exists specifically to hold real personal financial data in `src/paycheck/sinkingFunds.db` without pushing it to a public branch. Backups: the real app keeps **one** rolling backup, `src/paycheck/backups/sinkingFunds_latest.db` (gitignored), overwritten on start, stop, and logout via `backup_db.sh` / the backend's logout route. The test instance uses fake sample data (`seed_demo_data.py`) and never backs up. Do not push this branch, and do not merge db files into `main` without explicit confirmation.

@@ -2,17 +2,18 @@
 
 # Sinking Funds Calculator - Test Instance
 #
-# Runs a second, fully separate copy of the app against a scratch copy of
-# your real database, so you can experiment without touching real data:
+# Runs a second, fully separate copy of the app against its own database of
+# obviously fake sample data, so you can experiment without touching (or even
+# seeing) real data:
 #
 #   Real:  frontend http://localhost:3000  ->  backend :5001  ->  src/paycheck/sinkingFunds.db
 #   Test:  frontend http://localhost:3001  ->  backend :5002  ->  src/paycheck/sinkingFunds_test.db
 #
-# Both can run at the same time. The real db is only ever read (to make the
-# copy), never written.
+# Both can run at the same time. The test instance never reads the real db
+# and never makes backups.
 #
 # Usage:
-#   ./start_test.sh          # fresh copy of the real db every run (resets test data)
+#   ./start_test.sh          # fresh fake sample data every run (resets test data)
 #   ./start_test.sh --keep   # keep the existing test db from last time
 #   ./start_test.sh --empty  # start from an empty db (tables self-create)
 
@@ -22,7 +23,6 @@ set -e
 # every path below is relative to it.
 cd "$(dirname "$0")"
 
-REAL_DB="src/paycheck/sinkingFunds.db"
 TEST_DB="src/paycheck/sinkingFunds_test.db"
 TEST_API_PORT=5002
 TEST_WEB_PORT=3001
@@ -56,19 +56,8 @@ done
 
 case "$MODE" in
     fresh)
-        if [ ! -f "$REAL_DB" ]; then
-            echo "❌ No real database at $REAL_DB to copy. Use --empty instead."
-            exit 1
-        fi
         rm -f "$TEST_DB"
-        # sqlite3's .backup takes a consistent snapshot even if the real app
-        # is running and mid-write; plain cp is the fallback.
-        if command -v sqlite3 >/dev/null 2>&1; then
-            sqlite3 "$REAL_DB" ".backup '$TEST_DB'"
-        else
-            cp "$REAL_DB" "$TEST_DB"
-        fi
-        echo "📋 Copied real db -> $TEST_DB"
+        SEED_DEMO=1   # filled with fake sample data once the venv is active
         ;;
     keep)
         if [ -f "$TEST_DB" ]; then
@@ -95,10 +84,20 @@ if [ ! -f ".env" ]; then
 fi
 set -a
 source ".env"
+# Optional test-only login (gitignored test.env) so the test instance can use
+# throwaway credentials without touching the real app's login in .env.
+if [ -f "test.env" ]; then
+    source "test.env"
+fi
 set +a
 
-echo "🐍 Starting test backend on http://127.0.0.1:$TEST_API_PORT..."
 cd src/paycheck
+if [ -n "$SEED_DEMO" ]; then
+    SINKING_FUNDS_DB="$(pwd)/sinkingFunds_test.db" python seed_demo_data.py >/dev/null
+    echo "🌱 Filled $TEST_DB with fake sample data"
+fi
+
+echo "🐍 Starting test backend on http://127.0.0.1:$TEST_API_PORT..." 
 SINKING_FUNDS_DB="$(pwd)/sinkingFunds_test.db" \
 PORT=$TEST_API_PORT \
 SESSION_COOKIE_NAME="session_test" \

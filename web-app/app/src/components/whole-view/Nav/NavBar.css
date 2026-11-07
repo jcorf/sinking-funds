@@ -1,0 +1,231 @@
+/* Floating sage nav. nb- prefixed. Sticky (never fixed), so when it wraps
+   (zoomed in, narrow window) it pushes the page down (Zoom-Proof Rule). */
+
+.nb-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 12px 16px;
+    /* Page-colored band so content scrolling underneath doesn't show around
+       the floating bar */
+    background: linear-gradient(#f2f2f2 75%, rgba(242, 242, 242, 0));
+}
+
+.nb-bar {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    max-width: 1240px;
+    min-height: 60px;
+    margin: 0 auto;
+    padding: 8px 10px 8px 12px;
+    /* Solid bar with a light shadow; the buttons inside are the see-through
+       glass */
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 30px;
+    box-shadow: 0 2px 10px rgba(29, 42, 30, 0.05);
+    color: var(--sage-ink);
+}
+
+.nb-bar.is-test {
+    border: 2px solid #b45309;
+}
+
+.nb-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 10px 2px 2px;
+    border-radius: 999px;
+    color: var(--sage-ink);
+    text-decoration: none;
+}
+
+.nb-brand:focus-visible {
+    outline: 3px solid var(--sage-ring);
+    outline-offset: 2px;
+}
+
+.nb-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--sage);
+    color: #fff;
+}
+
+.nb-wordmark {
+    font-family: var(--serif);
+    font-size: 1.3rem;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.nb-test-tag {
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #b45309;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.nb-links {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.nb-link {
+    position: relative;
+    z-index: 1; /* above the glass pill */
+    padding: 9px 14px;
+    border-radius: 999px;
+    color: var(--sage-ink);
+    font-size: 1rem;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nb-link:hover {
+    background: #f4f6f0;
+}
+
+.nb-link.is-current {
+    background: var(--sage-tint);
+    color: var(--sage);
+    font-weight: 600;
+}
+
+/* Once the glass pill is measured it carries the highlight instead */
+.nb-links.has-pill .nb-link.is-current {
+    background: transparent;
+}
+
+/* ---------- Glass indicator ---------- */
+.nb-pill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    border-radius: 999px;
+    /* Glass: translucent sage over a soft sheen, frosted, with a bright top
+       edge and a faint sage rim */
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 60%),
+        rgba(207, 222, 190, 0.32);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
+    backdrop-filter: blur(10px) saturate(160%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        0 0 0 1px rgba(63, 92, 58, 0.12),
+        0 2px 8px rgba(63, 92, 58, 0.08);
+    pointer-events: none;
+    will-change: transform, width;
+}
+
+/* One smooth glide to the new tab (expo-out) */
+.nb-pill.is-glide {
+    transition:
+        transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        width 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nb-pill.is-still {
+    transition: none;
+}
+
+.nb-link:focus-visible {
+    outline: 3px solid var(--sage-ring);
+    outline-offset: 1px;
+}
+
+.nb-logout {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid rgba(63, 92, 58, 0.18);
+    border-radius: 999px;
+    background: rgba(207, 222, 190, 0.18);
+    color: var(--sage-ink);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.nb-logout:hover {
+    border-color: rgba(63, 92, 58, 0.35);
+    background: rgba(207, 222, 190, 0.32);
+    color: var(--sage);
+}
+
+.nb-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.nb-settings {
+    text-decoration: none;
+}
+
+/* On the Settings page, the gear reads as the current tab */
+.nb-settings.is-current {
+    border-color: rgba(63, 92, 58, 0.35);
+    background: var(--sage-tint);
+    color: var(--sage);
+}
+
+.nb-logout:focus-visible {
+    outline: 3px solid var(--sage-ring);
+    outline-offset: 2px;
+}
+
+/* Narrow / zoomed: brand + log out on top, links on their own row */
+@media (max-width: 900px) {
+    .nb-bar {
+        border-radius: 22px;
+    }
+
+    .nb-links {
+        order: 3;
+        flex-basis: 100%;
+    }
+
+    .nb-link {
+        padding: 8px 12px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .nb-wordmark {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nb-link,
+    .nb-logout,
+    .nb-pill {
+        transition: none !important;
+    }
+}

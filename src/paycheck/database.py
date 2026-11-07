@@ -1,6 +1,5 @@
 from utils.database_utils import *
 from utils.utils import nowString, listToDict
-import random
 import json
 
 
@@ -15,7 +14,8 @@ def setup_database():
         calculated_to_save REAL NOT NULL,
         emoji TEXT DEFAULT ':heart:',
         display_order INTEGER DEFAULT 0,
-        last_updated DATE NOT NULL
+        last_updated DATE NOT NULL,
+        calculated_from DATE
     )
     ''')
     print("SET UP database")
@@ -79,36 +79,38 @@ def setup_ally_bank_database():
     return True
 
 
-def delete_db():
+def ensure_savings_calculated_from_column():
+    """Add savings.calculated_from to databases created before it existed.
+
+    calculated_from is the start date the current calculated_to_save was
+    computed from, so the UI can tell whether an amount predates the most
+    recent payday. It stays NULL until the row is next recalculated.
+    """
     try:
-        query = 'DROP TABLE IF EXISTS savings'
-        execute_query(query)
-        print("DROPPED database")
-        return True
+        column_names = [row[1] for row in select_query("PRAGMA table_info(savings)")]
+        if column_names and 'calculated_from' not in column_names:
+            execute_query("ALTER TABLE savings ADD COLUMN calculated_from DATE")
+            print("✅ Added calculated_from column to savings")
     except Exception as e:
-        print("Exception", e)
-        return False
+        print(f"Error checking savings columns: {e}")
 
 
-def add_savings_category(category, saved, goal, goal_date, calculated_to_save, emoji=':heart:'):
+def add_savings_category(category, saved, goal, goal_date, calculated_to_save, emoji=':heart:', calculated_from=None):
     try:
         # Get the next order number
         max_order_query = "SELECT COALESCE(MAX(display_order), -1) FROM savings"
         max_order_result = select_query(max_order_query)
         next_order = max_order_result[0][0] + 1 if max_order_result else 0
         
-        query = f"""INSERT INTO savings (category, saved, goal, goal_date, calculated_to_save, emoji, display_order, last_updated)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
-        execute_query(query, category, saved, goal, goal_date, calculated_to_save, emoji, next_order, nowString())
+        ensure_savings_calculated_from_column()
+        query = f"""INSERT INTO savings (category, saved, goal, goal_date, calculated_to_save, emoji, display_order, last_updated, calculated_from)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        execute_query(query, category, saved, goal, goal_date, calculated_to_save, emoji, next_order, nowString(), calculated_from)
         print(f"ADDED {category} to database")
         return True
     except Exception as e:
         print("Exception", e)
         return False
-
-
-def add_db(category, saved, goal, goal_date, to_save, emoji=':heart:'):
-    return add_savings_category(category, saved, goal, goal_date, to_save, emoji)
 
 
 def get_all_data():
@@ -117,15 +119,15 @@ def get_all_data():
         print("Savings table doesn't exist, creating it...")
         setup_database()
         print("✅ Savings table created")
+    ensure_savings_calculated_from_column()
 
-    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order FROM savings ORDER BY display_order"
+    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order, calculated_from FROM savings ORDER BY display_order"
     rows = select_query(query)
-    cols = ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order"]
+    cols = ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from"]
     return [listToDict(row, cols) for row in rows]
 
 
 def delete_row_based_on_category(value, field="category"):
-    print(value, field)
     try:
         if (validate_primary_key(value)):
             execute_query(f"DELETE FROM savings WHERE {field} = '{value}'")
@@ -149,7 +151,7 @@ def get_ids():
     return [row[0] for row in rows]
 
 
-VALID_SAVINGS_FIELDS = {"category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order"}
+VALID_SAVINGS_FIELDS = {"category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from"}
 # "id" is never something you'd SET via this endpoint, but it's a legitimate
 # way to FILTER which row to update (e.g. renaming a category, or any update
 # that needs to survive a category name changing in the same request).
@@ -178,9 +180,10 @@ def update_field(field_to_change, new_value, filter_value, field_filter="categor
 
 # Get the category information, based on the category name or the id value (must be specified)
 def get_category_info(value, field="category"):
-    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order FROM savings WHERE {field} = '{value}' LIMIT 1"
+    ensure_savings_calculated_from_column()
+    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order, calculated_from FROM savings WHERE {field} = '{value}' LIMIT 1"
     row = select_query(query)
-    return listToDict(row[0], ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order"])
+    return listToDict(row[0], ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from"])
 
 
 # validate ID or category
@@ -190,10 +193,7 @@ def validate_primary_key(key):
         ids = get_ids()
         return int(value) in ids
     else:
-        categories = get_categories()
-        print(categories)
-        print(key)
-        return value in categories
+        return value in get_categories()
 
 
 def update_card_order(card_orders):
@@ -280,10 +280,6 @@ def get_all_credit_cards():
     cols = ["id", "card_name", "posted_transactions", "pending_transactions", "covered_transactions", "covered_sub_balances", "pending_sub_balances", "total_balance", "payment_tags", "display_order"]
     cards = [listToDict(row, cols) for row in rows]
 
-    print("DEBUG: get_all_credit_cards returning:")
-    for card in cards:
-        print(f"  {card['card_name']}: posted={card['posted_transactions']}, pending={card['pending_transactions']}, covered={card['covered_transactions']}")
-
     return cards
 
 
@@ -366,7 +362,6 @@ def update_covered_sub_balances(card_name, sub_balances):
             print(f"Card {card_name} not found")
             return False
 
-        print(f"DEBUG: Before update - {card_name}: posted={current_card['posted_transactions']}, pending={current_card['pending_transactions']}, covered={current_card['covered_transactions']}")
 
         # Update both fields
         query = "UPDATE credit_cards SET covered_sub_balances = ?, covered_transactions = ?, last_updated = ? WHERE card_name = ?"
@@ -377,7 +372,6 @@ def update_covered_sub_balances(card_name, sub_balances):
         query = "UPDATE credit_cards SET total_balance = ?, last_updated = ? WHERE card_name = ?"
         execute_query(query, total_balance, nowString(), card_name)
 
-        print(f"DEBUG: After update - {card_name}: total_balance={total_balance}")
         print(f"UPDATED {card_name} covered sub-balances")
         return True
     except Exception as e:
@@ -397,7 +391,6 @@ def update_pending_sub_balances(card_name, sub_balances):
             print(f"Card {card_name} not found")
             return False
 
-        print(f"DEBUG: Before update - {card_name}: posted={current_card['posted_transactions']}, pending={current_card['pending_transactions']}, covered={current_card['covered_transactions']}")
 
         # Update both fields
         query = "UPDATE credit_cards SET pending_sub_balances = ?, pending_transactions = ?, last_updated = ? WHERE card_name = ?"
@@ -408,7 +401,6 @@ def update_pending_sub_balances(card_name, sub_balances):
         query = "UPDATE credit_cards SET total_balance = ?, last_updated = ? WHERE card_name = ?"
         execute_query(query, total_balance, nowString(), card_name)
 
-        print(f"DEBUG: After update - {card_name}: total_balance={total_balance}")
         print(f"UPDATED {card_name} pending sub-balances")
         return True
     except Exception as e:
@@ -865,49 +857,185 @@ def update_post_tax_benefit_order(card_orders):
         return False
 
 
-# TESTS
-if False:
-    print("----------------")
-    delete_db()
-    setup_database()
 
-    # Generate random categories
-    categories = [
-        "emergency fund", "vacation", "pets", "car", "kids"
-    ]
 
-    for category in categories:
-        saved = random.randint(100, 1000)  # Random saved amount
-        goal = saved + random.randint(500, 2000)  # Goal is greater than saved
-        calculated_to_save = goal - saved  # Amount left to save
-        add_db(category, saved, goal, "2025-01-01", calculated_to_save)
 
-    print("-----------")
+# ---------------------------------------------------------------------------
+# Notes: a single scratch notepad (row id 1), shown from the tools dock.
+# ---------------------------------------------------------------------------
 
-    print(get_categories())
+def setup_notes_database():
+    execute_query('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        body TEXT NOT NULL DEFAULT '',
+        last_updated DATE NOT NULL
+    )
+    ''')
 
-    get_category_info("emergency fund")
-    get_category_info(2, "id")
-    get_category_info('3', "id")
 
-    delete_row_based_on_category(2, 'id')
-    delete_row_based_on_category("pets")
+def get_notes():
+    if not table_exists('notes'):
+        setup_notes_database()
+    rows = select_query("SELECT body, last_updated FROM notes WHERE id = 1")
+    if not rows:
+        return {"body": "", "last_updated": None}
+    return {"body": rows[0][0], "last_updated": rows[0][1]}
 
-    print(get_categories())
 
-    update_field("goal_date", "2026-01-01", "car")
-    update_field("goal_date", "2027-01-01", 5, "id")
-    update_field("goal_date", "2027-01-01", 3, "id")
+def update_notes(body):
+    try:
+        if not table_exists('notes'):
+            setup_notes_database()
+        execute_query(
+            "INSERT INTO notes (id, body, last_updated) VALUES (1, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET body = excluded.body, last_updated = excluded.last_updated",
+            body, nowStringWithTime(),
+        )
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
 
-    get_category_info("car")
-    get_category_info("kids")
 
-    ## True, False, True
-    print(validate_primary_key(5))
-    print(validate_primary_key(3))
-    print(validate_primary_key("emergency fund"))
+def nowStringWithTime():
+    from datetime import datetime
+    return datetime.now().isoformat(timespec='seconds')
 
-    print(get_all_data())
 
-    #delete_db()
 
+# ---------------------------------------------------------------------------
+# Spending from a goal. Each row records money taken out of a sinking fund
+# (the trip happened, the bill was paid). from_saved is how much actually
+# came out of the fund (never more than it held); goal_reduced is how much
+# the goal amount was lowered with it. Removing the entry puts both back.
+# ---------------------------------------------------------------------------
+
+def setup_goal_spending_database():
+    execute_query('''
+    CREATE TABLE IF NOT EXISTS goal_spending (
+        id INTEGER PRIMARY KEY,
+        goal_id INTEGER NOT NULL,
+        amount REAL NOT NULL,
+        from_saved REAL NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        spent_on DATE NOT NULL,
+        created_at TEXT NOT NULL,
+        goal_reduced REAL NOT NULL DEFAULT 0
+    )
+    ''')
+
+
+def _spending_db():
+    import sqlite3
+    from utils.reference.database_constants import DATABASE_NAME
+    if not table_exists('goal_spending'):
+        setup_goal_spending_database()
+    conn = sqlite3.connect(DATABASE_NAME)
+    conn.row_factory = sqlite3.Row
+    # goal_reduced: how much the spend also lowered the goal amount
+    if 'goal_reduced' not in [r[1] for r in conn.execute("PRAGMA table_info(goal_spending)")]:
+        conn.execute("ALTER TABLE goal_spending ADD COLUMN goal_reduced REAL NOT NULL DEFAULT 0")
+        conn.commit()
+    return conn
+
+
+SPENDING_COLS = "id, goal_id, amount, from_saved, note, spent_on, created_at, goal_reduced"
+
+
+def get_goal_spending(goal_id):
+    conn = _spending_db()
+    try:
+        rows = conn.execute(
+            f"SELECT {SPENDING_COLS} FROM goal_spending WHERE goal_id = ? ORDER BY spent_on DESC, id DESC",
+            (int(goal_id),),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def spend_from_goal(goal_id, amount, note, spent_on, lower_goal=True):
+    """Take `amount` out of a goal. With lower_goal the goal amount drops by
+    the same amount (that money is no longer needed). Returns the new
+    spending row, or raises ValueError with a message meant for the user."""
+    goal_id = int(goal_id)
+    amount = round(float(amount), 2)
+    if amount <= 0:
+        raise ValueError("Enter an amount greater than $0.")
+    if not validate_primary_key(goal_id):
+        raise ValueError("That goal no longer exists.")
+    goal = get_category_info(goal_id, "id")
+    saved = round(float(goal['saved'] or 0), 2)
+    from_saved = min(amount, saved)
+
+    target = round(float(goal['goal'] or 0), 2)
+    goal_reduced = min(amount, target) if lower_goal else 0
+
+    conn = _spending_db()
+    try:
+        with conn:
+            conn.execute(
+                "UPDATE savings SET saved = ?, last_updated = ? WHERE id = ?",
+                (round(saved - from_saved, 2), nowString(), goal_id),
+            )
+            if goal_reduced:
+                conn.execute("UPDATE savings SET goal = ? WHERE id = ?", (round(target - goal_reduced, 2), goal_id))
+            cur = conn.execute(
+                "INSERT INTO goal_spending (goal_id, amount, from_saved, note, spent_on, created_at, goal_reduced) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (goal_id, amount, from_saved, (note or '').strip()[:200], spent_on or nowString(),
+                 nowStringWithTime(), goal_reduced),
+            )
+            spending_id = cur.lastrowid
+        row = conn.execute(f"SELECT {SPENDING_COLS} FROM goal_spending WHERE id = ?", (spending_id,)).fetchone()
+        return dict(row)
+    finally:
+        conn.close()
+
+
+def remove_goal_spending(spending_id):
+    """Delete a spending entry and put its money (and any goal reduction)
+    back. Returns the goal id, or None if there was no such entry."""
+    conn = _spending_db()
+    try:
+        row = conn.execute(f"SELECT {SPENDING_COLS} FROM goal_spending WHERE id = ?", (int(spending_id),)).fetchone()
+        if not row:
+            return None
+        goal = conn.execute("SELECT saved, goal FROM savings WHERE id = ?", (row['goal_id'],)).fetchone()
+        with conn:
+            if goal:
+                conn.execute(
+                    "UPDATE savings SET saved = ?, last_updated = ? WHERE id = ?",
+                    (round(float(goal['saved'] or 0) + float(row['from_saved']), 2), nowString(), row['goal_id']),
+                )
+                if row['goal_reduced']:
+                    conn.execute("UPDATE savings SET goal = ? WHERE id = ?",
+                                 (round(float(goal['goal'] or 0) + float(row['goal_reduced']), 2), row['goal_id']))
+            conn.execute("DELETE FROM goal_spending WHERE id = ?", (row['id'],))
+        return row['goal_id']
+    finally:
+        conn.close()
+
+
+def delete_goal_spending_for(goal_id):
+    if table_exists('goal_spending'):
+        execute_query("DELETE FROM goal_spending WHERE goal_id = ?", int(goal_id))
+
+
+# ---------------------------------------------------------------------------
+# Export: every table as plain rows, for a portable backup.
+# ---------------------------------------------------------------------------
+
+def export_all_tables():
+    import sqlite3
+    from utils.reference.database_constants import DATABASE_NAME
+    conn = sqlite3.connect(DATABASE_NAME)
+    conn.row_factory = sqlite3.Row
+    try:
+        names = [r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
+        # Table names come from sqlite_master itself, so quoting them is safe.
+        return {name: [dict(r) for r in conn.execute(f'SELECT * FROM "{name}"')] for name in names}
+    finally:
+        conn.close()

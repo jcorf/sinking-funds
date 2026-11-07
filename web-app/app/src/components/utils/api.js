@@ -30,6 +30,54 @@ export async function getSession() {
     }
 }
 
+// Next payday on/after today and the most recent one before it, from the
+// backend's bimonthly schedule rules.
+export async function getNextPayday() {
+    try {
+        const response = await fetch(url('/next_payday'), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching next payday:', error);
+        return null;
+    }
+}
+
+// The Ally "Saved in Bucket" balance (number), or null if unavailable.
+export async function getAllyBankBalance() {
+    try {
+        const response = await fetch(url('/get_ally_bank_balance'), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        return typeof data.balance === 'number' ? data.balance : Number(data.balance) || 0;
+    } catch (error) {
+        console.error('Error fetching bucket balance:', error);
+        return null;
+    }
+}
+
+// The single scratch notepad from the tools dock.
+export async function getNotes() {
+    const response = await fetch(url('/get_notes'), {credentials: 'include'});
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
+}
+
+export async function updateNotes(body) {
+    try {
+        const response = await fetch(url('/update_notes'), {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({body}),
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Error saving notes:', error);
+        return false;
+    }
+}
+
 export async function getCategoryData(categoryName) {
     try {
         const flaskUrl = url('/get_category_info', ['on_value'], [categoryName])
@@ -76,11 +124,10 @@ export async function updateField(field, value, onValue, onField = 'category', s
         throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const result = await response.json();
-    console.log("Success:", result);  // Handle the response data
-
+        return true;
     } catch (error) {
         console.error("Error:", error);  // Handle any errors
+        return false;
     }
 }
 
@@ -99,11 +146,10 @@ export async function deleteCategory(onValue, onField = 'category') {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
-        console.log("Success:", result);  // Handle the response data
-
+        return true;
     } catch (error) {
         console.error("Error:", error);  // Handle any errors
+        return false;
     }
 }
 
@@ -123,36 +169,31 @@ export async function addCategory(category, saved, goal, goalDate, startDate = g
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
-        console.log("Success:", result);  // Handle the response data
-
+        return (await response.json()) === true;
     } catch (error) {
         console.error("Error:", error);  // Handle any errors
+        return false;
     }
 }
 
-export async function updateAllCategories(startDate= getTodayDate(), paySchedule = null) {
+export async function updateAllCategories(startDate = getTodayDate()) {
     try {
-        const requestBody = paySchedule 
-            ? obj(['start_date', 'pay_schedule'], [startDate, paySchedule])
-            : obj(['start_date'], [startDate]);
-            
         const response = await fetch(url('/recalculate_all'), {
             method: "POST",  // HTTP method
             credentials: 'include',
             headers: {
                 "Content-Type": "application/json",  // Indicate that the body is JSON
             },
-            body: JSON.stringify(requestBody),  // Convert the data object to a JSON string
+            body: JSON.stringify({start_date: startDate}),
         });
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-
-        const result = await response.json();
+        return true;
     } catch (error) {
         console.error("Error:", error);  // Handle any errors
+        return false;
     }
 }
 
@@ -171,9 +212,7 @@ export async function updateCardOrder(cardOrders) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
-        console.log("Order update success:", result);
-        return result;
+        return await response.json();
     } catch (error) {
         console.error("Error updating card order:", error);
         return false;
@@ -195,9 +234,7 @@ export async function updateCreditCardOrder(cardOrders) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
-        console.log("Credit card order update success:", result);
-        return result;
+        return await response.json();
     } catch (error) {
         console.error("Error updating credit card order:", error);
         return false;
@@ -540,5 +577,93 @@ export async function updatePostTaxBenefitOrder(cardOrders) {
     } catch (error) {
         console.error("Error updating post-tax benefit order:", error);
         return false;
+    }
+}
+
+// ---- Spending from a goal -------------------------------------------------
+
+export async function getGoalSpending(goalId) {
+    try {
+        const response = await fetch(url('/goal_spending', ['id'], [goalId]), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return (await response.json()).data || [];
+    } catch (error) {
+        console.error('Error fetching spending:', error);
+        return null;
+    }
+}
+
+// Returns { spending } on success or { error } with a message to show.
+export async function spendFromGoal(goalId, { amount, note, spentOn, lowerGoal, startDate }) {
+    try {
+        const response = await fetch(url('/spend_from_goal'), {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: goalId, amount, note, spent_on: spentOn, lower_goal: lowerGoal, start_date: startDate}),
+        });
+        const data = await response.json();
+        if (!response.ok) return {error: data.error || "That didn't save."};
+        return data;
+    } catch (error) {
+        console.error('Error recording spending:', error);
+        return {error: "That didn't save. Check that the app's backend is running, then try again."};
+    }
+}
+
+export async function removeGoalSpending(spendingId, startDate) {
+    try {
+        const response = await fetch(url('/goal_spending'), {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({spending_id: spendingId, start_date: startDate}),
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Error removing spending:', error);
+        return false;
+    }
+}
+
+// ---- Export ---------------------------------------------------------------
+
+// Downloads /export (everything, JSON) or /export_goals.csv as a file.
+export async function downloadExport(kind = 'json') {
+    const path = kind === 'csv' ? '/export_goals.csv' : '/export';
+    try {
+        const response = await fetch(url(path), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename="([^"]+)"/);
+        const filename = match ? match[1] : kind === 'csv' ? 'sinking-funds-goals.csv' : 'sinking-funds.json';
+        const blob = await response.blob();
+        const href = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = href;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(href), 1000);
+        return true;
+    } catch (error) {
+        console.error('Error exporting:', error);
+        return false;
+    }
+}
+
+// ---- Settings --------------------------------------------------------------
+
+// The next `count` paydays: [{ date, scheduled }] (scheduled differs from
+// date when the payday moved back off a weekend), or null on failure.
+export async function getUpcomingPaydays(count = 6) {
+    try {
+        const response = await fetch(url('/upcoming_paydays', ['count'], [count]), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return (await response.json()).data || [];
+    } catch (error) {
+        console.error('Error fetching upcoming paydays:', error);
+        return null;
     }
 }

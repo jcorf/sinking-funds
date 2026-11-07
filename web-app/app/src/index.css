@@ -1,8 +1,36 @@
+/* Global foundations. Layout never goes on body/#root (see DESIGN.md,
+   the Zoom-Proof Rule); page styles live in their own prefixed files. */
+
+@font-face {
+    font-family: 'Castoro';
+    src: url('./assets/fonts/castoro-regular-latin.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    /* Sage: the app's direction (DESIGN.md) */
+    --sage: #3f5c3a;
+    --sage-deep: #344d30;
+    --sage-ring: rgba(63, 92, 58, 0.28);
+    --sage-tint: #eef3e6;
+    --sage-tile: #e3ebd6;
+    --sage-field: #d8e2c8;
+    --sage-ink: #1d2a1e;
+    --sage-ink-muted: #4d5a49;
+    --sage-error: #a3261f;
+    --line: #e4e8de;
+    --line-strong: #cfd6c6;
+    --serif: 'Castoro', Georgia, 'Times New Roman', serif;
+    /* Sticky nav (NavBar) height incl. its padding; pinned panels sit below it */
+    --nav-height: 84px;
+}
+
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+    font-family: Arial, sans-serif;
+    background-color: #f2f2f2;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -10,4 +38,60 @@ body {
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* ---------- Page change (NavBar) ----------
+   Tab clicks run inside document.startViewTransition: page content
+   cross-fades with a small slide in the direction of travel, while the nav
+   (whose glass pill glides on its own), the tools dock and the TEST badge
+   stay put. */
+.nb-wrap { view-transition-name: site-nav; }
+.td-dock { view-transition-name: tools-dock; }
+.test-env-badge { view-transition-name: test-badge; }
+
+::view-transition-old(site-nav),
+::view-transition-old(tools-dock),
+::view-transition-old(test-badge) {
+    display: none;
+}
+
+::view-transition-new(site-nav),
+::view-transition-new(tools-dock),
+::view-transition-new(test-badge) {
+    animation: none;
+}
+
+::view-transition-old(root) {
+    animation: 140ms cubic-bezier(0.4, 0, 1, 1) both page-out;
+}
+
+::view-transition-new(root) {
+    animation: 240ms cubic-bezier(0.16, 1, 0.3, 1) both page-in;
+}
+
+@keyframes page-out {
+    to {
+        opacity: 0;
+        transform: translateX(var(--page-out-x, -14px));
+    }
+}
+
+@keyframes page-in {
+    from {
+        opacity: 0;
+        transform: translateX(var(--page-in-x, 14px));
+    }
+}
+
+html[data-nav-dir='back'] {
+    --page-out-x: 14px;
+    --page-in-x: -14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation: none !important;
+    }
 }

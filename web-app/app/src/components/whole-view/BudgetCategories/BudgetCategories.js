@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -12,10 +12,11 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  rectSortingStrategy,
+  verticalListSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Lock, LockOpen, SlidersHorizontal, X } from 'lucide-react';
 import './BudgetCategories.css';
 import {
   getBudgetCategories,
@@ -50,682 +51,772 @@ const parseDecimalInput = (value) => {
   return isNaN(parsed) ? 0.0 : parsed;
 };
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
+const formatCurrency = (amount) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+
+const sumAmounts = (items) => items.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+
+// Each editable list on this page is the same shape ("named thing + dollar
+// amount, sortable, deletable") backed by its own set of endpoints.
+const CATEGORY_API = {
+  fetchAll: getBudgetCategories,
+  add: addBudgetCategory,
+  update: updateBudgetCategory,
+  remove: deleteBudgetCategory,
+  reorder: updateBudgetCategoryOrder,
+};
+const PRE_TAX_BENEFIT_API = {
+  fetchAll: getPreTaxBenefits,
+  add: addPreTaxBenefit,
+  update: updatePreTaxBenefit,
+  remove: deletePreTaxBenefit,
+  reorder: updatePreTaxBenefitOrder,
+};
+const POST_TAX_INVESTMENT_API = {
+  fetchAll: getPostTaxContributions,
+  add: addPostTaxContribution,
+  update: updatePostTaxContribution,
+  remove: deletePostTaxContribution,
+  reorder: updatePostTaxContributionOrder,
+};
+const POST_TAX_BENEFIT_API = {
+  fetchAll: getPostTaxBenefits,
+  add: addPostTaxBenefit,
+  update: updatePostTaxBenefit,
+  remove: deletePostTaxBenefit,
+  reorder: updatePostTaxBenefitOrder,
 };
 
-function CollapsibleHeading({ label, expanded, onToggle }) {
+// Last-known lists and paycheck settings, kept across page visits so coming
+// back to this page shows real numbers immediately (no $0 -> real flash)
+// while a fresh copy loads quietly in the background.
+const listCache = new Map();
+let settingsCache = null;
+
+function useAmountList(api) {
+  const [items, setItems] = useState(() => listCache.get(api) || []);
+  const [loaded, setLoaded] = useState(() => listCache.has(api));
+
+  const refetch = useCallback(async () => {
+    const data = await api.fetchAll();
+    setItems(data.data || []);
+    setLoaded(true);
+  }, [api]);
+
+  // Keep the cache in step with every change (fetches, edits, reorders).
+  useEffect(() => {
+    if (loaded) listCache.set(api, items);
+  }, [api, items, loaded]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  const addItem = async (name) => {
+    if (!name.trim()) return;
+    await api.add(name.trim(), 0);
+    refetch();
+  };
+
+  const removeItem = async (name) => {
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
+    setItems((prev) => prev.filter((c) => c.category !== name));
+    try {
+      await api.remove(name);
+    } finally {
+      refetch();
+    }
+  };
+
+  // Local-only: keeps the totals live while a value is being typed.
+  const previewAmount = (id, amount) => {
+    setItems((prev) => prev.map((c) => (c.id === id ? { ...c, amount } : c)));
+  };
+
+  const commitAmount = async (name, amount) => {
+    setItems((prev) => prev.map((c) => (c.category === name ? { ...c, amount } : c)));
+    try {
+      await api.update(name, 'amount', amount);
+    } finally {
+      refetch();
+    }
+  };
+
+  const move = (activeId, overId) => {
+    setItems((prev) => {
+      const reordered = arrayMove(
+        prev,
+        prev.findIndex((c) => c.id === activeId),
+        prev.findIndex((c) => c.id === overId)
+      );
+      api.reorder(reordered.map((c) => c.id));
+      return reordered;
+    });
+  };
+
+  return { items, loaded, total: sumAmounts(items), addItem, removeItem, previewAmount, commitAmount, move };
+}
+
+// Remembers which setup sections are collapsed. Best effort: storage can be
+// unavailable (private window, blocked site data), so it must never throw.
+const COLLAPSE_KEY = 'budget-categories:collapsed';
+
+function useCollapsed() {
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem(COLLAPSE_KEY)) || {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggle = (key) => {
+    setCollapsed((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        window.localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  return [collapsed, toggle];
+}
+
+function GripIcon() {
   return (
-    <h2 className="post-tax-heading collapsible-heading" onClick={onToggle}>
-      <span className={`collapse-chevron ${expanded ? 'expanded' : ''}`}>▸</span>
-      {label}
-    </h2>
+    <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden="true">
+      {[3, 8, 13].map((y) => (
+        <g key={y}>
+          <circle cx="3" cy={y} r="1.4" />
+          <circle cx="9" cy={y} r="1.4" />
+        </g>
+      ))}
+    </svg>
   );
 }
 
-// Shared by every editable amount list on this page (budget categories,
-// post-tax investments, pre-tax benefits, post-tax benefits) -- they're all
-// "named thing + dollar amount, sortable, deletable."
-function SortableAmountRow({ item, removeItem, updateItem }) {
-  const [localAmount, setLocalAmount] = useState(parseFloat(item.amount).toFixed(2));
+function CloseIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+      <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
 
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+function ChevronIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+      <path d="M3.5 1.5L7 5l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// A "$ [ 0.00 ]" input that edits a dollar amount as text, reports every
+// keystroke for live totals, and commits once on blur (or Enter).
+function MoneyInput({ id, value, label, onPreview, onCommit }) {
+  const [text, setText] = useState(parseFloat(value || 0).toFixed(2));
+  const focused = useRef(false);
+  // Value when editing began. onPreview updates `value` live, so comparing
+  // against it on blur would always look unchanged.
+  const startValue = useRef(0);
+
+  // Follow server updates, but never overwrite what's being typed.
+  useEffect(() => {
+    if (!focused.current) setText(parseFloat(value || 0).toFixed(2));
+  }, [value]);
+
+  return (
+    <span className="bc-money">
+      <span className="bc-money-sign" aria-hidden="true">$</span>
+      <input
+        id={id}
+        type="text"
+        inputMode="decimal"
+        aria-label={label}
+        value={text}
+        onFocus={(e) => {
+          focused.current = true;
+          startValue.current = parseFloat(value || 0);
+          e.target.select();
+        }}
+        onChange={(e) => {
+          setText(e.target.value);
+          onPreview && onPreview(parseDecimalInput(e.target.value));
+        }}
+        onBlur={() => {
+          focused.current = false;
+          const amount = parseDecimalInput(text);
+          setText(amount.toFixed(2));
+          if (amount !== startValue.current) onCommit(amount);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.target.blur();
+        }}
+      />
+    </span>
+  );
+}
+
+function AmountRow({ item, list, locked }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  useEffect(() => {
-    setLocalAmount(parseFloat(item.amount).toFixed(2));
-  }, [item.amount]);
-
   return (
-    <div ref={setNodeRef} style={style} className="budget-category-row">
-      <div className="drag-handle" {...attributes} {...listeners}>
-        ⋮⋮
-      </div>
-
-      <button
-        className="delete-card-btn"
-        onClick={() => removeItem(item.category)}
-        title={`Delete ${item.category}`}
-      >
-        ×
-      </button>
-
-      <div className="category-title-section">
-        <h3>{item.category}</h3>
-      </div>
-
-      <div className="category-inputs-section">
-        <div className="amount-field">
-          <label>Amount per paycheck</label>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={localAmount}
-            onChange={(e) => setLocalAmount(e.target.value)}
-            onBlur={() => {
-              const value = parseDecimalInput(localAmount);
-              setLocalAmount(value.toFixed(2));
-              updateItem(item.category, 'amount', value);
-            }}
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`bc-row ${isDragging ? 'is-dragging' : ''} ${locked ? 'is-locked' : ''}`}
+    >
+      {locked ? (
+        <span className="bc-drag-spacer" aria-hidden="true" />
+      ) : (
+        <button
+          type="button"
+          className="bc-drag"
+          aria-label={`Reorder ${item.category}`}
+          {...attributes}
+          {...listeners}
+        >
+          <GripIcon />
+        </button>
+      )}
+      <span className="bc-row-name">{item.category}</span>
+      {locked ? (
+        <span className="bc-amount-text">{formatCurrency(item.amount || 0)}</span>
+      ) : (
+        <>
+          <MoneyInput
+            value={item.amount}
+            label={`${item.category} per paycheck`}
+            onPreview={(amount) => list.previewAmount(item.id, amount)}
+            onCommit={(amount) => list.commitAmount(item.category, amount)}
           />
-        </div>
-      </div>
-    </div>
+          <button
+            type="button"
+            className="bc-delete"
+            onClick={() => list.removeItem(item.category)}
+            aria-label={`Delete ${item.category}`}
+            title={`Delete ${item.category}`}
+          >
+            <CloseIcon />
+          </button>
+        </>
+      )}
+    </li>
   );
 }
 
-const BudgetCategories = () => {
-  const [view, setView] = useState('categories');
-  const [categories, setCategories] = useState([]);
+function AmountList({ list, addPlaceholder, emptyText, locked }) {
   const [activeId, setActiveId] = useState(null);
-
-  const [netPay, setNetPay] = useState('0.00');
-  const [preTaxRetirement, setPreTaxRetirement] = useState('0.00');
-  const [taxes, setTaxes] = useState('0.00');
-
-  const [postTaxContributions, setPostTaxContributions] = useState([]);
-  const [activePostTaxId, setActivePostTaxId] = useState(null);
-
-  const [preTaxBenefits, setPreTaxBenefits] = useState([]);
-  const [activePreTaxBenefitId, setActivePreTaxBenefitId] = useState(null);
-
-  const [postTaxBenefits, setPostTaxBenefits] = useState([]);
-  const [activePostTaxBenefitId, setActivePostTaxBenefitId] = useState(null);
-
-  // Purely visual: hides the list + add-row for a section without affecting
-  // its total or the Leftover calculation.
-  const [showPreTaxBenefits, setShowPreTaxBenefits] = useState(true);
-  const [showPostTaxInvestments, setShowPostTaxInvestments] = useState(true);
-  const [showPostTaxBenefits, setShowPostTaxBenefits] = useState(true);
-
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
-
-  useEffect(() => {
-    fetchCategories();
-    fetchPaycheckSettings();
-    fetchPostTaxContributions();
-    fetchPreTaxBenefits();
-    fetchPostTaxBenefits();
-  }, []);
-
-  const fetchCategories = async () => {
-    const data = await getBudgetCategories();
-    setCategories(data.data || []);
-  };
-
-  const fetchPaycheckSettings = async () => {
-    const settings = await getPaycheckSettings();
-    setNetPay(parseFloat(settings.net_pay || 0).toFixed(2));
-    setPreTaxRetirement(parseFloat(settings.pre_tax_retirement || 0).toFixed(2));
-    setTaxes(parseFloat(settings.taxes || 0).toFixed(2));
-  };
-
-  const fetchPostTaxContributions = async () => {
-    const data = await getPostTaxContributions();
-    setPostTaxContributions(data.data || []);
-  };
-
-  const fetchPreTaxBenefits = async () => {
-    const data = await getPreTaxBenefits();
-    setPreTaxBenefits(data.data || []);
-  };
-
-  const fetchPostTaxBenefits = async () => {
-    const data = await getPostTaxBenefits();
-    setPostTaxBenefits(data.data || []);
-  };
-
-  const addCategory = async (categoryName) => {
-    if (!categoryName.trim()) return;
-    await addBudgetCategory(categoryName, 0);
-    fetchCategories();
-  };
-
-  const removeCategory = async (categoryName) => {
-    if (!window.confirm(`Are you sure you want to delete "${categoryName}"?`)) return;
-
-    setCategories((prev) => prev.filter((c) => c.category !== categoryName));
-
-    try {
-      await deleteBudgetCategory(categoryName);
-    } finally {
-      fetchCategories();
-    }
-  };
-
-  const updateCategory = async (categoryName, field, value) => {
-    setCategories((prev) =>
-      prev.map((c) => (c.category === categoryName ? { ...c, [field]: value } : c))
-    );
-
-    try {
-      await updateBudgetCategory(categoryName, field, value);
-    } finally {
-      fetchCategories();
-    }
-  };
-
-  function handleDragStart(event) {
-    setActiveId(event.active.id);
-  }
-
-  function handleDragEnd(event) {
-    const { active, over } = event;
-    setActiveId(null);
-
-    if (over && active.id !== over.id) {
-      setCategories((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        const reorderedItems = arrayMove(items, oldIndex, newIndex);
-        updateBudgetCategoryOrder(reorderedItems.map((item) => item.id));
-        return reorderedItems;
-      });
-    }
-  }
-
-  const commitNetPay = () => {
-    const value = parseDecimalInput(netPay);
-    setNetPay(value.toFixed(2));
-    updatePaycheckSettings('net_pay', value);
-  };
-
-  const commitPreTaxRetirement = () => {
-    const value = parseDecimalInput(preTaxRetirement);
-    setPreTaxRetirement(value.toFixed(2));
-    updatePaycheckSettings('pre_tax_retirement', value);
-  };
-
-  const commitTaxes = () => {
-    const value = parseDecimalInput(taxes);
-    setTaxes(value.toFixed(2));
-    updatePaycheckSettings('taxes', value);
-  };
-
-  const addPostTaxCategory = async (categoryName) => {
-    if (!categoryName.trim()) return;
-    await addPostTaxContribution(categoryName, 0);
-    fetchPostTaxContributions();
-  };
-
-  const removePostTaxCategory = async (categoryName) => {
-    if (!window.confirm(`Are you sure you want to delete "${categoryName}"?`)) return;
-
-    setPostTaxContributions((prev) => prev.filter((c) => c.category !== categoryName));
-
-    try {
-      await deletePostTaxContribution(categoryName);
-    } finally {
-      fetchPostTaxContributions();
-    }
-  };
-
-  const updatePostTaxCategory = async (categoryName, field, value) => {
-    setPostTaxContributions((prev) =>
-      prev.map((c) => (c.category === categoryName ? { ...c, [field]: value } : c))
-    );
-
-    try {
-      await updatePostTaxContribution(categoryName, field, value);
-    } finally {
-      fetchPostTaxContributions();
-    }
-  };
-
-  function handlePostTaxDragStart(event) {
-    setActivePostTaxId(event.active.id);
-  }
-
-  function handlePostTaxDragEnd(event) {
-    const { active, over } = event;
-    setActivePostTaxId(null);
-
-    if (over && active.id !== over.id) {
-      setPostTaxContributions((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        const reorderedItems = arrayMove(items, oldIndex, newIndex);
-        updatePostTaxContributionOrder(reorderedItems.map((item) => item.id));
-        return reorderedItems;
-      });
-    }
-  }
-
-  const addPreTaxBenefitCategory = async (categoryName) => {
-    if (!categoryName.trim()) return;
-    await addPreTaxBenefit(categoryName, 0);
-    fetchPreTaxBenefits();
-  };
-
-  const removePreTaxBenefitCategory = async (categoryName) => {
-    if (!window.confirm(`Are you sure you want to delete "${categoryName}"?`)) return;
-
-    setPreTaxBenefits((prev) => prev.filter((c) => c.category !== categoryName));
-
-    try {
-      await deletePreTaxBenefit(categoryName);
-    } finally {
-      fetchPreTaxBenefits();
-    }
-  };
-
-  const updatePreTaxBenefitCategory = async (categoryName, field, value) => {
-    setPreTaxBenefits((prev) =>
-      prev.map((c) => (c.category === categoryName ? { ...c, [field]: value } : c))
-    );
-
-    try {
-      await updatePreTaxBenefit(categoryName, field, value);
-    } finally {
-      fetchPreTaxBenefits();
-    }
-  };
-
-  function handlePreTaxBenefitDragStart(event) {
-    setActivePreTaxBenefitId(event.active.id);
-  }
-
-  function handlePreTaxBenefitDragEnd(event) {
-    const { active, over } = event;
-    setActivePreTaxBenefitId(null);
-
-    if (over && active.id !== over.id) {
-      setPreTaxBenefits((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        const reorderedItems = arrayMove(items, oldIndex, newIndex);
-        updatePreTaxBenefitOrder(reorderedItems.map((item) => item.id));
-        return reorderedItems;
-      });
-    }
-  }
-
-  const addPostTaxBenefitCategory = async (categoryName) => {
-    if (!categoryName.trim()) return;
-    await addPostTaxBenefit(categoryName, 0);
-    fetchPostTaxBenefits();
-  };
-
-  const removePostTaxBenefitCategory = async (categoryName) => {
-    if (!window.confirm(`Are you sure you want to delete "${categoryName}"?`)) return;
-
-    setPostTaxBenefits((prev) => prev.filter((c) => c.category !== categoryName));
-
-    try {
-      await deletePostTaxBenefit(categoryName);
-    } finally {
-      fetchPostTaxBenefits();
-    }
-  };
-
-  const updatePostTaxBenefitCategory = async (categoryName, field, value) => {
-    setPostTaxBenefits((prev) =>
-      prev.map((c) => (c.category === categoryName ? { ...c, [field]: value } : c))
-    );
-
-    try {
-      await updatePostTaxBenefit(categoryName, field, value);
-    } finally {
-      fetchPostTaxBenefits();
-    }
-  };
-
-  function handlePostTaxBenefitDragStart(event) {
-    setActivePostTaxBenefitId(event.active.id);
-  }
-
-  function handlePostTaxBenefitDragEnd(event) {
-    const { active, over } = event;
-    setActivePostTaxBenefitId(null);
-
-    if (over && active.id !== over.id) {
-      setPostTaxBenefits((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        const reorderedItems = arrayMove(items, oldIndex, newIndex);
-        updatePostTaxBenefitOrder(reorderedItems.map((item) => item.id));
-        return reorderedItems;
-      });
-    }
-  }
-
-  const totalPerPaycheck = categories.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-  const totalPostTaxContributions = postTaxContributions.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-  const totalPreTaxBenefits = preTaxBenefits.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-  const totalPostTaxBenefits = postTaxBenefits.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-
-  // Pre-Tax Retirement and Post-Tax Investments are their own standing
-  // input/list, but Benefits combine with their counterpart into a single
-  // Pre-Tax / Post-Tax figure for the leftover math and summary line.
-  const totalPreTax = parseDecimalInput(preTaxRetirement) + totalPreTaxBenefits;
-  const totalPostTax = totalPostTaxContributions + totalPostTaxBenefits;
-
-  const leftover =
-    parseDecimalInput(netPay) -
-    totalPreTax -
-    parseDecimalInput(taxes) -
-    totalPerPaycheck -
-    totalPostTax;
-
-  const activeCategory = categories.find((c) => c.id === activeId);
-  const activePostTaxContribution = postTaxContributions.find((c) => c.id === activePostTaxId);
-  const activePreTaxBenefit = preTaxBenefits.find((c) => c.id === activePreTaxBenefitId);
-  const activePostTaxBenefit = postTaxBenefits.find((c) => c.id === activePostTaxBenefitId);
+  const active = list.items.find((c) => c.id === activeId);
 
   return (
-    <div className="budget-categories">
-      <h1>Budget Categories</h1>
-
-      <div className="view-toggle">
-        <button
-          className={`view-toggle-btn ${view === 'categories' ? 'selected' : ''}`}
-          onClick={() => setView('categories')}
-        >
-          Categories
-        </button>
-        <button
-          className={`view-toggle-btn ${view === 'breakdown' ? 'selected' : ''}`}
-          onClick={() => setView('breakdown')}
-        >
-          Paycheck Breakdown
-        </button>
-      </div>
-
-      {view === 'categories' && (
-        <div className="categories-container">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext items={categories.map((c) => c.id)} strategy={rectSortingStrategy}>
-              {categories.map((category) => (
-                <SortableAmountRow
-                  key={category.id}
-                  item={category}
-                  removeItem={removeCategory}
-                  updateItem={updateCategory}
-                />
-              ))}
-            </SortableContext>
-            <DragOverlay>
-              {activeCategory ? (
-                <div className="budget-category-row dragging-overlay">
-                  <div className="drag-handle">⋮⋮</div>
-                  <div className="category-title-section">
-                    <h3>{activeCategory.category}</h3>
-                  </div>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-
-          <div className="summary-section">
-            <h2>Summary</h2>
-            <div className="summary-stats">
-              <div>Total per paycheck: {formatCurrency(totalPerPaycheck)}</div>
-            </div>
-          </div>
-
-          <div className="budget-category-row add-card-row">
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={(e) => setActiveId(e.active.id)}
+      onDragCancel={() => setActiveId(null)}
+      onDragEnd={({ active: a, over }) => {
+        setActiveId(null);
+        if (over && a.id !== over.id) list.move(a.id, over.id);
+      }}
+    >
+      <SortableContext items={list.items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+        <ul className="bc-list">
+          {list.items.length === 0 && (emptyText || locked) && (
+            <li className="bc-empty">{locked ? 'Nothing here yet. Unlock to add one.' : emptyText}</li>
+          )}
+          {list.items.map((item) => (
+            <AmountRow key={item.id} item={item} list={list} locked={locked} />
+          ))}
+          {!locked && (
+          <li className="bc-add">
             <input
               type="text"
-              placeholder="Add new budget category..."
-              onKeyPress={(e) => {
+              placeholder={addPlaceholder}
+              aria-label={addPlaceholder}
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  addCategory(e.target.value);
+                  list.addItem(e.target.value);
                   e.target.value = '';
                 }
               }}
             />
+          </li>
+          )}
+        </ul>
+      </SortableContext>
+      <DragOverlay>
+        {active ? (
+          <div className="bc-row bc-row--overlay">
+            <span className="bc-drag">
+              <GripIcon />
+            </span>
+            <span className="bc-row-name">{active.category}</span>
+            <span className="bc-overlay-amount">{formatCurrency(active.amount || 0)}</span>
           </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+function SetupSection({ id, label, total, collapsed, onToggle, children }) {
+  const bodyId = `bc-section-${id}`;
+  return (
+    <section className="bc-setup-section">
+      <button
+        type="button"
+        className={`bc-section-toggle ${collapsed ? '' : 'is-open'}`}
+        aria-expanded={!collapsed}
+        aria-controls={bodyId}
+        onClick={onToggle}
+      >
+        <span className="bc-chevron">
+          <ChevronIcon />
+        </span>
+        <span className="bc-section-toggle-label">{label}</span>
+        <span className="bc-section-total">{total === null ? '—' : formatCurrency(total)}</span>
+      </button>
+      {!collapsed && <div id={bodyId}>{children}</div>}
+    </section>
+  );
+}
+
+function MathLine({ label, amount, operator, emphasis }) {
+  return (
+    <div className={`bc-math-line ${emphasis ? 'is-subtotal' : ''}`}>
+      <dt>
+        {operator && <span className="bc-op">{operator}</span>}
+        {label}
+      </dt>
+      <dd>{amount === null ? '—' : formatCurrency(amount)}</dd>
+    </div>
+  );
+}
+
+function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross, ready = true }) {
+  const [expanded, setExpanded] = useState(false);
+  const available = gross - preTax - taxes - postTax;
+  const leftover = available - categories;
+  // With no gross pay entered there is nothing to be "over" yet. Until every
+  // input has loaded, show placeholders instead of math on partial data.
+  const noPay = ready && gross === 0;
+  const over = ready && !noPay && leftover < -0.004;
+  const exact = ready && !noPay && Math.abs(leftover) < 0.005;
+
+  const leftoverLabel = !ready ? 'Loading…' : over ? 'Over Budget By' : 'Leftover';
+  const leftoverAmount = !ready || noPay ? '—' : formatCurrency(Math.abs(leftover));
+  const money = (n) => (ready ? n : null);
+
+  return (
+    <aside
+      className={`bc-math ${expanded ? 'is-expanded' : ''} ${over ? 'is-over' : ''}`}
+      aria-label="This Paycheck"
+    >
+      {/* Compact bar, shown only on narrow screens */}
+      <button
+        type="button"
+        className="bc-math-bar"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <span className="bc-math-bar-item">
+          <span className="bc-math-bar-label">Available</span>
+          <span className="bc-math-bar-value">{ready ? formatCurrency(available) : '—'}</span>
+        </span>
+        <span className="bc-math-bar-item">
+          <span className="bc-math-bar-label">{leftoverLabel}</span>
+          <span className="bc-math-bar-value bc-leftover-value">{leftoverAmount}</span>
+        </span>
+        <span className={`bc-chevron bc-math-bar-chevron ${expanded ? 'is-open' : ''}`}>
+          <ChevronIcon />
+        </span>
+      </button>
+
+      <div className="bc-math-body">
+        <h2 className="bc-math-title">This Paycheck</h2>
+        <dl className="bc-math-list">
+          <MathLine label="Gross Pay" amount={money(gross)} />
+          <MathLine operator="−" label="Pre-Tax" amount={money(preTax)} />
+          <MathLine operator="−" label="Taxes" amount={money(taxes)} />
+          <MathLine label="Net Pay" amount={money(gross - preTax - taxes)} emphasis />
+          <MathLine operator="−" label="Post-Tax" amount={money(postTax)} />
+          <MathLine label="Available to Budget" amount={money(available)} emphasis />
+          <MathLine operator="−" label="Pre-Budgeted" amount={money(categories)} />
+        </dl>
+
+        <div className="bc-leftover" aria-live="polite">
+          <div className="bc-leftover-label">{leftoverLabel}</div>
+          <div className="bc-leftover-value">{leftoverAmount}</div>
+          {noPay ? (
+            <p className="bc-leftover-note">
+              Add your gross pay to see what’s left.{' '}
+              <button type="button" className="bc-link" onClick={onSetGross}>
+                Set Gross Pay
+              </button>
+            </p>
+          ) : over ? (
+            <p className="bc-leftover-note">Trim a category to bring this back to zero.</p>
+          ) : exact ? (
+            <p className="bc-leftover-note">Every dollar is assigned.</p>
+          ) : null}
         </div>
+      </div>
+    </aside>
+  );
+}
+
+const PAYCHECKS_PER_YEAR = 24; // semi-monthly
+
+// ['a','b','c'] -> "a, b & c"
+const listJoin = (items) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} & ${items[items.length - 1]}`);
+
+const signed = (n) => (Math.abs(n) < 0.005 ? '$0.00' : `${n > 0 ? '+' : '−'}${formatCurrency(Math.abs(n))}`);
+
+function waterfall(v) {
+  const net = v.gross - v.retirement - v.otherPreTax - v.taxes;
+  const available = net - v.postTax;
+  return { net, available, leftover: available - v.categories };
+}
+
+// Try different paycheck numbers (a raise, a new retirement %, taxes from the
+// ADP paycheck calculator) without saving anything. Gross pay, retirement
+// and taxes can be saved afterwards; the list totals are scratch only.
+function WhatIf({ now, onClose, onSave }) {
+  const [draft, setDraft] = useState(now);
+  const [saving, setSaving] = useState(false);
+  const set = (key) => (amount) => setDraft((d) => ({ ...d, [key]: amount }));
+
+  const before = waterfall(now);
+  const after = waterfall(draft);
+  const leftoverChange = after.leftover - before.leftover;
+  const changed = (key) => Math.abs(draft[key] - now[key]) > 0.004;
+  const anyChange = Object.keys(now).some(changed);
+  const savable = ['gross', 'retirement', 'taxes'].filter(changed);
+  const pct = draft.gross > 0 ? (draft.retirement / draft.gross) * 100 : null;
+
+  const input = (key, label, hint) => (
+    <li className={`bc-whatif-field ${changed(key) ? 'is-changed' : ''}`}>
+      <label htmlFor={`bc-whatif-${key}`}>
+        {label}
+        {hint && <small>{hint}</small>}
+      </label>
+      <MoneyInput id={`bc-whatif-${key}`} value={draft[key]} label={`What if ${label}`} onPreview={set(key)} onCommit={set(key)} />
+    </li>
+  );
+
+  const compare = (label, a, b, emphasis) => (
+    <tr className={emphasis ? 'is-emphasis' : ''}>
+      <th scope="row">{label}</th>
+      <td>{formatCurrency(a)}</td>
+      <td>{formatCurrency(b)}</td>
+      <td className={b - a > 0.004 ? 'is-up' : b - a < -0.004 ? 'is-down' : ''}>{signed(b - a)}</td>
+    </tr>
+  );
+
+  const save = async () => {
+    setSaving(true);
+    await onSave(savable.map((key) => [key, draft[key]]));
+    setSaving(false);
+  };
+
+  return (
+    <aside className="bc-whatif" aria-label="What If">
+      <header className="bc-whatif-header">
+        <h2 className="bc-math-title">What If</h2>
+        <button type="button" className="bc-whatif-close" onClick={onClose} aria-label="Close What If" title="Close What If">
+          <X size={16} aria-hidden="true" />
+        </button>
+      </header>
+      <p className="bc-whatif-intro">Try different numbers. Nothing is saved unless you choose to.</p>
+
+      <ul className="bc-whatif-fields">
+        {input('gross', 'Gross Pay')}
+        {input('retirement', 'Pre-Tax Retirement', pct === null ? null : `${pct.toFixed(1)}% of gross`)}
+        {input('otherPreTax', 'Other Pre-Tax')}
+        {input('taxes', 'Taxes', 'From your ADP paycheck calculator')}
+        {input('postTax', 'Post-Tax')}
+        {input('categories', 'Pre-Budgeted')}
+      </ul>
+
+      <table className="bc-whatif-table">
+        <thead>
+          <tr>
+            <td />
+            <th scope="col">Now</th>
+            <th scope="col">What If</th>
+            <th scope="col">Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          {compare('Net Pay', before.net, after.net)}
+          {compare('Available', before.available, after.available)}
+          {compare('Leftover', before.leftover, after.leftover, true)}
+        </tbody>
+      </table>
+
+      <div className={`bc-whatif-result ${after.leftover < -0.004 ? 'is-over' : ''}`} aria-live="polite">
+        <div className="bc-leftover-label">{after.leftover < -0.004 ? 'Over Budget By' : 'Leftover'}</div>
+        <div className="bc-leftover-value">{formatCurrency(Math.abs(after.leftover))}</div>
+        <p className="bc-leftover-note">
+          {anyChange
+            ? `${signed(leftoverChange)} per paycheck, ${signed(leftoverChange * PAYCHECKS_PER_YEAR)} a year`
+            : 'Change a number above to compare.'}
+        </p>
+      </div>
+
+      <div className="bc-whatif-actions">
+        {savable.length > 0 && (
+          <button type="button" className="bc-whatif-save" onClick={save} disabled={saving}>
+            Save {listJoin(savable.map((k) => ({ gross: 'Gross Pay', retirement: 'Retirement', taxes: 'Taxes' }[k])))}
+          </button>
+        )}
+        {anyChange && (
+          <button type="button" className="bc-whatif-reset" onClick={() => setDraft(now)}>
+            Reset
+          </button>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+const BudgetCategories = () => {
+  const categories = useAmountList(CATEGORY_API);
+  const preTaxBenefits = useAmountList(PRE_TAX_BENEFIT_API);
+  const postTaxInvestments = useAmountList(POST_TAX_INVESTMENT_API);
+  const postTaxBenefits = useAmountList(POST_TAX_BENEFIT_API);
+  const [collapsed, toggleCollapsed] = useCollapsed();
+  // Locked (the default) shows clean read-only amounts; unlock to edit.
+  const [locked, setLocked] = useState(() => {
+    try {
+      return window.localStorage.getItem('budget-categories:locked') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+  const toggleLocked = () => {
+    setLocked((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem('budget-categories:locked', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  // Standing values (the backend field is still called net_pay, but it holds gross pay).
+  const [settings, setSettings] = useState(settingsCache || { net_pay: 0, pre_tax_retirement: 0, taxes: 0 });
+  const [settingsLoaded, setSettingsLoaded] = useState(settingsCache !== null);
+
+  useEffect(() => {
+    getPaycheckSettings().then((s) => {
+      setSettings({
+        net_pay: parseFloat(s.net_pay || 0),
+        pre_tax_retirement: parseFloat(s.pre_tax_retirement || 0),
+        taxes: parseFloat(s.taxes || 0),
+      });
+      setSettingsLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (settingsLoaded) settingsCache = settings;
+  }, [settings, settingsLoaded]);
+
+  // Only show the paycheck math once every input has loaded at least once.
+  const ready =
+    settingsLoaded && categories.loaded && preTaxBenefits.loaded && postTaxInvestments.loaded && postTaxBenefits.loaded;
+
+  const previewSetting = (field) => (amount) => setSettings((prev) => ({ ...prev, [field]: amount }));
+  const commitSetting = (field) => (amount) => {
+    setSettings((prev) => ({ ...prev, [field]: amount }));
+    return updatePaycheckSettings(field, amount);
+  };
+
+  const focusGross = () => {
+    const input = document.getElementById('bc-gross-pay');
+    if (input) {
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.focus({ preventScroll: true });
+    }
+  };
+
+  const [whatIf, setWhatIf] = useState(false);
+  const saveWhatIf = async (pairs) => {
+    const field = { gross: 'net_pay', retirement: 'pre_tax_retirement', taxes: 'taxes' };
+    await Promise.all(pairs.map(([key, amount]) => commitSetting(field[key])(amount)));
+  };
+
+  const totalPreTax = settings.pre_tax_retirement + preTaxBenefits.total;
+  const totalPostTax = postTaxInvestments.total + postTaxBenefits.total;
+
+  // One editable paycheck field (gross pay, pre-tax retirement, taxes) as a row.
+  const fieldRow = (field, id, label) => (
+    <li className={`bc-row bc-row--static ${locked ? 'is-locked' : ''}`} key={field}>
+      <label className="bc-row-name" htmlFor={id}>
+        {label}
+      </label>
+      {locked ? (
+        <span className="bc-amount-text" id={id}>
+          {settingsLoaded ? formatCurrency(settings[field] || 0) : '—'}
+        </span>
+      ) : (
+        <MoneyInput
+          id={id}
+          value={settings[field]}
+          label={`${label} per paycheck`}
+          onPreview={previewSetting(field)}
+          onCommit={commitSetting(field)}
+        />
       )}
+    </li>
+  );
 
-      {view === 'breakdown' && (
-        <div className="categories-container">
-          <div className="paycheck-inputs-section">
-            <h2>Standing Values</h2>
-            <div className="paycheck-input-row">
-              <label>Gross Pay (per paycheck)</label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={netPay}
-                onChange={(e) => setNetPay(e.target.value)}
-                onBlur={commitNetPay}
-              />
-            </div>
-            <div className="paycheck-input-row">
-              <label>Pre-Tax Retirement (per paycheck)</label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={preTaxRetirement}
-                onChange={(e) => setPreTaxRetirement(e.target.value)}
-                onBlur={commitPreTaxRetirement}
-              />
-            </div>
-            <div className="paycheck-input-row">
-              <label>Taxes (per paycheck)</label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={taxes}
-                onChange={(e) => setTaxes(e.target.value)}
-                onBlur={commitTaxes}
-              />
-            </div>
-          </div>
-
-          <CollapsibleHeading
-            label="Pre-Tax Benefits"
-            expanded={showPreTaxBenefits}
-            onToggle={() => setShowPreTaxBenefits((prev) => !prev)}
-          />
-
-          {showPreTaxBenefits && (
-            <>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handlePreTaxBenefitDragStart}
-                onDragEnd={handlePreTaxBenefitDragEnd}
-              >
-                <SortableContext
-                  items={preTaxBenefits.map((c) => c.id)}
-                  strategy={rectSortingStrategy}
-                >
-                  {preTaxBenefits.map((benefit) => (
-                    <SortableAmountRow
-                      key={benefit.id}
-                      item={benefit}
-                      removeItem={removePreTaxBenefitCategory}
-                      updateItem={updatePreTaxBenefitCategory}
-                    />
-                  ))}
-                </SortableContext>
-                <DragOverlay>
-                  {activePreTaxBenefit ? (
-                    <div className="budget-category-row dragging-overlay">
-                      <div className="drag-handle">⋮⋮</div>
-                      <div className="category-title-section">
-                        <h3>{activePreTaxBenefit.category}</h3>
-                      </div>
-                    </div>
-                  ) : null}
-                </DragOverlay>
-              </DndContext>
-
-              <div className="budget-category-row add-card-row">
-                <input
-                  type="text"
-                  placeholder="Add new pre-tax benefit..."
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      addPreTaxBenefitCategory(e.target.value);
-                      e.target.value = '';
-                    }
-                  }}
-                />
-              </div>
-            </>
-          )}
-
-          <div className="summary-section">
-            <h2>Total Pre-Tax</h2>
-            <div className="summary-stats">
-              <div>Retirement + Benefits: {formatCurrency(totalPreTax)}</div>
-            </div>
-          </div>
-
-          <div className="summary-section">
-            <h2>Regular Budget Categories</h2>
-            <div className="summary-stats">
-              <div>Total per paycheck: {formatCurrency(totalPerPaycheck)}</div>
-            </div>
-          </div>
-
-          <CollapsibleHeading
-            label="Post-Tax Retirement & Investment Contributions"
-            expanded={showPostTaxInvestments}
-            onToggle={() => setShowPostTaxInvestments((prev) => !prev)}
-          />
-
-          {showPostTaxInvestments && (
-            <>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handlePostTaxDragStart}
-                onDragEnd={handlePostTaxDragEnd}
-              >
-                <SortableContext
-                  items={postTaxContributions.map((c) => c.id)}
-                  strategy={rectSortingStrategy}
-                >
-                  {postTaxContributions.map((contribution) => (
-                    <SortableAmountRow
-                      key={contribution.id}
-                      item={contribution}
-                      removeItem={removePostTaxCategory}
-                      updateItem={updatePostTaxCategory}
-                    />
-                  ))}
-                </SortableContext>
-                <DragOverlay>
-                  {activePostTaxContribution ? (
-                    <div className="budget-category-row dragging-overlay">
-                      <div className="drag-handle">⋮⋮</div>
-                      <div className="category-title-section">
-                        <h3>{activePostTaxContribution.category}</h3>
-                      </div>
-                    </div>
-                  ) : null}
-                </DragOverlay>
-              </DndContext>
-
-              <div className="budget-category-row add-card-row">
-                <input
-                  type="text"
-                  placeholder="Add new post-tax investment..."
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      addPostTaxCategory(e.target.value);
-                      e.target.value = '';
-                    }
-                  }}
-                />
-              </div>
-            </>
-          )}
-
-          <CollapsibleHeading
-            label="Post-Tax Benefits"
-            expanded={showPostTaxBenefits}
-            onToggle={() => setShowPostTaxBenefits((prev) => !prev)}
-          />
-
-          {showPostTaxBenefits && (
-            <>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handlePostTaxBenefitDragStart}
-                onDragEnd={handlePostTaxBenefitDragEnd}
-              >
-                <SortableContext
-                  items={postTaxBenefits.map((c) => c.id)}
-                  strategy={rectSortingStrategy}
-                >
-                  {postTaxBenefits.map((benefit) => (
-                    <SortableAmountRow
-                      key={benefit.id}
-                      item={benefit}
-                      removeItem={removePostTaxBenefitCategory}
-                      updateItem={updatePostTaxBenefitCategory}
-                    />
-                  ))}
-                </SortableContext>
-                <DragOverlay>
-                  {activePostTaxBenefit ? (
-                    <div className="budget-category-row dragging-overlay">
-                      <div className="drag-handle">⋮⋮</div>
-                      <div className="category-title-section">
-                        <h3>{activePostTaxBenefit.category}</h3>
-                      </div>
-                    </div>
-                  ) : null}
-                </DragOverlay>
-              </DndContext>
-
-              <div className="budget-category-row add-card-row">
-                <input
-                  type="text"
-                  placeholder="Add new post-tax benefit..."
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      addPostTaxBenefitCategory(e.target.value);
-                      e.target.value = '';
-                    }
-                  }}
-                />
-              </div>
-            </>
-          )}
-
-          <div className="summary-section">
-            <h2>Total Post-Tax</h2>
-            <div className="summary-stats">
-              <div>Investments + Benefits: {formatCurrency(totalPostTax)}</div>
-            </div>
-          </div>
-
-          <div className="summary-section leftover-section">
-            <h2>Leftover</h2>
-            <div className="summary-stats">
-              <div className="leftover-total">{formatCurrency(leftover)}</div>
-            </div>
-          </div>
+  return (
+    <div className="bc-page">
+      <header className="bc-page-header">
+        <h1>Paycheck</h1>
+        <div className="bc-header-actions">
+        <button
+          type="button"
+          className={`bc-lock ${whatIf ? 'is-unlocked' : ''}`}
+          onClick={() => setWhatIf((v) => !v)}
+          aria-pressed={whatIf}
+          disabled={!ready}
+          title="Try different paycheck numbers without saving them"
+        >
+          <SlidersHorizontal size={15} aria-hidden="true" />
+          What If
+        </button>
+        <button
+          type="button"
+          className={`bc-lock bc-lock-icon ${locked ? '' : 'is-unlocked'}`}
+          onClick={toggleLocked}
+          aria-pressed={!locked}
+          aria-label={locked ? 'Unlock to edit' : 'Lock'}
+          title={locked ? 'Unlock to edit amounts, reorder, add or delete' : 'Lock to show a clean read-only view'}
+        >
+          {locked ? <Lock size={17} aria-hidden="true" /> : <LockOpen size={17} aria-hidden="true" />}
+        </button>
         </div>
-      )}
+      </header>
+
+      <div className={`bc-layout ${whatIf && ready ? 'has-whatif' : ''}`}>
+        <div className="bc-main">
+          {/* Left column follows the paycheck waterfall, top to bottom:
+              gross -> pre-tax -> taxes -> post-tax -> pre-budgeted categories */}
+          <section className="bc-section">
+            <header className="bc-section-header">
+              <h2>Paycheck Setup</h2>
+            </header>
+
+            <ul className="bc-list">{fieldRow('net_pay', 'bc-gross-pay', 'Gross Pay')}</ul>
+
+            <div className="bc-group">
+              <header className="bc-group-header">
+                <h3>Pre-Tax</h3>
+                <span className="bc-section-total">{ready ? formatCurrency(totalPreTax) : '—'}</span>
+              </header>
+              <ul className="bc-list">{fieldRow('pre_tax_retirement', 'bc-pre-tax-retirement', 'Retirement')}</ul>
+              <SetupSection
+                id="pre-tax-benefits"
+                label="Other Contributions"
+                total={preTaxBenefits.loaded ? preTaxBenefits.total : null}
+                collapsed={!!collapsed.preTaxBenefits}
+                onToggle={() => toggleCollapsed('preTaxBenefits')}
+              >
+                <AmountList list={preTaxBenefits} addPlaceholder="Add a Pre-Tax Contribution…" locked={locked} />
+              </SetupSection>
+            </div>
+
+            <div className="bc-group">
+              <header className="bc-group-header">
+                <h3>Taxes</h3>
+                <span className="bc-section-total">{settingsLoaded ? formatCurrency(settings.taxes) : '—'}</span>
+              </header>
+              <ul className="bc-list">{fieldRow('taxes', 'bc-taxes', 'Taxes')}</ul>
+            </div>
+
+            <div className="bc-group">
+              <header className="bc-group-header">
+                <h3>Post-Tax</h3>
+                <span className="bc-section-total">{ready ? formatCurrency(totalPostTax) : '—'}</span>
+              </header>
+              <SetupSection
+                id="post-tax-investments"
+                label="Retirement & Investments"
+                total={postTaxInvestments.loaded ? postTaxInvestments.total : null}
+                collapsed={!!collapsed.postTaxInvestments}
+                onToggle={() => toggleCollapsed('postTaxInvestments')}
+              >
+                <AmountList list={postTaxInvestments} addPlaceholder="Add a Post-Tax Investment…" locked={locked} />
+              </SetupSection>
+              <SetupSection
+                id="post-tax-benefits"
+                label="Other Contributions"
+                total={postTaxBenefits.loaded ? postTaxBenefits.total : null}
+                collapsed={!!collapsed.postTaxBenefits}
+                onToggle={() => toggleCollapsed('postTaxBenefits')}
+              >
+                <AmountList list={postTaxBenefits} addPlaceholder="Add a Post-Tax Contribution…" locked={locked} />
+              </SetupSection>
+            </div>
+          </section>
+
+          <section className="bc-section">
+            <header className="bc-section-header">
+              <h2>Categories</h2>
+              <span className="bc-section-total">
+                {categories.loaded ? formatCurrency(categories.total) : '—'}
+                <span className="bc-section-total-unit"> Per Paycheck</span>
+              </span>
+            </header>
+            <AmountList
+              list={categories}
+              addPlaceholder="Add a Category…"
+              emptyText="No categories yet. Add your first one below."
+              locked={locked}
+            />
+          </section>
+        </div>
+
+        {whatIf && ready ? (
+          <WhatIf
+            now={{
+              gross: settings.net_pay,
+              retirement: settings.pre_tax_retirement,
+              otherPreTax: preTaxBenefits.total,
+              taxes: settings.taxes,
+              postTax: totalPostTax,
+              categories: categories.total,
+            }}
+            onClose={() => setWhatIf(false)}
+            onSave={saveWhatIf}
+          />
+        ) : (
+        <PaycheckMath
+          gross={settings.net_pay}
+          preTax={totalPreTax}
+          taxes={settings.taxes}
+          postTax={totalPostTax}
+          categories={categories.total}
+          onSetGross={focusGross}
+          ready={ready}
+        />
+        )}
+      </div>
     </div>
   );
 };

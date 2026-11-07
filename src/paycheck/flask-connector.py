@@ -1,5 +1,4 @@
 import os
-import random
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
@@ -18,18 +17,19 @@ app.config['REMEMBER_COOKIE_NAME'] = os.environ.get("REMEMBER_COOKIE_NAME", "rem
 # Flask (:5000) are different origins. In production Flask serves the built
 # frontend itself, so requests are same-origin and CORS is not needed.
 if os.environ.get("FLASK_ENV") != "production":
-    CORS(app, supports_credentials=True)
+    # Expose Content-Disposition so export downloads keep their filename.
+    CORS(app, supports_credentials=True, expose_headers=['Content-Disposition'])
     app.config['CORS_HEADERS'] = 'Content-Type'
 
 from auth import login_manager, User, verify_credentials
 login_manager.init_app(app)
 
-from database import (update_field, setup_database, delete_database,
-                      add_db, get_category_info, delete_row_based_on_category, get_all_data, get_categories, update_card_order,
-                      setup_credit_cards_database, add_credit_card, get_all_credit_cards, get_credit_card_info,
-                      update_credit_card_balance, delete_credit_card, setup_default_credit_cards,
-                      setup_ally_bank_database, get_ally_bank_balance, update_ally_bank_balance,
-                      update_covered_sub_balances, update_pending_sub_balances, update_credit_card_order, add_display_order_to_credit_cards,
+from database import (update_field,
+                      add_savings_category, get_category_info, delete_row_based_on_category, get_all_data, get_categories, update_card_order,
+                      add_credit_card, get_all_credit_cards,
+                      update_credit_card_balance, delete_credit_card,
+                      get_ally_bank_balance, update_ally_bank_balance,
+                      update_covered_sub_balances, update_pending_sub_balances, update_credit_card_order,
                       add_budget_category, get_all_budget_categories, update_budget_category_field,
                       delete_budget_category, update_budget_category_order,
                       get_paycheck_settings, update_paycheck_settings_field,
@@ -41,7 +41,12 @@ from database import (update_field, setup_database, delete_database,
                       delete_post_tax_benefit, update_post_tax_benefit_order
                      )
 from paycheck import saved_by_paycheck, save_per_paycheck
-from utils.utils import nowString
+from utils.utils import nowString, stringToDate, dateToString
+from database import get_notes, update_notes
+from database import (get_goal_spending, spend_from_goal, remove_goal_spending, delete_goal_spending_for,
+                      export_all_tables)
+from schedules.bimonthly import _remaining_paychecks as bimonthly_paycheck_dates
+from datetime import timedelta
 
 def get_on_args(data=None):
     if data is None:
@@ -61,10 +66,6 @@ def get_start_date_args(data=None):
     if data is None:
         data = request.args
     return data.get('start_date', nowString())
-    #return data.get('start_date', "2025-01-01")
-
-
-#def validateCategoriesOrIds()
 
 
 @app.route('/', methods=['GET'])
@@ -91,7 +92,31 @@ def login_route():
 @login_required
 def logout_route():
     logout_user()
+    backup_on_logout()
     return jsonify({"success": True})
+
+
+def backup_on_logout():
+    """Overwrite the single real-db backup (only the real app sets
+    SINKING_FUNDS_BACKUP_PATH; the test instance never backs up)."""
+    target = os.environ.get("SINKING_FUNDS_BACKUP_PATH")
+    if not target:
+        return
+    try:
+        import sqlite3
+        from utils.reference.database_constants import DATABASE_NAME
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        tmp = target + ".tmp"
+        src = sqlite3.connect(DATABASE_NAME)
+        dst = sqlite3.connect(tmp)
+        with dst:
+            src.backup(dst)
+        src.close()
+        dst.close()
+        os.replace(tmp, target)
+        print(f"📦 Backed up database on logout -> {target}")
+    except Exception as e:
+        print(f"Backup on logout failed: {e}")
 
 
 @app.route('/session', methods=['GET'])
@@ -125,8 +150,10 @@ def update_field_route():
     on_value, on_field = get_on_args(request.get_json())
     result = update_field(field_to_change, new_value, on_value, on_field)
 
-    # update to save amount
-    start_date = get_start_date_args()
+    # Recalculate the per-paycheck amount. The client sends the plan start it
+    # wants kept (or advanced, after logging a paycheck) as start_date in the
+    # JSON body; without one this falls back to today, as before.
+    start_date = get_start_date_args(request.get_json())
     update_to_save_single(on_value, on_field, start_date)
     return jsonify(result)
 
@@ -136,16 +163,10 @@ def update_to_save_single(on_value, on_field, start_date):
     saved, goal, end_date = result['saved'], result['goal'], result['goal_date']
     to_save = save_per_paycheck(float(saved), float(goal), start_date, end_date, "bimonthly")
     update_field('calculated_to_save', to_save, on_value, on_field)
+    # Record which start date this amount was computed from, so the UI can
+    # tell whether it predates the most recent payday.
+    update_field('calculated_from', start_date, on_value, on_field)
     return to_save
-
-@app.route('/update_to_save_single',methods=['POST'])
-@cross_origin(supports_credentials=True)
-@login_required
-def update_to_save_single_route():
-    on_value, on_field = get_on_args()
-    start_date = get_start_date_args()
-    to_save = update_to_save_single(on_value, on_field, start_date)
-    return jsonify(to_save)
 
 @app.route('/recalculate_all', methods=['POST','PUT'])
 @cross_origin(supports_credentials=True)
@@ -164,15 +185,39 @@ def add_category_route():
     emoji = request.get_json().get('emoji', ':heart:')  # Default to heart emoji if not provided
     start_date = get_start_date_args(request.get_json())
     to_save = save_per_paycheck(float(saved), float(goal), start_date, goal_date, "bimonthly")
-    result = add_db(category, float(saved), float(goal), goal_date, to_save, emoji)
+    result = add_savings_category(category, float(saved), float(goal), goal_date, to_save, emoji, start_date)
     return jsonify(result)
+
+
+@app.route('/next_payday', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@login_required
+def next_payday_route():
+    """Next payday on/after today and the most recent one before today,
+    from the same bimonthly rules the savings math uses."""
+    today = stringToDate(nowString())
+    _, dates = bimonthly_paycheck_dates(today - timedelta(days=45), today + timedelta(days=45))
+    dates = sorted(dates)
+    upcoming = [d for d in dates if d >= today]
+    past = [d for d in dates if d < today]
+    return jsonify({
+        "today": dateToString(today),
+        "next": dateToString(upcoming[0]) if upcoming else None,
+        "previous": dateToString(past[-1]) if past else None,
+    })
 
 
 @app.route('/remove_category', methods=['DELETE'])
 @login_required
 def remove_category_route():
     on_value, on_field = get_on_args(request.get_json())
+    try:
+        goal_id = get_category_info(on_value, on_field)['id']
+    except Exception:
+        goal_id = None
     result = delete_row_based_on_category(on_value, on_field)
+    if result and goal_id is not None:
+        delete_goal_spending_for(goal_id)
     return jsonify(result)
 
 
@@ -182,54 +227,149 @@ def get_category_info_route():
     on_field = request.args.get('on_field', 'category')
     on_value = request.args.get('on_value')
     result = get_category_info(on_value, on_field)
-    return jsonify(result)
+    return jsonify(with_plan_start(result))
+
+
+@app.route('/upcoming_paydays', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@login_required
+def upcoming_paydays_route():
+    """The next `count` paydays from the same bimonthly rules the savings
+    math uses. `scheduled` is the 15th / last day of the month it stands for;
+    when it differs from `date`, the payday moved back off a weekend."""
+    import calendar
+    try:
+        count = max(1, min(24, int(request.args.get('count', 6))))
+    except ValueError:
+        count = 6
+    today = stringToDate(nowString())
+    _, dates = bimonthly_paycheck_dates(today, today + timedelta(days=16 * count + 31))
+    out = []
+    for d in sorted(dates)[:count]:
+        # A weekend shift moves back at most two days, within the same month.
+        scheduled = d.replace(day=15) if d.day <= 15 else d.replace(day=calendar.monthrange(d.year, d.month)[1])
+        out.append({"date": dateToString(d), "scheduled": dateToString(scheduled)})
+    return jsonify({"data": out})
+
+
+def first_payday_on_or_after(date_string):
+    """First bimonthly payday on/after a YYYY-MM-DD date, or None."""
+    if not date_string:
+        return None
+    start = stringToDate(str(date_string)[:10])
+    _, dates = bimonthly_paycheck_dates(start, start + timedelta(days=45))
+    dates = sorted(dates)
+    return dateToString(dates[0]) if dates else None
+
+
+def with_plan_start(row):
+    """Adds plan_start: the first payday the goal's current amount counts
+    (the first row of its paycheck schedule, and the paycheck logged next)."""
+    row['plan_start'] = first_payday_on_or_after(row.get('calculated_from'))
+    return row
+
+
+# SPENDING FROM A GOAL
+
+@app.route('/goal_spending', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@login_required
+def goal_spending_route():
+    goal_id = request.args.get('id', '')
+    if not goal_id.isdigit():
+        return jsonify({"error": "id must be a goal id"}), 400
+    return jsonify({"data": get_goal_spending(goal_id)})
+
+
+@app.route('/spend_from_goal', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def spend_from_goal_route():
+    data = request.get_json() or {}
+    goal_id = str(data.get('id', ''))
+    if not goal_id.isdigit():
+        return jsonify({"error": "id must be a goal id"}), 400
+    try:
+        row = spend_from_goal(goal_id, data.get('amount'), data.get('note', ''),
+                              data.get('spent_on'), bool(data.get('lower_goal', True)))
+    except (TypeError, ValueError) as e:
+        return jsonify({"error": str(e) or "Enter a valid amount."}), 400
+    # Re-plan from the goal's plan start (like any hand edit).
+    update_to_save_single(goal_id, 'id', get_start_date_args(data))
+    return jsonify({"success": True, "spending": row})
+
+
+@app.route('/goal_spending', methods=['DELETE'])
+@cross_origin(supports_credentials=True)
+@login_required
+def remove_goal_spending_route():
+    data = request.get_json() or {}
+    spending_id = str(data.get('spending_id', ''))
+    if not spending_id.isdigit():
+        return jsonify({"error": "spending_id is required"}), 400
+    goal_id = remove_goal_spending(spending_id)
+    if goal_id is None:
+        return jsonify({"error": "No such entry"}), 404
+    update_to_save_single(goal_id, 'id', get_start_date_args(data))
+    return jsonify({"success": True})
+
+
+# EXPORT
+
+@app.route('/export', methods=['GET'])
+@cross_origin(supports_credentials=True, expose_headers=['Content-Disposition'])
+@login_required
+def export_route():
+    from datetime import datetime
+    payload = {"exported_at": datetime.now().isoformat(timespec='seconds'), "tables": export_all_tables()}
+    response = jsonify(payload)
+    response.headers['Content-Disposition'] = f'attachment; filename="sinking-funds-{nowString()}.json"'
+    return response
+
+
+@app.route('/export_goals.csv', methods=['GET'])
+@cross_origin(supports_credentials=True, expose_headers=['Content-Disposition'])
+@login_required
+def export_goals_csv_route():
+    import csv
+    import io
+    from flask import Response
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(['Goal', 'Saved', 'Goal amount', 'Due', 'Per paycheck', 'Plan starts'])
+    for row in get_all_data():
+        writer.writerow([
+            row['category'], f"{float(row['saved']):.2f}", f"{float(row['goal']):.2f}", row['goal_date'],
+            f"{float(row['calculated_to_save'] or 0):.2f}", first_payday_on_or_after(row.get('calculated_from')) or '',
+        ])
+    return Response(out.getvalue(), mimetype='text/csv', headers={
+        'Content-Disposition': f'attachment; filename="sinking-funds-goals-{nowString()}.csv"'})
+
+
+@app.route('/get_notes', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@login_required
+def get_notes_route():
+    return jsonify(get_notes())
+
+
+@app.route('/update_notes', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_notes_route():
+    body = (request.get_json() or {}).get('body', '')
+    if not isinstance(body, str):
+        return jsonify({"success": False, "error": "body must be text"}), 400
+    ok = update_notes(body)
+    return jsonify({"success": ok}), (200 if ok else 500)
 
 
 @app.route('/get_data', methods=['GET'])
 @login_required
 def get_data_route():
-    result = get_all_data()
+    result = [with_plan_start(row) for row in get_all_data()]
     return jsonify({"data" : result})
 
-
-"""
-DB-RELATED ROUTES
-
-/setup_database
-    * to-do: return False if database exists
-/delete_database
-/add_mock_data
-"""
-
-
-@app.route('/setup_database', methods=["POST"])
-@login_required
-def setup_database_route():
-    result = setup_database()
-    return jsonify(result)
-
-
-@app.route('/delete_database', methods=["POST"])
-@login_required
-def delete_database_route():
-    result = delete_database()
-    return jsonify(result)
-
-
-@app.route('/add_mock_data', methods=['POST'])
-@login_required
-def add_mock_data_route():
-    categories = [
-        "emergency fund", "vacation", "pets", "car", "kids"
-    ]
-
-    for category in categories:
-        saved = random.randint(100, 1000)  # Random saved amount
-        goal = saved + random.randint(500, 2000)  # Goal is greater than saved
-        calculated_to_save = goal - saved  # Amount left to save
-        add_db(category, saved, goal, "2025-01-01", calculated_to_save)
-
-    return jsonify({"Added Data": "True"})
 
 @app.route('/update_card_order', methods=['POST'])
 @cross_origin(supports_credentials=True)
@@ -242,33 +382,11 @@ def update_card_order_route():
 
 # CREDIT CARD ROUTES
 
-@app.route('/setup_credit_cards_database', methods=["POST"])
-@login_required
-def setup_credit_cards_database_route():
-    result = setup_credit_cards_database()
-    return jsonify(result)
-
-
-@app.route('/setup_default_credit_cards', methods=['POST'])
-@login_required
-def setup_default_credit_cards_route():
-    result = setup_default_credit_cards()
-    return jsonify(result)
-
-
 @app.route('/get_credit_cards', methods=['GET'])
 @login_required
 def get_credit_cards_route():
     result = get_all_credit_cards()
     return jsonify({"data": result})
-
-
-@app.route('/get_credit_card_info', methods=['GET'])
-@login_required
-def get_credit_card_info_route():
-    card_name = request.args.get('card_name')
-    result = get_credit_card_info(card_name)
-    return jsonify(result)
 
 
 @app.route('/add_credit_card', methods=['POST', 'PUT'])
@@ -306,13 +424,6 @@ def remove_credit_card_route():
 
 
 # ALLY BANK ROUTES
-
-@app.route('/setup_ally_bank_database', methods=["POST"])
-@login_required
-def setup_ally_bank_database_route():
-    result = setup_ally_bank_database()
-    return jsonify(result)
-
 
 @app.route('/get_ally_bank_balance', methods=['GET'])
 @login_required
@@ -359,15 +470,6 @@ def update_pending_sub_balances_route():
 def update_credit_card_order_route():
     card_orders = request.get_json().get('card_orders', [])
     result = update_credit_card_order(card_orders)
-    return jsonify({"success": result})
-
-
-@app.route('/add_display_order_column', methods=['POST'])
-@cross_origin(supports_credentials=True)
-@login_required
-def add_display_order_column_route():
-    """Migration endpoint to add display_order column to existing credit_cards table"""
-    result = add_display_order_to_credit_cards()
     return jsonify({"success": result})
 
 
@@ -586,8 +688,6 @@ def update_post_tax_benefit_order_route():
     result = update_post_tax_benefit_order(card_orders)
     return jsonify({"success": result})
 
-
-# @app.route('/updatePaycheckFrequency, methods=["POST"])
 
 if __name__ == '__main__':
     # Default port 5001, not 5000: macOS's AirPlay Receiver squats on 5000 by

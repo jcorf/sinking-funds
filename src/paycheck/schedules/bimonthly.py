@@ -42,10 +42,6 @@ def saved_by_paycheck(saved, goal, start_date, end_date):
 
     return paycheck_schedule
 
-def remaining_paychecks(start_date, end_date):
-    num_paychecks_left, paycheck_dates = _remaining_paychecks(stringToDate(start_date),stringToDate(end_date))
-    return num_paychecks_left
-
 def save_per_paycheck(saved, goal, start_date, end_date):
     num_paychecks_left, paycheck_dates = _remaining_paychecks(stringToDate(start_date),stringToDate(end_date))
     if num_paychecks_left == 0:
