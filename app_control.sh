@@ -7,6 +7,7 @@
 #   ./app_control.sh start real|test
 #   ./app_control.sh stop  real|test
 #   ./app_control.sh open  real|test
+#   ./app_control.sh backup-info | restore
 #
 # Logs and pid files live in .run/ (gitignored).
 
@@ -112,5 +113,7 @@ case "$1" in
     start) start "${2:?real or test}" ;;
     stop) stop "${2:?real or test}" ;;
     open) open "http://localhost:$(web_port "${2:?real or test}")" ;;
-    *) echo "Usage: $0 status | start real|test | stop real|test | open real|test"; exit 2 ;;
+    backup-info) ./restore_db.sh --info ;;
+    restore) ./restore_db.sh --yes ;;
+    *) echo "Usage: $0 status | start real|test | stop real|test | open real|test | backup-info | restore"; exit 2 ;;
 esac

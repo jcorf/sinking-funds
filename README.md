@@ -107,6 +107,7 @@ npm start
 
 - Everything is stored in SQLite at `src/paycheck/sinkingFunds.db`. Tables are created automatically the first time they're needed.
 - The app keeps **one** rolling backup, `src/paycheck/backups/sinkingFunds_latest.db`, which is overwritten on start, stop and log out.
+- **Restore the backup** with `./restore_db.sh`, or **Restore backup…** in the desktop app. It checks the backup, stops the app, keeps your current data as `backups/sinkingFunds_before_restore.db`, and puts the backup in place. Restore *before* stopping the app normally, because every stop overwrites the backup with the current data.
 - **Download a copy** on Overview exports everything as JSON, or your goals as CSV.
 
 ## Project structure
