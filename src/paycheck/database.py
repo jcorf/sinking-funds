@@ -1,6 +1,5 @@
 from utils.database_utils import *
 from utils.utils import nowString, listToDict
-import random
 import json
 
 
@@ -80,17 +79,6 @@ def setup_ally_bank_database():
     return True
 
 
-def delete_db():
-    try:
-        query = 'DROP TABLE IF EXISTS savings'
-        execute_query(query)
-        print("DROPPED database")
-        return True
-    except Exception as e:
-        print("Exception", e)
-        return False
-
-
 def ensure_savings_calculated_from_column():
     """Add savings.calculated_from to databases created before it existed.
 
@@ -125,10 +113,6 @@ def add_savings_category(category, saved, goal, goal_date, calculated_to_save, e
         return False
 
 
-def add_db(category, saved, goal, goal_date, to_save, emoji=':heart:', calculated_from=None):
-    return add_savings_category(category, saved, goal, goal_date, to_save, emoji, calculated_from)
-
-
 def get_all_data():
     # Ensure savings table exists
     if not table_exists('savings'):
@@ -144,7 +128,6 @@ def get_all_data():
 
 
 def delete_row_based_on_category(value, field="category"):
-    print(value, field)
     try:
         if (validate_primary_key(value)):
             execute_query(f"DELETE FROM savings WHERE {field} = '{value}'")
@@ -210,10 +193,7 @@ def validate_primary_key(key):
         ids = get_ids()
         return int(value) in ids
     else:
-        categories = get_categories()
-        print(categories)
-        print(key)
-        return value in categories
+        return value in get_categories()
 
 
 def update_card_order(card_orders):
@@ -300,10 +280,6 @@ def get_all_credit_cards():
     cols = ["id", "card_name", "posted_transactions", "pending_transactions", "covered_transactions", "covered_sub_balances", "pending_sub_balances", "total_balance", "payment_tags", "display_order"]
     cards = [listToDict(row, cols) for row in rows]
 
-    print("DEBUG: get_all_credit_cards returning:")
-    for card in cards:
-        print(f"  {card['card_name']}: posted={card['posted_transactions']}, pending={card['pending_transactions']}, covered={card['covered_transactions']}")
-
     return cards
 
 
@@ -386,7 +362,6 @@ def update_covered_sub_balances(card_name, sub_balances):
             print(f"Card {card_name} not found")
             return False
 
-        print(f"DEBUG: Before update - {card_name}: posted={current_card['posted_transactions']}, pending={current_card['pending_transactions']}, covered={current_card['covered_transactions']}")
 
         # Update both fields
         query = "UPDATE credit_cards SET covered_sub_balances = ?, covered_transactions = ?, last_updated = ? WHERE card_name = ?"
@@ -397,7 +372,6 @@ def update_covered_sub_balances(card_name, sub_balances):
         query = "UPDATE credit_cards SET total_balance = ?, last_updated = ? WHERE card_name = ?"
         execute_query(query, total_balance, nowString(), card_name)
 
-        print(f"DEBUG: After update - {card_name}: total_balance={total_balance}")
         print(f"UPDATED {card_name} covered sub-balances")
         return True
     except Exception as e:
@@ -417,7 +391,6 @@ def update_pending_sub_balances(card_name, sub_balances):
             print(f"Card {card_name} not found")
             return False
 
-        print(f"DEBUG: Before update - {card_name}: posted={current_card['posted_transactions']}, pending={current_card['pending_transactions']}, covered={current_card['covered_transactions']}")
 
         # Update both fields
         query = "UPDATE credit_cards SET pending_sub_balances = ?, pending_transactions = ?, last_updated = ? WHERE card_name = ?"
@@ -428,7 +401,6 @@ def update_pending_sub_balances(card_name, sub_balances):
         query = "UPDATE credit_cards SET total_balance = ?, last_updated = ? WHERE card_name = ?"
         execute_query(query, total_balance, nowString(), card_name)
 
-        print(f"DEBUG: After update - {card_name}: total_balance={total_balance}")
         print(f"UPDATED {card_name} pending sub-balances")
         return True
     except Exception as e:
@@ -885,51 +857,6 @@ def update_post_tax_benefit_order(card_orders):
         return False
 
 
-# TESTS
-if False:
-    print("----------------")
-    delete_db()
-    setup_database()
-
-    # Generate random categories
-    categories = [
-        "emergency fund", "vacation", "pets", "car", "kids"
-    ]
-
-    for category in categories:
-        saved = random.randint(100, 1000)  # Random saved amount
-        goal = saved + random.randint(500, 2000)  # Goal is greater than saved
-        calculated_to_save = goal - saved  # Amount left to save
-        add_db(category, saved, goal, "2025-01-01", calculated_to_save)
-
-    print("-----------")
-
-    print(get_categories())
-
-    get_category_info("emergency fund")
-    get_category_info(2, "id")
-    get_category_info('3', "id")
-
-    delete_row_based_on_category(2, 'id')
-    delete_row_based_on_category("pets")
-
-    print(get_categories())
-
-    update_field("goal_date", "2026-01-01", "car")
-    update_field("goal_date", "2027-01-01", 5, "id")
-    update_field("goal_date", "2027-01-01", 3, "id")
-
-    get_category_info("car")
-    get_category_info("kids")
-
-    ## True, False, True
-    print(validate_primary_key(5))
-    print(validate_primary_key(3))
-    print(validate_primary_key("emergency fund"))
-
-    print(get_all_data())
-
-    #delete_db()
 
 
 

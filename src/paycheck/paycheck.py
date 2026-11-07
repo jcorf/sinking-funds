@@ -8,9 +8,3 @@ def save_per_paycheck(saved, goal, start_date, end_date, frequency):
     if frequency == "bimonthly":
         return bimonthly.save_per_paycheck(saved, goal, start_date, end_date)
 
-def remaining_paychecks(end_date, frequency, start_date):
-    #if frequency == "bimonthly":
-    return bimonthly.remaining_paychecks(start_date, end_date)
-
-#save_per_paycheck(100, 200, "2024-12-01","2025-01-01", "bimonthly")
-print(saved_by_paycheck(100, 200, "2024-12-01","2025-01-01", "bimonthly"))

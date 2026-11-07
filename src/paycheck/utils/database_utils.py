@@ -1,5 +1,4 @@
 import sqlite3
-import os
 from utils.reference.database_constants import DATABASE_NAME
 
 def execute_query(sqlQuery, *parameters):
@@ -26,12 +25,3 @@ def select_query(sqlQuery):
         return []
     finally:
         conn.close()
-    
-def delete_database(db_name=DATABASE_NAME):
-    try:
-        os.remove(db_name)
-        print(f"Database '{db_name}' deleted successfully.")
-    except FileNotFoundError:
-        print(f"Database '{db_name}' not found.")
-    except Exception as e:
-        print(f"An error occurred while trying to delete the database: {e}")
