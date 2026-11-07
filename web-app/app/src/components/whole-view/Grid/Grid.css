@@ -175,11 +175,6 @@
     margin: 0 0 12px;
 }
 
-.sf-viewbar-total {
-    margin: 0;
-    color: var(--sage-ink-muted);
-}
-
 .sf-next-amount {
     color: var(--sage);
     font-weight: 700;
@@ -820,11 +815,6 @@
 
     .sf-row-actions {
         justify-content: flex-start;
-    }
-
-    /* Don't let the separator dangle at the end of a wrapped line */
-    .sf-status-sep {
-        display: none;
     }
 
     .sf-status > span:first-child {

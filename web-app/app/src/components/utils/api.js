@@ -124,9 +124,6 @@ export async function updateField(field, value, onValue, onField = 'category', s
         throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const result = await response.json();
-    console.log("Success:", result);  // Handle the response data
-
         return true;
     } catch (error) {
         console.error("Error:", error);  // Handle any errors
@@ -148,9 +145,6 @@ export async function deleteCategory(onValue, onField = 'category') {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-
-        const result = await response.json();
-        console.log("Success:", result);  // Handle the response data
 
         return true;
     } catch (error) {
@@ -175,36 +169,27 @@ export async function addCategory(category, saved, goal, goalDate, startDate = g
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
-        console.log("Success:", result);  // Handle the response data
-
-        return result === true;
+        return (await response.json()) === true;
     } catch (error) {
         console.error("Error:", error);  // Handle any errors
         return false;
     }
 }
 
-export async function updateAllCategories(startDate= getTodayDate(), paySchedule = null) {
+export async function updateAllCategories(startDate = getTodayDate()) {
     try {
-        const requestBody = paySchedule 
-            ? obj(['start_date', 'pay_schedule'], [startDate, paySchedule])
-            : obj(['start_date'], [startDate]);
-            
         const response = await fetch(url('/recalculate_all'), {
             method: "POST",  // HTTP method
             credentials: 'include',
             headers: {
                 "Content-Type": "application/json",  // Indicate that the body is JSON
             },
-            body: JSON.stringify(requestBody),  // Convert the data object to a JSON string
+            body: JSON.stringify({start_date: startDate}),
         });
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-
-        const result = await response.json();
         return true;
     } catch (error) {
         console.error("Error:", error);  // Handle any errors
@@ -227,9 +212,7 @@ export async function updateCardOrder(cardOrders) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
-        console.log("Order update success:", result);
-        return result;
+        return await response.json();
     } catch (error) {
         console.error("Error updating card order:", error);
         return false;
@@ -251,9 +234,7 @@ export async function updateCreditCardOrder(cardOrders) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
-        console.log("Credit card order update success:", result);
-        return result;
+        return await response.json();
     } catch (error) {
         console.error("Error updating credit card order:", error);
         return false;
