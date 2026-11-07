@@ -215,6 +215,12 @@
   overflow-wrap: anywhere;
 }
 
+.cc-name-input {
+  width: 100%;
+  min-width: 0;
+  font-weight: 600;
+}
+
 .cc-drag {
   display: inline-flex;
   align-items: center;

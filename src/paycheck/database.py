@@ -466,6 +466,30 @@ def pay_credit_card(card_name, amount):
         return False
 
 
+def rename_credit_card(card_name, new_name):
+    """Rename a card. Rejects an empty name or one another card already has
+    (case-insensitive)."""
+    try:
+        new_name = (new_name or '').strip()
+        if not new_name:
+            print("Card name can't be empty")
+            return False
+        if not get_credit_card_info(card_name):
+            print(f"Card {card_name} not found")
+            return False
+        names = [row[0] for row in select_query("SELECT card_name FROM credit_cards")]
+        if any(n != card_name and n.lower() == new_name.lower() for n in names):
+            print(f"A card called {new_name} already exists")
+            return False
+        execute_query("UPDATE credit_cards SET card_name = ?, last_updated = ? WHERE card_name = ?",
+                      new_name, nowString(), card_name)
+        print(f"RENAMED credit card {card_name} -> {new_name}")
+        return True
+    except Exception as e:
+        print("Exception renaming credit card:", e)
+        return False
+
+
 def delete_credit_card(card_name):
     try:
         query = "DELETE FROM credit_cards WHERE card_name = ?"

@@ -247,7 +247,38 @@ function TransactionList({ kind, subs, locked, onSave, onPost, onClose }) {
    One card row.
    --------------------------------------------------------------------------- */
 
-function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onPostPending, onRemove }) {
+// The card's name: plain text when locked, a field when unlocked. Saved when
+// the field is left (or Enter); Esc puts the old name back.
+function CardName({ name, locked, onRename }) {
+  const [draft, setDraft] = useState(name);
+  useEffect(() => setDraft(name), [name]);
+  if (locked) return <span className="cc-name">{name}</span>;
+
+  const commit = () => {
+    const next = draft.trim();
+    if (!next || next === name) setDraft(name);
+    else onRename(next);
+  };
+
+  return (
+    <input
+      className="sf-date cc-name-input"
+      aria-label={`Rename ${name}`}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.target.blur();
+        if (e.key === 'Escape') {
+          setDraft(name);
+          e.target.blur();
+        }
+      }}
+    />
+  );
+}
+
+function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onPostPending, onRename, onRemove }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
   const pendingSubs = parseSubs(card.pending_sub_balances);
   const coveredSubs = parseSubs(card.covered_sub_balances);
@@ -281,7 +312,7 @@ function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onPos
             <GripVertical size={16} aria-hidden="true" />
           </button>
         )}
-        <span className="cc-name">{card.card_name}</span>
+        <CardName name={card.card_name} locked={locked} onRename={onRename} />
         <span className="cc-col cc-col-posted" data-label="Posted">
           {locked ? (
             <span className="cc-num">{formatMoney(card.posted_transactions)}</span>
@@ -634,6 +665,17 @@ const CreditCards = () => {
     refresh();
   };
 
+  const renameCard = async (card, newName) => {
+    setError('');
+    if (cards.some((c) => c.id !== card.id && c.card_name.toLowerCase() === newName.toLowerCase())) {
+      fail(`You already have a card called "${newName}".`);
+      return;
+    }
+    const ok = await postJson('/rename_credit_card', { card_name: card.card_name, new_name: newName });
+    if (!ok) fail(`Couldn't rename ${card.card_name}.`);
+    refresh();
+  };
+
   const removeCard = async (card) => {
     if (!window.confirm(`Delete the ${card.card_name} card? This can't be undone.`)) return;
     setCards((prev) => prev.filter((c) => c.id !== card.id));
@@ -727,6 +769,7 @@ const CreditCards = () => {
                         onPosted={(v) => updatePosted(card, v)}
                         onSaveSubs={(kind, subs) => saveSubs(card, kind, subs)}
                         onPostPending={(index) => postPending(card, index)}
+                        onRename={(name) => renameCard(card, name)}
                         onRemove={() => removeCard(card)}
                       />
                     ))}
