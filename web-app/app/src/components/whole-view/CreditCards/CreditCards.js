@@ -444,7 +444,8 @@ const CreditCards = () => {
       });
       await response.json();
       setAllyBankBalance(newBalance);
-      updateTotalToTransfer(totalDebt);
+      // Use newBalance directly: allyBankBalance state is still the old value here
+      setTotalToTransfer(totalDebt - newBalance);
     } catch (error) {
       console.error('Error updating Ally Bank balance:', error);
     }
@@ -737,16 +738,18 @@ const CreditCards = () => {
             type="text"
             inputMode="decimal"
             value={allyBankInputValue}
-            onChange={(e) => {
-              const value = e.target.value;
-              setAllyBankInputValue(value);
-              const numericValue = parseFloat(value) || 0;
-              updateAllyBankBalance(numericValue);
-            }}
+            onChange={(e) => setAllyBankInputValue(e.target.value)}
             onBlur={() => {
-              // Format the value when input loses focus
-              const numericValue = parseFloat(allyBankInputValue) || 0;
+              // Save once on blur rather than per keystroke, so a half-typed
+              // value ("12.") is never persisted and requests can't race.
+              const numericValue = parseDecimalInput(allyBankInputValue);
               setAllyBankInputValue(numericValue.toFixed(2));
+              if (numericValue !== allyBankBalance) {
+                updateAllyBankBalance(numericValue);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.target.blur();
             }}
           />
         </div>
