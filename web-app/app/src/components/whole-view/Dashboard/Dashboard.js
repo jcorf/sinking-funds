@@ -5,6 +5,8 @@ import './Dashboard.css';
 import { getAllData, getAllyBankBalance, getNextPayday } from '../../utils/api';
 import { url } from '../../utils/lib';
 import { formatDate, formatMoney, formatPercent, goalStatus, plural, shiftDate, toCents } from '../SinkingFunds/goalMath';
+import { resolveIcon } from '../SinkingFunds/goalIcons';
+import { GoalIcon } from '../SinkingFunds/GoalParts';
 
 // Categorical colors for "Where the next paycheck goes" — validated with the
 // dataviz palette checks (lightness band, chroma, CVD + normal-vision
@@ -112,6 +114,10 @@ export default function Dashboard() {
             // Paychecks whose plan start has arrived but haven't been logged
             dueToLog: contributing.filter(({ goal, s }) => s.freshness === 'current' && today && goal.plan_start && goal.plan_start <= today),
             outOfDate: statuses.filter(({ s }) => !s.funded && s.freshness !== 'current'),
+            // The next planned contribution covers what's left
+            finishingNext: contributing.filter(
+                ({ s }) => s.freshness === 'current' && s.remaining > 0 && s.remaining <= s.perPaycheck + 0.005
+            ),
             dueSoon: statuses
                 .filter(({ goal, s }) => !s.funded && today && goal.goal_date <= shiftDate(today, 30))
                 .sort((a, b) => (a.goal.goal_date < b.goal.goal_date ? -1 : 1)),
@@ -280,6 +286,7 @@ export default function Dashboard() {
                         )}
                     </article>
 
+                    <div className="db-col">
                     <article className={`db-panel db-net ${netState ? `is-${netState}` : ''}`}>
                         <header className="db-panel-header">
                             <h3>Cards vs bucket</h3>
@@ -331,6 +338,41 @@ export default function Dashboard() {
                             </>
                         )}
                     </article>
+
+                    <article className="db-panel db-finishing">
+                        <header className="db-panel-header">
+                            <h3>Finishing next paycheck</h3>
+                        </header>
+                        {!g ? (
+                            <p className="db-muted">{failed.goals ? "Couldn't load your goals." : 'Loading…'}</p>
+                        ) : g.finishingNext.length === 0 ? (
+                            <p className="db-muted">No goals finish with the next paycheck.</p>
+                        ) : (
+                            <ul className="db-finish-list">
+                                {g.finishingNext.map(({ goal, s }) => (
+                                    <li key={goal.id}>
+                                        <Link
+                                            to={`/users/${goal.id}/${encodeURIComponent(goal.category)}`}
+                                            className="db-finish-row"
+                                        >
+                                            <GoalIcon icon={resolveIcon(goal.emoji)} small />
+                                            <span className="db-finish-name">
+                                                {goal.category}
+                                                <small className="db-muted">
+                                                    {goal.plan_start ? fmtPayday(goal.plan_start) : 'Next paycheck'}
+                                                </small>
+                                            </span>
+                                            <span className="db-num db-finish-amount">
+                                                +{formatMoney(s.remaining)}
+                                                <small className="db-muted">of {formatMoney(s.target)}</small>
+                                            </span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </article>
+                    </div>
                 </div>
             </section>
         </div>
