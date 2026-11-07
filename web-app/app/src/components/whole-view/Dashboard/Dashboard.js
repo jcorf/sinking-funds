@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, CalendarClock, Check, CreditCard, RefreshCw, Wallet } from 'lucide-react';
+import { ArrowRight, CalendarClock, Check, CreditCard, RefreshCw, Repeat, Wallet } from 'lucide-react';
 import './Dashboard.css';
 import { getAllData, getAllyBankBalance, getNextPayday } from '../../utils/api';
 import { url } from '../../utils/lib';
@@ -118,8 +118,17 @@ export default function Dashboard() {
             finishingNext: contributing.filter(
                 ({ s }) => s.freshness === 'current' && s.remaining > 0 && s.remaining <= s.perPaycheck + 0.005
             ),
+            // Recurring goals past their due date: time to record the bill
+            // and start the next cycle (funded or not).
+            cycleDue: statuses.filter(({ goal }) => Number(goal.repeat_months) > 0 && today && goal.goal_date < today),
             dueSoon: statuses
-                .filter(({ goal, s }) => !s.funded && today && goal.goal_date <= shiftDate(today, 30))
+                .filter(
+                    ({ goal, s }) =>
+                        !s.funded &&
+                        today &&
+                        goal.goal_date <= shiftDate(today, 30) &&
+                        !(Number(goal.repeat_months) > 0 && goal.goal_date < today)
+                )
                 .sort((a, b) => (a.goal.goal_date < b.goal.goal_date ? -1 : 1)),
         };
     }, [goals, payday]);
@@ -177,6 +186,21 @@ export default function Dashboard() {
         );
     }
     if (g) {
+        g.cycleDue.forEach(({ goal }) =>
+            todos.push(
+                <TodoItem
+                    key={`cycle-${goal.id}`}
+                    icon={Repeat}
+                    action="Record it"
+                    onAction={() => navigate(`/users/${goal.id}/${encodeURIComponent(goal.category)}`)}
+                >
+                    <strong>
+                        {goal.category} was due {fmtShort(goal.goal_date)}.
+                    </strong>{' '}
+                    Record what you spent to start the next cycle.
+                </TodoItem>
+            )
+        );
         g.dueSoon.slice(0, 3).forEach(({ goal, s }) =>
             todos.push(
                 <TodoItem
@@ -378,3 +402,4 @@ export default function Dashboard() {
         </div>
     );
 }
+

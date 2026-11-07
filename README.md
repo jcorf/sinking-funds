@@ -149,15 +149,18 @@ Run `./make_desktop_app.sh` once to put **Sinking Funds.app** on your Desktop. D
 - `/get_data` - Retrieve all savings categories
 - `/get_category_info` - Get specific category information
 - `/saved_by_paycheck` - Get paycheck schedule for a category
+- `/goal_spending?id=` - Spending recorded against a goal, newest first
 
 ### POST Endpoints
 - `/add_category` - Create a new savings category
-- `/update_field` - Update a field in a category
+- `/update_field` - Update a field in a category (including `repeat_months`: 0 = one-off, or every 1/3/6/12 months)
+- `/spend_from_goal` - Record money spent from a goal; optionally lowers the goal or starts a recurring goal's next cycle
 - `/recalculate_all` - Recalculate all categories with new start date
 - `/update_card_order` - Update the display order of cards
 
 ### DELETE Endpoints
-- `/remove_category` - Delete a savings category
+- `/remove_category` - Delete a savings category (and its spending history)
+- `/goal_spending` - Remove a spending entry, putting its money (and any goal/due-date change) back
 
 ## Paycheck Schedule Logic
 

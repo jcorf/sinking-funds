@@ -849,3 +849,10 @@
         transition: none;
     }
 }
+
+/* Recurring goals: a small repeat mark before the due date */
+.sf-repeat-icon {
+    margin-right: 5px;
+    vertical-align: -1px;
+    color: var(--sage);
+}

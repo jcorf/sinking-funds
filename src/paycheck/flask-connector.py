@@ -43,6 +43,7 @@ from database import (update_field, setup_database, delete_database,
 from paycheck import saved_by_paycheck, save_per_paycheck
 from utils.utils import nowString, stringToDate, dateToString
 from database import get_notes, update_notes
+from database import get_goal_spending, spend_from_goal, remove_goal_spending, delete_goal_spending_for
 from schedules.bimonthly import _remaining_paychecks as bimonthly_paycheck_dates
 from datetime import timedelta
 
@@ -149,6 +150,13 @@ def update_field_route():
     field_to_change, new_value = get_args(['field_to_change', 'new_value'], request.get_json())
     if field_to_change == 'to_save':
         return jsonify("Use /update_to_save")
+    if field_to_change == 'repeat_months':
+        try:
+            new_value = int(new_value)
+        except (TypeError, ValueError):
+            return jsonify({"error": "repeat_months must be a whole number"}), 400
+        if not 0 <= new_value <= 24:
+            return jsonify({"error": "repeat_months must be between 0 and 24"}), 400
     on_value, on_field = get_on_args(request.get_json())
     result = update_field(field_to_change, new_value, on_value, on_field)
 
@@ -222,7 +230,13 @@ def next_payday_route():
 @login_required
 def remove_category_route():
     on_value, on_field = get_on_args(request.get_json())
+    try:
+        goal_id = get_category_info(on_value, on_field)['id']
+    except Exception:
+        goal_id = None
     result = delete_row_based_on_category(on_value, on_field)
+    if result and goal_id is not None:
+        delete_goal_spending_for(goal_id)
     return jsonify(result)
 
 
@@ -250,6 +264,52 @@ def with_plan_start(row):
     (the first row of its paycheck schedule, and the paycheck logged next)."""
     row['plan_start'] = first_payday_on_or_after(row.get('calculated_from'))
     return row
+
+
+# SPENDING FROM A GOAL
+
+@app.route('/goal_spending', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@login_required
+def goal_spending_route():
+    goal_id = request.args.get('id', '')
+    if not goal_id.isdigit():
+        return jsonify({"error": "id must be a goal id"}), 400
+    return jsonify({"data": get_goal_spending(goal_id)})
+
+
+@app.route('/spend_from_goal', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def spend_from_goal_route():
+    data = request.get_json() or {}
+    goal_id = str(data.get('id', ''))
+    if not goal_id.isdigit():
+        return jsonify({"error": "id must be a goal id"}), 400
+    try:
+        row = spend_from_goal(goal_id, data.get('amount'), data.get('note', ''),
+                              data.get('spent_on'), bool(data.get('next_cycle')),
+                              bool(data.get('lower_goal', True)))
+    except (TypeError, ValueError) as e:
+        return jsonify({"error": str(e) or "Enter a valid amount."}), 400
+    # Re-plan from the goal's plan start (like any hand edit).
+    update_to_save_single(goal_id, 'id', get_start_date_args(data))
+    return jsonify({"success": True, "spending": row})
+
+
+@app.route('/goal_spending', methods=['DELETE'])
+@cross_origin(supports_credentials=True)
+@login_required
+def remove_goal_spending_route():
+    data = request.get_json() or {}
+    spending_id = str(data.get('spending_id', ''))
+    if not spending_id.isdigit():
+        return jsonify({"error": "spending_id is required"}), 400
+    goal_id = remove_goal_spending(spending_id)
+    if goal_id is None:
+        return jsonify({"error": "No such entry"}), 404
+    update_to_save_single(goal_id, 'id', get_start_date_args(data))
+    return jsonify({"success": True})
 
 
 @app.route('/get_notes', methods=['GET'])

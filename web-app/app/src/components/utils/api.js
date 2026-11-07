@@ -598,3 +598,50 @@ export async function updatePostTaxBenefitOrder(cardOrders) {
         return false;
     }
 }
+
+// ---- Spending from a goal -------------------------------------------------
+
+export async function getGoalSpending(goalId) {
+    try {
+        const response = await fetch(url('/goal_spending', ['id'], [goalId]), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return (await response.json()).data || [];
+    } catch (error) {
+        console.error('Error fetching spending:', error);
+        return null;
+    }
+}
+
+// Returns { spending } on success or { error } with a message to show.
+export async function spendFromGoal(goalId, { amount, note, spentOn, nextCycle, lowerGoal, startDate }) {
+    try {
+        const response = await fetch(url('/spend_from_goal'), {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: goalId, amount, note, spent_on: spentOn, next_cycle: nextCycle, lower_goal: lowerGoal, start_date: startDate}),
+        });
+        const data = await response.json();
+        if (!response.ok) return {error: data.error || "That didn't save."};
+        return data;
+    } catch (error) {
+        console.error('Error recording spending:', error);
+        return {error: "That didn't save. Check that the app's backend is running, then try again."};
+    }
+}
+
+export async function removeGoalSpending(spendingId, startDate) {
+    try {
+        const response = await fetch(url('/goal_spending'), {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({spending_id: spendingId, start_date: startDate}),
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Error removing spending:', error);
+        return false;
+    }
+}
+

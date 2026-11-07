@@ -26,6 +26,7 @@ from database import (  # noqa: E402
     get_all_pre_tax_benefits, get_ally_bank_balance, get_notes, get_paycheck_settings,
     update_ally_bank_balance, update_covered_sub_balances, update_notes,
     update_paycheck_settings_field, update_pending_sub_balances,
+    setup_goal_spending_database, spend_from_goal, update_field,
 )
 from paycheck import save_per_paycheck  # noqa: E402
 from utils.database_utils import execute_query  # noqa: E402
@@ -43,7 +44,8 @@ for getter in (get_all_data, get_all_credit_cards, get_all_budget_categories, ge
                get_all_pre_tax_benefits, get_all_post_tax_contributions, get_all_post_tax_benefits,
                get_ally_bank_balance, get_notes):
     getter()
-for table in ('savings', 'credit_cards', 'budget_categories', 'pre_tax_benefits',
+setup_goal_spending_database()
+for table in ('savings', 'goal_spending', 'credit_cards', 'budget_categories', 'pre_tax_benefits',
               'post_tax_contributions', 'post_tax_benefits'):
     execute_query(f"DELETE FROM {table}")
 
@@ -58,6 +60,16 @@ for name, saved, goal, months, icon in [
     goal_date = months_from_now(months)
     to_save = save_per_paycheck(float(saved), float(goal), start, goal_date, 'bimonthly')
     add_savings_category(name, saved, goal, goal_date, to_save, icon, start)
+
+# A yearly goal that was just paid, so its spending history and next cycle
+# show up: saved 480 of 600, paid the 450 bill, next cycle due a year on.
+add_savings_category('Sample: Spaceship registration', 480, 600, months_from_now(0.5), 0, 'car', start)
+update_field('repeat_months', 12, 'Sample: Spaceship registration')
+reg = [g for g in get_all_data() if g['category'] == 'Sample: Spaceship registration'][0]
+spend_from_goal(reg['id'], 450, 'Sample: yearly registration', (today - timedelta(days=3)).isoformat(), True)
+reg = [g for g in get_all_data() if g['category'] == 'Sample: Spaceship registration'][0]
+update_field('calculated_to_save', save_per_paycheck(float(reg['saved']), 600.0, start, reg['goal_date'], 'bimonthly'),
+             'Sample: Spaceship registration')
 
 # Credit cards: (name, posted, pending items, covered items)
 for name, posted, pending, covered in [
