@@ -43,6 +43,19 @@ export async function getNextPayday() {
     }
 }
 
+// The Ally "Saved in Bucket" balance (number), or null if unavailable.
+export async function getAllyBankBalance() {
+    try {
+        const response = await fetch(url('/get_ally_bank_balance'), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        return typeof data.balance === 'number' ? data.balance : Number(data.balance) || 0;
+    } catch (error) {
+        console.error('Error fetching bucket balance:', error);
+        return null;
+    }
+}
+
 export async function getCategoryData(categoryName) {
     try {
         const flaskUrl = url('/get_category_info', ['on_value'], [categoryName])

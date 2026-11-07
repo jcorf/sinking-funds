@@ -16,12 +16,13 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Check, GripVertical, Plus, RefreshCw, Undo2, X } from 'lucide-react';
+import { Check, GripVertical, PencilLine, Plus, RefreshCw, Undo2, X } from 'lucide-react';
 import './Grid.css';
 import {
     addCategory,
     deleteCategory,
     getAllData,
+    getAllyBankBalance,
     getNextPayday,
     updateAllCategories,
     updateCardOrder,
@@ -54,14 +55,18 @@ async function applySavedChanges(changes) {
     return applied;
 }
 
-function GoalRow({ goal, status, view, showStart, onOpen, onLog, onDelete, busy }) {
+// `edit` (edit mode only): { value, onChange, onEnter, inputId }
+function GoalRow({ goal, status, view, showStart, edit, onOpen, onLog, onDelete, busy }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: goal.id });
     const icon = resolveIcon(goal.emoji);
     // Past-due goals have no per-paycheck amount left; offer the remainder.
     const logAmount = status.funded ? 0 : status.pastDue ? status.remaining : status.perPaycheck;
     // "After next paycheck" view: saved + this paycheck's planned amount.
-    const adding = view === 'after' && !status.funded && !status.pastDue ? status.perPaycheck : 0;
-    const after = toCents(status.saved + adding);
+    const adding = !edit && view === 'after' && !status.funded && !status.pastDue ? status.perPaycheck : 0;
+    const shownSaved = edit ? edit.value : status.saved;
+    const changed = edit && toCents(edit.value) !== toCents(status.saved);
+    const after = toCents(shownSaved + adding);
+    const savedFraction = status.target > 0 ? Math.min(1, shownSaved / status.target) : 0;
     const stop = (fn) => (e) => {
         e.stopPropagation();
         fn();
@@ -71,34 +76,44 @@ function GoalRow({ goal, status, view, showStart, onOpen, onLog, onDelete, busy 
         <li
             ref={setNodeRef}
             style={{ transform: CSS.Transform.toString(transform), transition }}
-            className={`sf-row ${isDragging ? 'is-dragging' : ''} ${status.funded ? 'is-funded' : ''}`}
-            onClick={onOpen}
+            className={`sf-row ${isDragging ? 'is-dragging' : ''} ${status.funded ? 'is-funded' : ''} ${edit ? 'is-editing' : ''} ${changed ? 'is-changed' : ''}`}
+            onClick={edit ? undefined : onOpen}
         >
-            <button
-                type="button"
-                className="sf-drag"
-                aria-label={`Reorder ${goal.category}`}
-                onClick={(e) => e.stopPropagation()}
-                {...attributes}
-                {...listeners}
-            >
-                <GripVertical size={16} aria-hidden="true" />
-            </button>
+            {edit ? (
+                <span className="sf-drag" aria-hidden="true" />
+            ) : (
+                <button
+                    type="button"
+                    className="sf-drag"
+                    aria-label={`Reorder ${goal.category}`}
+                    onClick={(e) => e.stopPropagation()}
+                    {...attributes}
+                    {...listeners}
+                >
+                    <GripVertical size={16} aria-hidden="true" />
+                </button>
+            )}
 
             <GoalIcon icon={icon} />
 
             <div className="sf-row-main">
-                <a
-                    className="sf-row-name"
-                    href={`/users/${goal.id}/${encodeURIComponent(goal.category)}`}
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onOpen();
-                    }}
-                >
-                    {goal.category}
-                </a>
+                {edit ? (
+                    <label className="sf-row-name" htmlFor={edit.inputId}>
+                        {goal.category}
+                    </label>
+                ) : (
+                    <a
+                        className="sf-row-name"
+                        href={`/users/${goal.id}/${encodeURIComponent(goal.category)}`}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onOpen();
+                        }}
+                    >
+                        {goal.category}
+                    </a>
+                )}
                 <div
                     className="sf-progress"
                     role="progressbar"
@@ -107,16 +122,32 @@ function GoalRow({ goal, status, view, showStart, onOpen, onLog, onDelete, busy 
                     aria-valuemax={100}
                     aria-valuenow={Math.round(Math.min(1, after / (status.target || 1)) * 100)}
                 >
-                    <div className="sf-progress-fill" style={{ width: `${status.fraction * 100}%` }} />
+                    <div className="sf-progress-fill" style={{ width: `${savedFraction * 100}%` }} />
                     {adding > 0 && (
                         <div
                             className="sf-progress-next"
-                            style={{ width: `${Math.max(0, Math.min(1, after / status.target) - status.fraction) * 100}%` }}
+                            style={{ width: `${Math.max(0, Math.min(1, after / status.target) - savedFraction) * 100}%` }}
                         />
                     )}
                 </div>
                 <div className="sf-row-sub">
-                    {adding > 0 ? (
+                    {edit ? (
+                        <span className="sf-edit-line">
+                            <MoneyInput
+                                id={edit.inputId}
+                                value={edit.value}
+                                label={`${goal.category} saved`}
+                                onPreview={edit.onChange}
+                                onCommit={edit.onChange}
+                                onEnter={edit.onEnter}
+                            />
+                            <span>
+                                of <span className="sf-num">{formatMoney(status.target)}</span> ·{' '}
+                                {formatPercent(savedFraction)}
+                            </span>
+                            {changed && <span className="sf-was">was {formatMoney(status.saved)}</span>}
+                        </span>
+                    ) : adding > 0 ? (
                         <>
                             <span className="sf-num">{formatMoney(status.saved)}</span> +{' '}
                             <span className="sf-num sf-next-amount">{formatMoney(adding)}</span> ={' '}
@@ -128,8 +159,12 @@ function GoalRow({ goal, status, view, showStart, onOpen, onLog, onDelete, busy 
                             <span className="sf-num">{formatMoney(status.target)}</span>
                         </>
                     )}
-                    <span className="sf-dot" aria-hidden="true">·</span>
-                    {formatPercent(Math.min(1, after / (status.target || 1)))}
+                    {!edit && (
+                        <>
+                            <span className="sf-dot" aria-hidden="true">·</span>
+                            {formatPercent(Math.min(1, after / (status.target || 1)))}
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -169,7 +204,7 @@ function GoalRow({ goal, status, view, showStart, onOpen, onLog, onDelete, busy 
                 </span>
             </div>
 
-            {logAmount > 0 && (
+            {!edit && logAmount > 0 && (
                 <div className="sf-row-actions">
                     <button
                         type="button"
@@ -187,6 +222,7 @@ function GoalRow({ goal, status, view, showStart, onOpen, onLog, onDelete, busy 
                     </button>
                 </div>
             )}
+            {!edit && (
             <button
                 type="button"
                 className="sf-delete"
@@ -196,6 +232,7 @@ function GoalRow({ goal, status, view, showStart, onOpen, onLog, onDelete, busy 
             >
                 <X size={14} aria-hidden="true" />
             </button>
+            )}
         </li>
     );
 }
@@ -366,6 +403,11 @@ const Grid = () => {
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
+    // Edit mode: update every goal's saved amount at once.
+    const [editing, setEditing] = useState(false);
+    const [drafts, setDrafts] = useState({});
+    const [bucket, setBucket] = useState(null);
+
     const refresh = useCallback(async () => {
         const data = await getAllData();
         setGoals((data && data.data) || []);
@@ -376,6 +418,7 @@ const Grid = () => {
         window.scrollTo(0, 0);
         refresh();
         getNextPayday().then(setPayday);
+        getAllyBankBalance().then(setBucket);
     }, [refresh]);
 
     const statuses = useMemo(
@@ -449,6 +492,58 @@ const Grid = () => {
         });
     };
 
+    const startEditing = () => {
+        setLogOpen(false);
+        setAdding(false);
+        setDrafts(Object.fromEntries(goals.map((g) => [g.id, toCents(g.saved)])));
+        setEditing(true);
+    };
+
+    const draftChanges = editing
+        ? goals.filter((g) => drafts[g.id] !== undefined && toCents(drafts[g.id]) !== toCents(g.saved))
+        : [];
+    const draftTotal = goals.reduce((sum, g) => sum + toCents(editing ? drafts[g.id] ?? g.saved : g.saved), 0);
+
+    const cancelEditing = useCallback(() => {
+        setEditing(false);
+        setDrafts({});
+    }, []);
+
+    // Esc leaves edit mode (asking first if anything changed).
+    useEffect(() => {
+        if (!editing) return undefined;
+        const onKey = (e) => {
+            if (e.key !== 'Escape') return;
+            if (draftChanges.length && !window.confirm('Discard your unsaved saved-amount changes?')) return;
+            cancelEditing();
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [editing, draftChanges.length, cancelEditing]);
+
+    // Saves only changed goals; each keeps its plan start, so per-paycheck
+    // amounts recalculate from the same first payday.
+    const saveDrafts = async () => {
+        setBusy(true);
+        const changes = draftChanges.map((g) => {
+            const start = g.calculated_from || getTodayDate();
+            return { id: g.id, from: toCents(g.saved), to: toCents(drafts[g.id]), startFrom: start, startTo: start };
+        });
+        const applied = await applySavedChanges(changes);
+        await refresh();
+        setBusy(false);
+        const failed = changes.filter((c) => !applied.includes(c));
+        if (failed.length) {
+            // Keep edit mode open with the unsaved inputs.
+            const failedNames = goals.filter((g) => failed.some((c) => c.id === g.id)).map((g) => g.category);
+            setToast({ message: `Couldn't save ${failedNames.join(', ')}. Your other changes were saved.`, changes: applied });
+            return;
+        }
+        setEditing(false);
+        setDrafts({});
+        setToast({ message: `Updated ${plural(applied.length, 'goal')}`, changes: applied });
+    };
+
     const recalculate = async (startDate) => {
         setRecalculating(true);
         await updateAllCategories(startDate);
@@ -490,10 +585,17 @@ const Grid = () => {
                         </p>
                     )}
                 </div>
-                {contributing.length > 0 && !logOpen && (
-                    <button type="button" className="sf-btn-primary" onClick={() => setLogOpen(true)}>
-                        Log this paycheck
-                    </button>
+                {!logOpen && !editing && goals.length > 0 && (
+                    <div className="sf-header-actions">
+                        <button type="button" className="sf-btn-quiet" onClick={startEditing}>
+                            <PencilLine size={16} aria-hidden="true" /> Update saved amounts
+                        </button>
+                        {contributing.length > 0 && (
+                            <button type="button" className="sf-btn-primary" onClick={() => setLogOpen(true)}>
+                                Log this paycheck
+                            </button>
+                        )}
+                    </div>
                 )}
             </header>
 
@@ -544,7 +646,7 @@ const Grid = () => {
                 />
             )}
 
-            {goals.length > 0 && (
+            {goals.length > 0 && !editing && (
                 <div className="sf-viewbar">
                     <div className="sf-segmented" role="group" aria-label="Show amounts">
                         <button type="button" aria-pressed={view === 'now'} onClick={() => chooseView('now')}>
@@ -581,8 +683,23 @@ const Grid = () => {
                                 onOpen={() => openGoal(goal)}
                                 onLog={(amount) => logChanges([{ goal, amount }])}
                                 onDelete={() => remove(goal)}
+                                edit={
+                                    editing
+                                        ? {
+                                              value: drafts[goal.id] ?? toCents(goal.saved),
+                                              inputId: `sf-edit-${goal.id}`,
+                                              onChange: (amount) => setDrafts((d) => ({ ...d, [goal.id]: amount })),
+                                              onEnter: () => {
+                                                  const i = goals.findIndex((g) => g.id === goal.id);
+                                                  const next = goals[i + 1] && document.getElementById(`sf-edit-${goals[i + 1].id}`);
+                                                  if (next) next.focus();
+                                              },
+                                          }
+                                        : null
+                                }
                             />
                         ))}
+                        {!editing && (
                         <li className="sf-add">
                             {adding ? (
                                 <AddGoalForm
@@ -602,9 +719,64 @@ const Grid = () => {
                                 </button>
                             )}
                         </li>
+                        )}
                     </ul>
                 </SortableContext>
             </DndContext>
+
+            {editing && (
+                <div className="sf-reconcile" role="region" aria-label="Saved amounts total">
+                    <dl className="sf-reconcile-figures">
+                        <div>
+                            <dt>Total saved</dt>
+                            <dd className="sf-num">{formatMoney(draftTotal)}</dd>
+                        </div>
+                        {bucket !== null && (
+                            <>
+                                <div>
+                                    <dt>Bucket</dt>
+                                    <dd className="sf-num">{formatMoney(bucket)}</dd>
+                                </div>
+                                <div className="sf-reconcile-diff" aria-live="polite">
+                                    <dt>Difference</dt>
+                                    <dd>
+                                        {Math.abs(toCents(draftTotal - bucket)) < 0.005 ? (
+                                            <span className="sf-status-ok">
+                                                <Check size={14} aria-hidden="true" /> Matches your bucket
+                                            </span>
+                                        ) : (
+                                            <span className="sf-num">
+                                                {formatMoney(Math.abs(draftTotal - bucket))}{' '}
+                                                {draftTotal > bucket ? 'more than' : 'less than'} the bucket
+                                            </span>
+                                        )}
+                                    </dd>
+                                </div>
+                            </>
+                        )}
+                    </dl>
+                    <div className="sf-reconcile-buttons">
+                        <button
+                            type="button"
+                            className="sf-btn-quiet"
+                            onClick={() => {
+                                if (draftChanges.length && !window.confirm('Discard your unsaved saved-amount changes?')) return;
+                                cancelEditing();
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="sf-btn-primary"
+                            disabled={busy || draftChanges.length === 0}
+                            onClick={saveDrafts}
+                        >
+                            {busy ? 'Saving…' : draftChanges.length ? `Save changes (${draftChanges.length})` : 'No changes yet'}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {toast && (
                 <div className="sf-toast" role="status">

@@ -20,7 +20,7 @@ export function GoalIcon({ icon, small = false, large = false }) {
 }
 
 // "$ [ 0.00 ]": reports every keystroke (onPreview) and commits on blur/Enter.
-export function MoneyInput({ id, value, label, onPreview, onCommit, disabled = false }) {
+export function MoneyInput({ id, value, label, onPreview, onCommit, onEnter, disabled = false }) {
     const [text, setText] = useState(Number(value || 0).toFixed(2));
     const focused = useRef(false);
     const startValue = useRef(0);
@@ -59,6 +59,7 @@ export function MoneyInput({ id, value, label, onPreview, onCommit, disabled = f
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         e.target.blur();
+                        onEnter && onEnter();
                     }
                 }}
             />
