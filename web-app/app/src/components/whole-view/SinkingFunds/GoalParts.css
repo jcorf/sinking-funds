@@ -1,0 +1,296 @@
+/* Shared Sinking Funds parts (overview + goal detail). sf- prefixed. */
+
+.sf-num {
+    font-variant-numeric: tabular-nums;
+}
+
+.sf-strong {
+    font-weight: 700;
+    color: var(--sage-ink);
+}
+
+.sf-muted {
+    color: var(--sage-ink-muted);
+}
+
+.sf-stale {
+    color: var(--sage-ink-muted);
+    font-weight: 600;
+    font-style: italic;
+}
+
+.sf-past-due {
+    color: var(--sage-error);
+    font-weight: 600;
+}
+
+.sf-funded {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--sage-tint);
+    color: var(--sage);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+/* ---------- Icon tile ---------- */
+
+.sf-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--sage-tile);
+    color: var(--sage);
+}
+
+.sf-icon-small {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+}
+
+.sf-icon-large {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+}
+
+/* The jiggle: kept from the original cards, now on the icon tile. */
+@keyframes sf-jiggle {
+    0% {
+        transform: rotate(0deg) scale(1.08);
+    }
+    50% {
+        transform: rotate(-7deg) scale(1.08);
+    }
+    100% {
+        transform: rotate(-7deg) scale(1.08);
+    }
+}
+
+/* ---------- Progress ---------- */
+
+.sf-progress {
+    display: flex;
+    height: 6px;
+    border-radius: 999px;
+    background: #e4e9dc;
+    overflow: hidden;
+}
+
+/* The next paycheck's planned amount, extending the saved fill */
+.sf-progress-next {
+    height: 100%;
+    background: #9db58f;
+    transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sf-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--sage);
+    transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- Money + date inputs ---------- */
+
+.sf-money {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.sf-money-sign {
+    position: absolute;
+    left: 11px;
+    color: var(--sage-ink-muted);
+    pointer-events: none;
+}
+
+.sf-money input,
+.sf-date {
+    box-sizing: border-box;
+    height: 40px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: #fff;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--sage-ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sf-money input {
+    width: 128px;
+    padding: 0 12px 0 24px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.sf-date {
+    padding: 0 10px;
+}
+
+.sf-money input:hover,
+.sf-date:hover {
+    border-color: #a9b79a;
+}
+
+.sf-money input:focus,
+.sf-date:focus {
+    outline: none;
+    border-color: var(--sage);
+    box-shadow: 0 0 0 3px var(--sage-ring);
+}
+
+.sf-money.is-disabled input {
+    background: #f4f6f0;
+    color: #8b9586;
+}
+
+/* ---------- Buttons ---------- */
+
+.sf-btn-primary,
+.sf-btn-quiet,
+.sf-btn-small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 10px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.sf-btn-primary {
+    height: 44px;
+    padding: 0 18px;
+    border: none;
+    background: var(--sage);
+    color: #fff;
+}
+
+.sf-btn-primary:hover:not(:disabled) {
+    background: var(--sage-deep);
+}
+
+.sf-btn-primary:disabled {
+    background: #56704f;
+    cursor: progress;
+}
+
+.sf-btn-quiet {
+    height: 44px;
+    padding: 0 16px;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    color: var(--sage-ink);
+}
+
+.sf-btn-quiet:hover:not(:disabled) {
+    border-color: var(--sage);
+    color: var(--sage);
+}
+
+.sf-btn-small {
+    height: 30px;
+    padding: 0 11px;
+    border: 1px solid var(--sage);
+    background: #fff;
+    color: var(--sage);
+    font-size: 0.88rem;
+}
+
+.sf-btn-small:hover:not(:disabled) {
+    background: var(--sage-tint);
+}
+
+.sf-btn-primary:focus-visible,
+.sf-btn-quiet:focus-visible,
+.sf-btn-small:focus-visible {
+    outline: 3px solid var(--sage-ring);
+    outline-offset: 2px;
+}
+
+/* ---------- Icon picker ---------- */
+
+.sf-picker {
+    position: relative;
+    flex: none;
+}
+
+.sf-picker-button {
+    display: inline-flex;
+    padding: 0;
+    border: none;
+    border-radius: 14px;
+    background: none;
+    cursor: pointer;
+}
+
+.sf-picker-button:hover .sf-icon {
+    background: var(--sage-field);
+}
+
+.sf-picker-button:focus-visible {
+    outline: 3px solid var(--sage-ring);
+    outline-offset: 2px;
+}
+
+.sf-picker-grid {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 50;
+    display: grid;
+    grid-template-columns: repeat(6, 36px);
+    gap: 4px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(29, 42, 30, 0.16);
+}
+
+.sf-picker-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--sage-ink);
+    cursor: pointer;
+}
+
+.sf-picker-option:hover,
+.sf-picker-option:focus-visible {
+    background: var(--sage-tint);
+    outline: none;
+}
+
+.sf-picker-option.is-selected {
+    border-color: var(--sage);
+    background: var(--sage-tile);
+    color: var(--sage);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sf-progress-fill,
+    .sf-btn-primary,
+    .sf-btn-quiet {
+        transition: none;
+    }
+}

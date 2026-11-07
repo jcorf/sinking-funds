@@ -156,7 +156,7 @@ A neutral base moving to **muted sage green** as the one app-wide color. Purple 
 
 ### Legacy accents
 - **Ledger Purple** (`accent-purple`): the accent on Credit Cards and Budget Categories. Used for focus rings, input focus borders, the drag handle on hover, the Leftover figure, and links. Its soft tint (`accent-purple-soft`) is the hover and focus wash behind small controls.
-- **Savings Blue** (`accent-blue`, deeper `accent-blue-deep`): the accent on Sinking Funds, Dashboard, InfoPage and Recalculate. Used for progress bars, the Recalculate button, and focus states on those pages.
+- **Savings Blue** (`accent-blue`, deeper `accent-blue-deep`): legacy accent still on Dashboard and Recalculate. (Sinking Funds and the goal detail page are now sage.)
 
 > **Decided:** muted sage green replaces both purple and blue. Redesign a page into sage as a whole. Until a page is redesigned it keeps its existing accent; never mix accents on one page.
 
@@ -184,7 +184,7 @@ A neutral base moving to **muted sage green** as the one app-wide color. Purple 
 ## Typography
 
 **Display Font:** Castoro (with Georgia, serif fallback), self-hosted from `src/assets/fonts/` under the SIL Open Font License. Used only for display: headlines, the wordmark, and card titles. Never for body text, labels or numbers.
-**Body Font:** Arial (with sans-serif fallback). It's set on `body` in `InfoCard.css` and `AddCard.css`, and overrides the system-font stack in `index.css`.
+**Body Font:** Arial (with sans-serif fallback), set on `body` in `src/index.css`. That file also holds the Castoro `@font-face` and the global sage tokens (`--sage`, `--sage-ink`, `--line`, `--serif`, and so on), the only intentionally global styles.
 
 **Character:** one plain, familiar sans for everything. Hierarchy comes from size and weight, not from mixing typefaces.
 
@@ -259,6 +259,18 @@ A full-width text button: chevron (rotates 90° when open), title-weight label, 
 - **Behavior:** sticky and wraps when narrow. "Log out" stays right-aligned.
 - **Test instance:** the bar turns test amber.
 
+### Sinking Funds (overview and goal detail)
+The second sage surface: working-page structure from Budget Categories, color and serif from Login.
+- **Header:** Castoro page title, then the per-paycheck total in the Figure style (2.25rem, 700, tabular), then the primary **Log this paycheck** button.
+- **Status pill:** one line on a sage wash naming the earliest plan start across goals: "Earliest plan starts with the Fri, Oct 30 paycheck" (each row shows its own "starts Nov 13" in the detailed view, or in either view when goals differ). It's backed by `plan_start` (the first payday on or after `calculated_from`) from the API. Hovering the pill (or keyboard focus; always shown on touch) reveals **Recalculate: Oct 29 · last / Nov 12 · next** in the same line, taking no space until then. Each option starts the day before its payday, so that payday is counted. Out-of-date goals are counted in words. No amber.
+- **One plan model:** a goal's first planned paycheck is the one every "Log" action fills ("Log the Oct 30 paycheck"). Logging then moves the plan to start the day after it, so the schedule drops that row and paychecks left decrements. Hand edits (amount, due date, saved, name, icon) keep the plan start; only logging or Recalculate move it. The detail schedule always starts at the plan start, with its first row tagged **Log next**.
+- **Goal row:** drag grip, a 40px icon tile (lucide line icon on `sage-tile`, 12px corners), name, 6px sage progress bar, "$X of $Y · N%", per-paycheck amount, due date with "N paychecks left", and a pill **+ $amount** button for a one-off log. Funded goals show a Funded chip and drop the button; past-due goals show "$X still needed" with a red **Past due** label and offer the remainder. Delete appears on hover, top-right, and always below 900px. Rows reflow into a two- or three-line grid on narrow screens.
+- **View toggle:** "Saved now / More" above the list; **More is the default** (choice remembered per browser). The detailed view shows each goal's "starts <date>" under its per-paycheck amount and each goal as "$192.98 + **$86.12** = **$279.12**", with the paycheck's part as a lighter sage extension of the progress bar.
+- **Log panel:** an inline card (not a modal) titled with the payday ("Log the Nov 13 paycheck"), with a checkbox and an editable amount per goal and a running total. Confirming shows a dark toast, "Logged $X to N goals · Undo". Undo lasts until you leave the page.
+- **Goal icons:** a curated set of about 30 lucide icons (`SinkingFunds/goalIcons.js`); old emoji codes map to the nearest icon. Pick from a 6-column popover grid.
+- **Signature motion, user-pinned:** the old card "jiggle" is kept on purpose. The icon tile rocks (0.5s, scale 1.08, -7°) while its row or the Add row is hovered. It's disabled under `prefers-reduced-motion`. The detector flags it as bounce easing; that flag is overridden by the owner's preference.
+- **Detail page:** back link, large icon tile with an editable Castoro name, a 10px progress bar, Saved/Goal/Due inputs that save on blur, a Per-paycheck readout with "calculated from <date>", **Log one paycheck** plus Undo, and a "Plan by paycheck" table in whole cents (Next row highlighted, "Goal reached" on the row that reaches it). **Delete goal** is muted and turns red only on hover or focus.
+
 ### Login and brand mark
 The first sage surface, and the reference for the new direction.
 - **Composition:** a frame-colored page with a 24px-rounded inset field carrying the organic pattern (`src/assets/login-pattern.svg`: soft, closed, rounded forms at two scales and two close greens, with no hooks or points). Welcome on the left (mark, Castoro wordmark, display headline, one muted line), and a white 20px-radius card on the right. It stacks below 900px and uses a minimum height, never a fixed one.
@@ -272,6 +284,7 @@ The first sage surface, and the reference for the new direction.
 ## Do's and Don'ts
 
 ### Do:
+- **Do** say when numbers were calculated and which paycheck they start from, and offer the fix right there (the Sinking Funds status pill).
 - **Do** take color, display type, and the field-and-card treatment from the Login page, and working-page structure from Budget Categories.
 - **Do** follow the Budget Categories page for new or redesigned pages: rows inside one list, money inputs, results pinned beside the work.
 - **Do** use tabular figures and right-alignment for every money value.

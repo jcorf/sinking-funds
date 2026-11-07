@@ -30,6 +30,19 @@ export async function getSession() {
     }
 }
 
+// Next payday on/after today and the most recent one before it, from the
+// backend's bimonthly schedule rules.
+export async function getNextPayday() {
+    try {
+        const response = await fetch(url('/next_payday'), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching next payday:', error);
+        return null;
+    }
+}
+
 export async function getCategoryData(categoryName) {
     try {
         const flaskUrl = url('/get_category_info', ['on_value'], [categoryName])
@@ -79,8 +92,10 @@ export async function updateField(field, value, onValue, onField = 'category', s
     const result = await response.json();
     console.log("Success:", result);  // Handle the response data
 
+        return true;
     } catch (error) {
         console.error("Error:", error);  // Handle any errors
+        return false;
     }
 }
 
@@ -102,8 +117,10 @@ export async function deleteCategory(onValue, onField = 'category') {
         const result = await response.json();
         console.log("Success:", result);  // Handle the response data
 
+        return true;
     } catch (error) {
         console.error("Error:", error);  // Handle any errors
+        return false;
     }
 }
 
@@ -126,8 +143,10 @@ export async function addCategory(category, saved, goal, goalDate, startDate = g
         const result = await response.json();
         console.log("Success:", result);  // Handle the response data
 
+        return result === true;
     } catch (error) {
         console.error("Error:", error);  // Handle any errors
+        return false;
     }
 }
 
@@ -151,8 +170,10 @@ export async function updateAllCategories(startDate= getTodayDate(), paySchedule
         }
 
         const result = await response.json();
+        return true;
     } catch (error) {
         console.error("Error:", error);  // Handle any errors
+        return false;
     }
 }
 

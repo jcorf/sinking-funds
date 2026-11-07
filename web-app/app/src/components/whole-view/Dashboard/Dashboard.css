@@ -229,6 +229,8 @@
     border-radius: 2px;
     overflow: hidden;
     position: relative;
+    /* Previously inherited from the old InfoCard.css via shared class name */
+    margin: 8px 0 16px;
 }
 
 .progress-fill {

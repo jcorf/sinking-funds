@@ -1,13 +1,7 @@
 /* Login: the first preview of the app's muted-green direction.
    Classes are lg- prefixed (CRA loads every stylesheet on every page). */
 
-@font-face {
-    font-family: 'Castoro';
-    src: url('../../../assets/fonts/castoro-regular-latin.woff2') format('woff2');
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-}
+/* Castoro's @font-face lives in src/index.css. */
 
 .lg-page {
     --lg-frame: #8c9e78;

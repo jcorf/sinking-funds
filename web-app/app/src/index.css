@@ -1,8 +1,34 @@
+/* Global foundations. Layout never goes on body/#root (see DESIGN.md,
+   the Zoom-Proof Rule); page styles live in their own prefixed files. */
+
+@font-face {
+    font-family: 'Castoro';
+    src: url('./assets/fonts/castoro-regular-latin.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    /* Sage: the app's direction (DESIGN.md) */
+    --sage: #3f5c3a;
+    --sage-deep: #344d30;
+    --sage-ring: rgba(63, 92, 58, 0.28);
+    --sage-tint: #eef3e6;
+    --sage-tile: #e3ebd6;
+    --sage-field: #d8e2c8;
+    --sage-ink: #1d2a1e;
+    --sage-ink-muted: #4d5a49;
+    --sage-error: #a3261f;
+    --line: #e4e8de;
+    --line-strong: #cfd6c6;
+    --serif: 'Castoro', Georgia, 'Times New Roman', serif;
+}
+
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+    font-family: Arial, sans-serif;
+    background-color: #f2f2f2;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }

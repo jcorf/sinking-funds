@@ -1,77 +1,715 @@
-.grid-container {
+/* Sinking Funds overview. sf- prefixed (CRA loads every stylesheet everywhere). */
+
+.sf-page {
+    box-sizing: border-box;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 24px 120px;
+    color: var(--sage-ink);
+}
+
+.sf-page *,
+.sf-page *::before,
+.sf-page *::after {
+    box-sizing: border-box;
+}
+
+/* ---------- Header + status ---------- */
+
+.sf-header {
     display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
     flex-wrap: wrap;
-    gap: 20px;
-    padding: 20px;
-    width: 100%;
-    box-sizing: border-box;
-    overflow: visible;
-    position: relative;
-    height: auto;
-    min-height: auto;
-    scroll-margin-top: 80px; /* Ensure top content is visible when scrolling */
-    justify-content: center;
 }
 
-.grid-item {
-    background-color: #f4f4f4;
-    padding: 20px;
-    text-align: center;
-    border-radius: 8px;
-    min-height: 200px; /* Ensure consistent card height */
-    box-sizing: border-box;
-    height: auto;
-    cursor: grab;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    user-select: none; /* Prevent text selection during drag */
+.sf-title {
+    margin: 0;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 2.6rem;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    color: var(--sage-ink);
 }
 
-.grid-item:active {
-    cursor: grabbing;
+.sf-summary {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin: 10px 0 0;
 }
 
-.grid-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0px 0px rgba(0, 0, 0, 0.1);
+/* The page's one result figure (DESIGN.md typography: Figure). */
+.sf-figure {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    color: var(--sage-ink);
 }
 
-.add-card-item {
-    cursor: pointer;
+.sf-status {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    margin: 18px 0 20px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--sage-tint);
+    color: var(--sage-ink);
+    font-size: 0.95rem;
+}
+
+.sf-status.is-stale {
+    background: var(--sage-field);
+    color: var(--sage-ink);
+}
+
+.sf-status-ok {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--sage);
+    font-weight: 600;
+}
+
+.sf-dot {
+    color: var(--sage-ink-muted);
+    margin: 0 2px;
+}
+
+.sf-recalc {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+}
+
+/* Hidden without taking up space until the pill is hovered. Visually
+   hidden (not display: none) so the buttons stay reachable by keyboard:
+   tabbing onto one reveals the group via :focus-within. */
+.sf-status:not(:hover):not(:focus-within) .sf-recalc:not(.is-busy) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.sf-status {
+    position: relative;
+    /* Tall enough for the recalculate buttons, so revealing them on hover
+       doesn't shift the page. */
+    min-height: 48px;
+}
+
+.sf-status .sf-btn-small {
+    height: 28px;
+}
+
+.sf-recalc-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.88rem;
+    color: var(--sage-ink-muted);
+}
+
+/* Touch screens have no hover: keep the choices visible there. */
+@media (hover: none) {
+    .sf-status .sf-recalc {
+        position: static !important;
+        width: auto !important;
+        height: auto !important;
+        overflow: visible !important;
+        clip-path: none !important;
+    }
+}
+
+/* ---------- View toggle: saved now / after next paycheck ---------- */
+
+.sf-viewbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin: 0 0 12px;
+}
+
+.sf-viewbar-total {
+    margin: 0;
+    color: var(--sage-ink-muted);
+}
+
+.sf-next-amount {
+    color: var(--sage);
+    font-weight: 700;
+}
+
+.sf-segmented {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.sf-segmented button {
+    height: 30px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--sage-ink-muted);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.sf-segmented button[aria-pressed='true'] {
+    background: var(--sage);
+    color: #fff;
+}
+
+.sf-segmented button:not([aria-pressed='true']):hover {
+    color: var(--sage-ink);
+    background: var(--sage-tint);
+}
+
+.sf-segmented button:focus-visible {
+    outline: 3px solid var(--sage-ring);
+    outline-offset: 1px;
+}
+
+@keyframes sf-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.sf-spin {
+    animation: sf-spin 0.9s linear infinite;
+}
+
+/* ---------- Goal list ---------- */
+
+.sf-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(29, 42, 30, 0.04);
+}
+
+.sf-row {
+    display: grid;
+    grid-template-columns: 24px 40px minmax(0, 1fr) 130px 150px 120px 30px;
+    grid-template-areas: 'drag icon main per due actions del';
+    align-items: center;
+    gap: 14px;
+    min-height: 76px;
+    padding: 12px 14px 12px 8px;
+    border-bottom: 1px solid var(--line);
+    background: #fff;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.sf-list > .sf-row:first-child {
+    border-radius: 14px 14px 0 0;
+}
+
+.sf-row:hover,
+.sf-row:focus-within {
+    background: #f8faf4;
+}
+
+.sf-row:hover .sf-icon {
+    animation: sf-jiggle 0.5s infinite linear;
+}
+
+.sf-drag { grid-area: drag; }
+.sf-row > .sf-icon { grid-area: icon; }
+.sf-row-main { grid-area: main; }
+.sf-row-per { grid-area: per; }
+.sf-row-due { grid-area: due; }
+.sf-row-actions { grid-area: actions; }
+.sf-row > .sf-delete { grid-area: del; }
+
+.sf-row.is-dragging {
+    opacity: 0.4;
+}
+
+.sf-drag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #b8c1b0;
+    cursor: grab;
+    touch-action: none;
+}
+
+.sf-drag:hover,
+.sf-drag:focus-visible {
+    color: var(--sage);
+    background: var(--sage-tint);
+    outline: none;
+}
+
+.sf-row-main {
+    min-width: 0;
+}
+
+.sf-row-name {
+    display: inline-block;
+    max-width: 100%;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--sage-ink);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.sf-row-name:hover,
+.sf-row-name:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    outline: none;
+}
+
+.sf-row-main .sf-progress {
+    margin: 8px 0 6px;
+}
+
+.sf-row-sub {
+    font-size: 0.88rem;
+    color: var(--sage-ink-muted);
+}
+
+.sf-row-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-size: 0.88rem;
+    line-height: 1.35;
+}
+
+.sf-row-per {
+    text-align: right;
+    align-items: flex-end;
+}
+
+.sf-starts {
+    font-size: 0.82rem;
+}
+
+.sf-row-per .sf-strong {
+    font-size: 1rem;
+}
+
+.sf-row-due span:first-child {
+    color: var(--sage-ink);
+    font-weight: 600;
+}
+
+.sf-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.sf-log-one {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 34px;
+    padding: 0 11px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--sage);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.sf-log-one:hover:not(:disabled),
+.sf-log-one:focus-visible {
+    border-color: var(--sage);
+    background: var(--sage-tint);
+    outline: none;
+}
+
+.sf-log-one:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.sf-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--sage-ink-muted);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.sf-row:hover .sf-delete,
+.sf-row:focus-within .sf-delete {
+    opacity: 1;
+}
+
+.sf-delete:hover,
+.sf-delete:focus-visible {
+    color: var(--sage-error);
+    background: #fdf0ef;
+    border-color: #f2c9c6;
+    outline: none;
+}
+
+.sf-row.is-funded .sf-row-main .sf-row-name {
+    color: var(--sage-ink-muted);
+}
+
+.sf-empty {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 24px 18px 24px 46px;
+    border-bottom: 1px solid var(--line);
+    line-height: 1.45;
+}
+
+.sf-empty-mark {
+    flex: none;
+    display: inline-flex;
+    color: var(--sage);
+}
+
+.sf-empty-title {
+    display: block;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 1.4rem;
+    color: var(--sage-ink);
+}
+
+/* ---------- Add a goal ---------- */
+
+.sf-add-button {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 68px;
+    padding: 12px 14px 12px 46px;
+    border: none;
+    border-radius: 0 0 14px 14px;
+    background: transparent;
+    color: var(--sage);
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.sf-add-button:hover,
+.sf-add-button:focus-visible {
+    background: #f8faf4;
+    outline: none;
+}
+
+.sf-add-button:hover .sf-icon {
+    animation: sf-jiggle 0.5s infinite linear;
+}
+
+.sf-icon-add {
+    background: transparent;
+    border: 1.5px dashed #a9b79a;
+}
+
+.sf-add-form {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: end;
+    gap: 12px 14px;
+    padding: 16px 16px 18px 46px;
+    background: #fbfcf8;
+    border-radius: 0 0 14px 14px;
+}
+
+.sf-add-form .sf-picker {
+    align-self: end;
+}
+
+.sf-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--sage-ink);
+}
+
+.sf-field-name input {
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--sage-ink);
+}
+
+.sf-field-name input:focus {
+    outline: none;
+    border-color: var(--sage);
+    box-shadow: 0 0 0 3px var(--sage-ring);
+}
+
+.sf-add-buttons {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.sf-form-error {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--sage-error);
+    font-size: 0.92rem;
+}
+
+/* ---------- Log panel ---------- */
+
+.sf-log-panel {
+    margin: 0 0 20px;
+    padding: 20px 20px 18px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(29, 42, 30, 0.08);
+}
+
+.sf-log-title {
+    margin: 0;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 1.6rem;
+    color: var(--sage-ink);
+}
+
+.sf-log-hint {
+    margin: 4px 0 14px;
+    font-size: 0.92rem;
+}
+
+.sf-log-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+}
+
+.sf-log-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.sf-log-row.is-off .sf-log-check span:last-child {
+    color: #8b9586;
+    text-decoration: line-through;
+}
+
+.sf-log-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.sf-log-check input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--sage);
+}
+
+.sf-log-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.sf-log-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+/* ---------- Toast ---------- */
+
+.sf-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 1500;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: calc(100vw - 32px);
+    padding: 10px 10px 10px 16px;
+    border-radius: 12px;
+    background: var(--sage-ink);
+    color: #fff;
+    box-shadow: 0 12px 32px rgba(29, 42, 30, 0.28);
+}
+
+.sf-toast-undo,
+.sf-toast-close {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #d8e2c8;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sf-toast-undo {
+    height: 32px;
+    padding: 0 10px;
+}
+
+.sf-toast-close {
+    width: 32px;
+    height: 32px;
     justify-content: center;
 }
 
-.add-card-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0px 0px rgba(0, 0, 0, 0.1);
+.sf-toast-undo:hover,
+.sf-toast-close:hover,
+.sf-toast-undo:focus-visible,
+.sf-toast-close:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    outline: none;
 }
 
-.grid {
-    width: 100vw;
-    height: calc(100vh - 60px); /* Full viewport height minus navbar height */
-    padding-bottom: 20px;
-    box-sizing: border-box;
-    overflow: visible;
-    position: relative;
-    min-height: auto;
-    scroll-margin-top: 80px;
-}
+/* ---------- Narrow / zoomed in ---------- */
 
-/* Responsive design for smaller screens */
-@media (max-width: 768px) {
-    .grid-item {
-        flex: 0 0 calc(50% - 10px);
+@media (max-width: 900px) {
+    .sf-page {
+        padding: 24px 16px 120px;
+    }
+
+    .sf-title {
+        font-size: 2.1rem;
+    }
+
+    .sf-row {
+        grid-template-columns: 24px 40px minmax(0, 1fr) minmax(0, 1fr) auto 30px;
+        grid-template-areas:
+            'drag icon main main main del'
+            'drag icon per due actions actions';
+        row-gap: 8px;
+        align-items: start;
+    }
+
+    .sf-drag,
+    .sf-row > .sf-icon {
+        align-self: start;
+    }
+
+    .sf-row-per { text-align: left; align-items: flex-start; }
+    .sf-row-due { text-align: right; align-items: flex-end; }
+    .sf-row-actions { align-self: center; }
+
+    .sf-delete {
+        opacity: 1;
+    }
+
+    .sf-add-form {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding-left: 16px;
     }
 }
 
-@media (max-width: 480px) {
-    .grid-item {
-        flex: 0 0 100%;
+@media (max-width: 560px) {
+    .sf-row {
+        grid-template-columns: 24px 40px minmax(0, 1fr) minmax(0, 1fr) 30px;
+        grid-template-areas:
+            'drag icon main main del'
+            'drag icon per due due'
+            'drag icon actions actions actions';
     }
-    
-    .grid-item {
-        min-height: 150px;
-        padding: 15px;
+
+    .sf-row-actions {
+        justify-content: flex-start;
+    }
+
+    /* Don't let the separator dangle at the end of a wrapped line */
+    .sf-status-sep {
+        display: none;
+    }
+
+    .sf-status > span:first-child {
+        flex-basis: 100%;
+    }
+
+    .sf-header .sf-btn-primary {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sf-row:hover .sf-icon,
+    .sf-add-button:hover .sf-icon,
+    .sf-spin {
+        animation: none;
+    }
+
+    .sf-row,
+    .sf-log-one,
+    .sf-delete {
+        transition: none;
     }
 }
