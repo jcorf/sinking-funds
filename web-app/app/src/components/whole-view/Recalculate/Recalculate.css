@@ -1,3 +1,14 @@
+/* Centers the card in the space below the navbar. min-height (not height)
+   so the page can still grow and scroll when zoomed in. */
+.recalculate-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh;
+    padding: 24px 16px;
+    box-sizing: border-box;
+}
+
 .date-container label {
     font-size: 16px;
     color: #333333;

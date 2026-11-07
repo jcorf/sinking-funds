@@ -91,7 +91,7 @@ export function InfoPage({startDate}) {
     };
 
     return (
-        <div className="side-by-side">
+        <div className="side-by-side info-page">
             <div className="side-by-side-left" onClick={goToSinkingFunds}>
                 ◄
             </div>

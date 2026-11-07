@@ -146,8 +146,150 @@ const SourcePillSelector = ({ value, onChange }) => {
   );
 };
 
+// Defined at module level (not inside CreditCards) so React keeps the same
+// component identity across renders; otherwise every parent re-render would
+// remount the open dropdown and wipe its unsaved rows and input focus.
+const CoveredSubBalancesDropdown = ({ cardName, subBalances, onClose, updateCoveredSubBalances }) => {
+  const [localSubBalances, setLocalSubBalances] = useState(subBalances);
+
+  useEffect(() => {
+    setLocalSubBalances(subBalances);
+  }, [subBalances]);
+
+  const addSubBalance = () => {
+    setLocalSubBalances([...localSubBalances, { name: '', amount: 0, source: '' }]);
+  };
+
+  const updateSubBalance = (index, field, value) => {
+    const updated = [...localSubBalances];
+    updated[index] = { ...updated[index], [field]: value };
+    setLocalSubBalances(updated);
+  };
+
+  const removeSubBalance = (index) => {
+    setLocalSubBalances(localSubBalances.filter((_, i) => i !== index));
+  };
+
+  const saveSubBalances = () => {
+    console.log('DEBUG: CoveredSubBalancesDropdown saveSubBalances clicked');
+    console.log('DEBUG: cardName =', cardName);
+    console.log('DEBUG: localSubBalances =', localSubBalances);
+    updateCoveredSubBalances(cardName, localSubBalances);
+    onClose();
+  };
+
+  return (
+    <div className="covered-dropdown">
+      <div className="dropdown-header">
+        <h4>Covered Transactions</h4>
+        <button onClick={onClose} className="close-btn">×</button>
+      </div>
+      <div className="sub-balances-list">
+        {localSubBalances.map((sub, index) => (
+          <div key={index} className="sub-balance-item">
+            <input
+              type="text"
+              placeholder="Description"
+              value={sub.name}
+              onChange={(e) => updateSubBalance(index, 'name', e.target.value)}
+            />
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="Amount"
+              value={sub.amount}
+              onChange={(e) => updateSubBalance(index, 'amount', e.target.value)}
+              onBlur={(e) => {
+                const value = parseDecimalInput(e.target.value);
+                updateSubBalance(index, 'amount', value);
+              }}
+            />
+            <SourcePillSelector
+              value={sub.source}
+              onChange={(value) => updateSubBalance(index, 'source', value)}
+            />
+            <button onClick={() => removeSubBalance(index)} className="remove-sub">×</button>
+          </div>
+        ))}
+      </div>
+      <div className="dropdown-actions">
+        <button onClick={addSubBalance} className="add-sub-btn">+ Add Transaction</button>
+        <button onClick={saveSubBalances} className="save-btn">Save</button>
+      </div>
+    </div>
+  );
+};
+
+const PendingSubBalancesDropdown = ({ cardName, subBalances, onClose, updatePendingSubBalances = () => {} }) => {
+  const [localSubBalances, setLocalSubBalances] = useState(subBalances);
+
+  useEffect(() => {
+    setLocalSubBalances(subBalances);
+  }, [subBalances]);
+
+  const addSubBalance = () => {
+    setLocalSubBalances([...localSubBalances, { name: '', amount: 0, source: '' }]);
+  };
+
+  const updateSubBalance = (index, field, value) => {
+    const updated = [...localSubBalances];
+    updated[index] = { ...updated[index], [field]: value };
+    setLocalSubBalances(updated);
+  };
+
+  const removeSubBalance = (index) => {
+    setLocalSubBalances(localSubBalances.filter((_, i) => i !== index));
+  };
+
+  const saveSubBalances = () => {
+    updatePendingSubBalances(cardName, localSubBalances);
+    onClose();
+  };
+
+  return (
+    <div className="pending-dropdown">
+      <div className="dropdown-header">
+        <h4>Pending Transactions</h4>
+        <button onClick={onClose} className="close-btn">×</button>
+      </div>
+      <div className="sub-balances-list">
+        {localSubBalances.map((sub, index) => (
+          <div key={index} className="sub-balance-item">
+            <input
+              type="text"
+              placeholder="Description"
+              value={sub.name}
+              onChange={(e) => updateSubBalance(index, 'name', e.target.value)}
+            />
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="Amount"
+              value={sub.amount}
+              onChange={(e) => updateSubBalance(index, 'amount', e.target.value)}
+              onBlur={(e) => {
+                const value = parseDecimalInput(e.target.value);
+                updateSubBalance(index, 'amount', value);
+              }}
+            />
+            <SourcePillSelector
+              value={sub.source}
+              onChange={(value) => updateSubBalance(index, 'source', value)}
+            />
+            <button onClick={() => removeSubBalance(index)} className="remove-sub">×</button>
+          </div>
+        ))}
+      </div>
+      <div className="dropdown-actions">
+        <button onClick={addSubBalance} className="add-sub-btn">+ Add Transaction</button>
+        <button onClick={saveSubBalances} className="save-btn">Save</button>
+      </div>
+    </div>
+  );
+};
+
 // Sortable Credit Card Row Component
-function SortableCreditCardRow({ card, removeCreditCard, updateCardBalance, formatCurrency, parseSubBalances, coveredDropdownCard, setCoveredDropdownCard, pendingDropdownCard, setPendingDropdownCard, updateCoveredSubBalances, updatePendingSubBalances, CoveredSubBalancesDropdown, PendingSubBalancesDropdown }) {
+function SortableCreditCardRow({ card, removeCreditCard, updateCardBalance, formatCurrency, parseSubBalances, coveredDropdownCard, setCoveredDropdownCard, pendingDropdownCard, setPendingDropdownCard, updateCoveredSubBalances, updatePendingSubBalances }) {
   const [localPosted, setLocalPosted] = useState(card.posted_transactions.toString());
 
   const {
@@ -444,7 +586,8 @@ const CreditCards = () => {
       });
       await response.json();
       setAllyBankBalance(newBalance);
-      updateTotalToTransfer(totalDebt);
+      // Use newBalance directly: allyBankBalance state is still the old value here
+      setTotalToTransfer(totalDebt - newBalance);
     } catch (error) {
       console.error('Error updating Ally Bank balance:', error);
     }
@@ -586,145 +729,6 @@ const CreditCards = () => {
     }
   }
 
-  const CoveredSubBalancesDropdown = ({ cardName, subBalances, onClose, updateCoveredSubBalances }) => {
-    const [localSubBalances, setLocalSubBalances] = useState(subBalances);
-
-    useEffect(() => {
-      setLocalSubBalances(subBalances);
-    }, [subBalances]);
-
-    const addSubBalance = () => {
-      setLocalSubBalances([...localSubBalances, { name: '', amount: 0, source: '' }]);
-    };
-
-    const updateSubBalance = (index, field, value) => {
-      const updated = [...localSubBalances];
-      updated[index] = { ...updated[index], [field]: value };
-      setLocalSubBalances(updated);
-    };
-
-    const removeSubBalance = (index) => {
-      setLocalSubBalances(localSubBalances.filter((_, i) => i !== index));
-    };
-
-    const saveSubBalances = () => {
-      console.log('DEBUG: CoveredSubBalancesDropdown saveSubBalances clicked');
-      console.log('DEBUG: cardName =', cardName);
-      console.log('DEBUG: localSubBalances =', localSubBalances);
-      updateCoveredSubBalances(cardName, localSubBalances);
-      onClose();
-    };
-
-    return (
-      <div className="covered-dropdown">
-        <div className="dropdown-header">
-          <h4>Covered Transactions</h4>
-          <button onClick={onClose} className="close-btn">×</button>
-        </div>
-        <div className="sub-balances-list">
-          {localSubBalances.map((sub, index) => (
-            <div key={index} className="sub-balance-item">
-              <input
-                type="text"
-                placeholder="Description"
-                value={sub.name}
-                onChange={(e) => updateSubBalance(index, 'name', e.target.value)}
-              />
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="Amount"
-                value={sub.amount}
-                onChange={(e) => updateSubBalance(index, 'amount', e.target.value)}
-                onBlur={(e) => {
-                  const value = parseDecimalInput(e.target.value);
-                  updateSubBalance(index, 'amount', value);
-                }}
-              />
-              <SourcePillSelector
-                value={sub.source}
-                onChange={(value) => updateSubBalance(index, 'source', value)}
-              />
-              <button onClick={() => removeSubBalance(index)} className="remove-sub">×</button>
-            </div>
-          ))}
-        </div>
-        <div className="dropdown-actions">
-          <button onClick={addSubBalance} className="add-sub-btn">+ Add Transaction</button>
-          <button onClick={saveSubBalances} className="save-btn">Save</button>
-        </div>
-      </div>
-    );
-  };
-
-  const PendingSubBalancesDropdown = ({ cardName, subBalances, onClose, updatePendingSubBalances = () => {} }) => {
-    const [localSubBalances, setLocalSubBalances] = useState(subBalances);
-
-    useEffect(() => {
-      setLocalSubBalances(subBalances);
-    }, [subBalances]);
-
-    const addSubBalance = () => {
-      setLocalSubBalances([...localSubBalances, { name: '', amount: 0, source: '' }]);
-    };
-
-    const updateSubBalance = (index, field, value) => {
-      const updated = [...localSubBalances];
-      updated[index] = { ...updated[index], [field]: value };
-      setLocalSubBalances(updated);
-    };
-
-    const removeSubBalance = (index) => {
-      setLocalSubBalances(localSubBalances.filter((_, i) => i !== index));
-    };
-
-    const saveSubBalances = () => {
-      updatePendingSubBalances(cardName, localSubBalances);
-      onClose();
-    };
-
-    return (
-      <div className="pending-dropdown">
-        <div className="dropdown-header">
-          <h4>Pending Transactions</h4>
-          <button onClick={onClose} className="close-btn">×</button>
-        </div>
-        <div className="sub-balances-list">
-          {localSubBalances.map((sub, index) => (
-            <div key={index} className="sub-balance-item">
-              <input
-                type="text"
-                placeholder="Description"
-                value={sub.name}
-                onChange={(e) => updateSubBalance(index, 'name', e.target.value)}
-              />
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="Amount"
-                value={sub.amount}
-                onChange={(e) => updateSubBalance(index, 'amount', e.target.value)}
-                onBlur={(e) => {
-                  const value = parseDecimalInput(e.target.value);
-                  updateSubBalance(index, 'amount', value);
-                }}
-              />
-              <SourcePillSelector
-                value={sub.source}
-                onChange={(value) => updateSubBalance(index, 'source', value)}
-              />
-              <button onClick={() => removeSubBalance(index)} className="remove-sub">×</button>
-            </div>
-          ))}
-        </div>
-        <div className="dropdown-actions">
-          <button onClick={addSubBalance} className="add-sub-btn">+ Add Transaction</button>
-          <button onClick={saveSubBalances} className="save-btn">Save</button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="credit-cards">
       <h1>Credit Card Balances</h1>
@@ -737,16 +741,18 @@ const CreditCards = () => {
             type="text"
             inputMode="decimal"
             value={allyBankInputValue}
-            onChange={(e) => {
-              const value = e.target.value;
-              setAllyBankInputValue(value);
-              const numericValue = parseFloat(value) || 0;
-              updateAllyBankBalance(numericValue);
-            }}
+            onChange={(e) => setAllyBankInputValue(e.target.value)}
             onBlur={() => {
-              // Format the value when input loses focus
-              const numericValue = parseFloat(allyBankInputValue) || 0;
+              // Save once on blur rather than per keystroke, so a half-typed
+              // value ("12.") is never persisted and requests can't race.
+              const numericValue = parseDecimalInput(allyBankInputValue);
               setAllyBankInputValue(numericValue.toFixed(2));
+              if (numericValue !== allyBankBalance) {
+                updateAllyBankBalance(numericValue);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.target.blur();
             }}
           />
         </div>
@@ -774,8 +780,6 @@ const CreditCards = () => {
                 setPendingDropdownCard={setPendingDropdownCard}
                 updateCoveredSubBalances={updateCoveredSubBalances}
                 updatePendingSubBalances={updatePendingSubBalances}
-                CoveredSubBalancesDropdown={CoveredSubBalancesDropdown}
-                PendingSubBalancesDropdown={PendingSubBalancesDropdown}
               />
             ))}
           </SortableContext>
