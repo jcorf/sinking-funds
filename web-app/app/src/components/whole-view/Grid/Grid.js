@@ -696,14 +696,21 @@ const Grid = () => {
 
             {goals.length > 0 && !editing && (
                 <div className="sf-viewbar">
-                    <div className="sf-segmented" role="group" aria-label="Show amounts">
-                        <button type="button" aria-pressed={view === 'now'} onClick={() => chooseView('now')}>
-                            Saved now
-                        </button>
-                        <button type="button" aria-pressed={view === 'after'} onClick={() => chooseView('after')}>
-                            More
-                        </button>
-                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        className="sf-switch"
+                        aria-checked={view === 'after'}
+                        onClick={() => chooseView(view === 'after' ? 'now' : 'after')}
+                    >
+                        <span className="sf-switch-label">More detail</span>
+                        <span className="sf-switch-track" aria-hidden="true">
+                            <span className="sf-switch-thumb" />
+                        </span>
+                        <span className="sf-switch-state" aria-hidden="true">
+                            {view === 'after' ? 'On' : 'Off'}
+                        </span>
+                    </button>
                 </div>
             )}
 
