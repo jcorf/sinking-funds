@@ -12,6 +12,7 @@ const LINKS = [
     { to: '/sinking-funds', label: 'Sinking Funds', match: (p) => p.startsWith('/sinking-funds') || p.startsWith('/users/') },
     { to: '/credit-cards', label: 'Credit Cards', match: (p) => p.startsWith('/credit-cards') },
     { to: '/budget-categories', label: 'Paycheck', match: (p) => p.startsWith('/budget-categories') },
+    { to: '/contributions', label: 'Contributions', match: (p) => p.startsWith('/contributions') },
 ];
 
 // Floating sage nav: jar mark + wordmark, page links (current page as a soft
