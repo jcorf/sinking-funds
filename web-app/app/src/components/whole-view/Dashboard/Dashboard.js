@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, CalendarClock, Check, CreditCard, RefreshCw, Repeat, Wallet } from 'lucide-react';
+import { ArrowRight, CalendarClock, Check, CreditCard, Download, RefreshCw, Repeat, Wallet } from 'lucide-react';
 import './Dashboard.css';
-import { getAllData, getAllyBankBalance, getNextPayday } from '../../utils/api';
+import { downloadExport, getAllData, getAllyBankBalance, getNextPayday } from '../../utils/api';
 import { url } from '../../utils/lib';
 import { formatDate, formatMoney, formatPercent, goalStatus, plural, shiftDate, toCents } from '../SinkingFunds/goalMath';
 import { resolveIcon } from '../SinkingFunds/goalIcons';
@@ -399,7 +399,40 @@ export default function Dashboard() {
                     </div>
                 </div>
             </section>
+
+            <ExportFooter />
         </div>
     );
 }
 
+// A portable copy of the data, beyond the app's single rolling backup.
+function ExportFooter() {
+    const [state, setState] = useState({}); // { json|csv: 'busy' | 'failed' }
+    const run = async (kind) => {
+        setState((s) => ({ ...s, [kind]: 'busy' }));
+        const ok = await downloadExport(kind);
+        setState((s) => ({ ...s, [kind]: ok ? undefined : 'failed' }));
+    };
+    const failed = state.json === 'failed' || state.csv === 'failed';
+    return (
+        <footer className="db-export">
+            <div className="db-export-text">
+                <strong>Download a copy</strong>
+                <span className="db-muted">Everything as JSON, or your sinking funds as a spreadsheet.</span>
+            </div>
+            <div className="db-export-actions">
+                <button type="button" className="db-export-btn" onClick={() => run('json')} disabled={state.json === 'busy'}>
+                    <Download size={15} aria-hidden="true" /> All Data (JSON)
+                </button>
+                <button type="button" className="db-export-btn" onClick={() => run('csv')} disabled={state.csv === 'busy'}>
+                    <Download size={15} aria-hidden="true" /> Sinking Funds (CSV)
+                </button>
+            </div>
+            {failed && (
+                <p className="db-error db-export-error" role="alert">
+                    The download didn't start. Check that the app's backend is running, then try again.
+                </p>
+            )}
+        </footer>
+    );
+}

@@ -645,3 +645,29 @@ export async function removeGoalSpending(spendingId, startDate) {
     }
 }
 
+// ---- Export ---------------------------------------------------------------
+
+// Downloads /export (everything, JSON) or /export_goals.csv as a file.
+export async function downloadExport(kind = 'json') {
+    const path = kind === 'csv' ? '/export_goals.csv' : '/export';
+    try {
+        const response = await fetch(url(path), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename="([^"]+)"/);
+        const filename = match ? match[1] : kind === 'csv' ? 'sinking-funds-goals.csv' : 'sinking-funds.json';
+        const blob = await response.blob();
+        const href = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = href;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(href), 1000);
+        return true;
+    } catch (error) {
+        console.error('Error exporting:', error);
+        return false;
+    }
+}

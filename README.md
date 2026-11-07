@@ -150,6 +150,8 @@ Run `./make_desktop_app.sh` once to put **Sinking Funds.app** on your Desktop. D
 - `/get_category_info` - Get specific category information
 - `/saved_by_paycheck` - Get paycheck schedule for a category
 - `/goal_spending?id=` - Spending recorded against a goal, newest first
+- `/export` - Download every table as JSON
+- `/export_goals.csv` - Download the sinking funds as a spreadsheet
 
 ### POST Endpoints
 - `/add_category` - Create a new savings category

@@ -18,7 +18,8 @@ app.config['REMEMBER_COOKIE_NAME'] = os.environ.get("REMEMBER_COOKIE_NAME", "rem
 # Flask (:5000) are different origins. In production Flask serves the built
 # frontend itself, so requests are same-origin and CORS is not needed.
 if os.environ.get("FLASK_ENV") != "production":
-    CORS(app, supports_credentials=True)
+    # Expose Content-Disposition so export downloads keep their filename.
+    CORS(app, supports_credentials=True, expose_headers=['Content-Disposition'])
     app.config['CORS_HEADERS'] = 'Content-Type'
 
 from auth import login_manager, User, verify_credentials
@@ -43,7 +44,8 @@ from database import (update_field, setup_database, delete_database,
 from paycheck import saved_by_paycheck, save_per_paycheck
 from utils.utils import nowString, stringToDate, dateToString
 from database import get_notes, update_notes
-from database import get_goal_spending, spend_from_goal, remove_goal_spending, delete_goal_spending_for
+from database import (get_goal_spending, spend_from_goal, remove_goal_spending, delete_goal_spending_for,
+                      export_all_tables)
 from schedules.bimonthly import _remaining_paychecks as bimonthly_paycheck_dates
 from datetime import timedelta
 
@@ -310,6 +312,41 @@ def remove_goal_spending_route():
         return jsonify({"error": "No such entry"}), 404
     update_to_save_single(goal_id, 'id', get_start_date_args(data))
     return jsonify({"success": True})
+
+
+# EXPORT
+
+@app.route('/export', methods=['GET'])
+@cross_origin(supports_credentials=True, expose_headers=['Content-Disposition'])
+@login_required
+def export_route():
+    from datetime import datetime
+    payload = {"exported_at": datetime.now().isoformat(timespec='seconds'), "tables": export_all_tables()}
+    response = jsonify(payload)
+    response.headers['Content-Disposition'] = f'attachment; filename="sinking-funds-{nowString()}.json"'
+    return response
+
+
+@app.route('/export_goals.csv', methods=['GET'])
+@cross_origin(supports_credentials=True, expose_headers=['Content-Disposition'])
+@login_required
+def export_goals_csv_route():
+    import csv
+    import io
+    from flask import Response
+    repeats = {0: '', 1: 'Monthly', 3: 'Every 3 months', 6: 'Every 6 months', 12: 'Yearly'}
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(['Goal', 'Saved', 'Goal amount', 'Due', 'Per paycheck', 'Plan starts', 'Repeats'])
+    for row in get_all_data():
+        months = int(row.get('repeat_months') or 0)
+        writer.writerow([
+            row['category'], f"{float(row['saved']):.2f}", f"{float(row['goal']):.2f}", row['goal_date'],
+            f"{float(row['calculated_to_save'] or 0):.2f}", first_payday_on_or_after(row.get('calculated_from')) or '',
+            repeats.get(months, f'Every {months} months'),
+        ])
+    return Response(out.getvalue(), mimetype='text/csv', headers={
+        'Content-Disposition': f'attachment; filename="sinking-funds-goals-{nowString()}.csv"'})
 
 
 @app.route('/get_notes', methods=['GET'])

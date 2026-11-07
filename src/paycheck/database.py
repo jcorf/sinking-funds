@@ -1136,3 +1136,20 @@ def delete_goal_spending_for(goal_id):
     if table_exists('goal_spending'):
         execute_query("DELETE FROM goal_spending WHERE goal_id = ?", int(goal_id))
 
+
+# ---------------------------------------------------------------------------
+# Export: every table as plain rows, for a portable backup.
+# ---------------------------------------------------------------------------
+
+def export_all_tables():
+    import sqlite3
+    from utils.reference.database_constants import DATABASE_NAME
+    conn = sqlite3.connect(DATABASE_NAME)
+    conn.row_factory = sqlite3.Row
+    try:
+        names = [r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
+        # Table names come from sqlite_master itself, so quoting them is safe.
+        return {name: [dict(r) for r in conn.execute(f'SELECT * FROM "{name}"')] for name in names}
+    finally:
+        conn.close()
