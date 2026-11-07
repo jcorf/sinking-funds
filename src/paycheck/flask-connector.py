@@ -42,6 +42,7 @@ from database import (update_field, setup_database, delete_database,
                      )
 from paycheck import saved_by_paycheck, save_per_paycheck
 from utils.utils import nowString, stringToDate, dateToString
+from database import get_notes, update_notes
 from schedules.bimonthly import _remaining_paychecks as bimonthly_paycheck_dates
 from datetime import timedelta
 
@@ -225,6 +226,24 @@ def with_plan_start(row):
     (the first row of its paycheck schedule, and the paycheck logged next)."""
     row['plan_start'] = first_payday_on_or_after(row.get('calculated_from'))
     return row
+
+
+@app.route('/get_notes', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@login_required
+def get_notes_route():
+    return jsonify(get_notes())
+
+
+@app.route('/update_notes', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_notes_route():
+    body = (request.get_json() or {}).get('body', '')
+    if not isinstance(body, str):
+        return jsonify({"success": False, "error": "body must be text"}), 400
+    ok = update_notes(body)
+    return jsonify({"success": ok}), (200 if ok else 500)
 
 
 @app.route('/get_data', methods=['GET'])

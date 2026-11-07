@@ -56,6 +56,28 @@ export async function getAllyBankBalance() {
     }
 }
 
+// The single scratch notepad from the tools dock.
+export async function getNotes() {
+    const response = await fetch(url('/get_notes'), {credentials: 'include'});
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
+}
+
+export async function updateNotes(body) {
+    try {
+        const response = await fetch(url('/update_notes'), {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({body}),
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Error saving notes:', error);
+        return false;
+    }
+}
+
 export async function getCategoryData(categoryName) {
     try {
         const flaskUrl = url('/get_category_info', ['on_value'], [categoryName])

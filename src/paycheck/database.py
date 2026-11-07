@@ -931,3 +931,46 @@ if False:
 
     #delete_db()
 
+
+
+# ---------------------------------------------------------------------------
+# Notes: a single scratch notepad (row id 1), shown from the tools dock.
+# ---------------------------------------------------------------------------
+
+def setup_notes_database():
+    execute_query('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        body TEXT NOT NULL DEFAULT '',
+        last_updated DATE NOT NULL
+    )
+    ''')
+
+
+def get_notes():
+    if not table_exists('notes'):
+        setup_notes_database()
+    rows = select_query("SELECT body, last_updated FROM notes WHERE id = 1")
+    if not rows:
+        return {"body": "", "last_updated": None}
+    return {"body": rows[0][0], "last_updated": rows[0][1]}
+
+
+def update_notes(body):
+    try:
+        if not table_exists('notes'):
+            setup_notes_database()
+        execute_query(
+            "INSERT INTO notes (id, body, last_updated) VALUES (1, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET body = excluded.body, last_updated = excluded.last_updated",
+            body, nowStringWithTime(),
+        )
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def nowStringWithTime():
+    from datetime import datetime
+    return datetime.now().isoformat(timespec='seconds')

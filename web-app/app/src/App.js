@@ -9,6 +9,7 @@ import Dashboard from "./components/whole-view/Dashboard/Dashboard";
 import CreditCards from "./components/whole-view/CreditCards/CreditCards";
 import BudgetCategories from "./components/whole-view/BudgetCategories/BudgetCategories";
 import Login from "./components/whole-view/Login/Login";
+import ToolsDock from "./components/whole-view/Tools/ToolsDock";
 import {isTestEnv} from "./components/utils/lib";
 import {getSession, logout} from "./components/utils/api";
 
@@ -55,6 +56,7 @@ export default function App() {
         <Router>
             <div>
                 <TestBadge/>
+                <ToolsDock/>
                 <div className={isTestEnv ? "topnav test-env" : "topnav"}>
                     <nav>
                         <span className="nav-bar-buttons"> <Link to="/dashboard">Dashboard</Link></span>

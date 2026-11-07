@@ -1,0 +1,315 @@
+/* Tools dock: calculator + notes, pinned bottom-left on every page.
+   td- prefixed (CRA loads every stylesheet everywhere). */
+
+.td-dock {
+    --td-bottom: 16px;
+    position: fixed;
+    left: 16px;
+    bottom: var(--td-bottom);
+    z-index: 1200;
+    color: var(--sage-ink);
+}
+
+/* Stay above bottom-pinned bars instead of covering them */
+body:has(.sf-reconcile) .td-dock {
+    --td-bottom: 112px;
+}
+
+@media (max-width: 900px) {
+    body:has(.bc-math) .td-dock {
+        --td-bottom: 84px;
+    }
+}
+
+.td-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.td-dock-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--sage);
+    box-shadow: 0 4px 14px rgba(29, 42, 30, 0.12);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.td-dock-button:hover {
+    border-color: var(--sage);
+    background: var(--sage-tint);
+}
+
+.td-dock-button.is-open {
+    border-color: var(--sage);
+    background: var(--sage);
+    color: #fff;
+}
+
+.td-dock-button:focus-visible {
+    outline: 3px solid var(--sage-ring);
+    outline-offset: 2px;
+}
+
+/* ---------- Panels ---------- */
+
+/* Panels sit side by side above the dock; on narrow screens the second
+   one wraps above the first instead of running off the page. */
+.td-panels {
+    position: absolute;
+    left: 0;
+    bottom: 56px;
+    display: flex;
+    flex-wrap: wrap-reverse;
+    align-items: flex-end;
+    gap: 12px;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+}
+
+.td-panel {
+    flex: none;
+    box-sizing: border-box;
+    width: min(320px, calc(100vw - 32px));
+    padding: 14px 14px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(29, 42, 30, 0.18);
+}
+
+.td-panel:focus {
+    outline: none;
+}
+
+.td-panel:focus-visible {
+    box-shadow: 0 12px 32px rgba(29, 42, 30, 0.18), 0 0 0 3px var(--sage-ring);
+}
+
+.td-panel *,
+.td-panel *::before,
+.td-panel *::after {
+    box-sizing: border-box;
+}
+
+.td-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.td-panel-header h2 {
+    margin: 0;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 1.35rem;
+    color: var(--sage-ink);
+}
+
+.td-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--sage-ink-muted);
+    cursor: pointer;
+}
+
+.td-icon-button:hover,
+.td-icon-button:focus-visible {
+    background: var(--sage-tint);
+    color: var(--sage-ink);
+    outline: none;
+}
+
+/* ---------- Calculator ---------- */
+
+.td-tape {
+    list-style: none;
+    margin: 0 0 8px;
+    padding: 6px 8px;
+    max-height: 120px;
+    overflow-y: auto;
+    border-radius: 8px;
+    background: #f7f9f3;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--sage-ink-muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.td-display {
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.td-display-pending {
+    min-height: 1.2em;
+    font-size: 0.85rem;
+    color: var(--sage-ink-muted);
+}
+
+.td-display-entry {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--sage-ink);
+    overflow-wrap: anywhere;
+}
+
+.td-display-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 6px 0 10px;
+}
+
+.td-text-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 6px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--sage);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.td-text-button:hover:not(:disabled),
+.td-text-button:focus-visible {
+    background: var(--sage-tint);
+    outline: none;
+}
+
+.td-text-button:disabled {
+    color: #9aa494;
+    cursor: default;
+}
+
+.td-keys {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.td-key {
+    height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--sage-ink);
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.td-key:hover {
+    background: #f7f9f3;
+    border-color: var(--line-strong);
+}
+
+.td-key:active {
+    background: var(--sage-tint);
+}
+
+.td-key:focus-visible {
+    outline: 2px solid var(--sage);
+    outline-offset: 1px;
+}
+
+.td-key-op,
+.td-key-percent,
+.td-key-clear,
+.td-key-backspace {
+    background: #f4f6f0;
+    color: var(--sage);
+}
+
+.td-key-op.is-active {
+    background: var(--sage-tile);
+    border-color: var(--sage);
+}
+
+.td-key-equals {
+    border-color: var(--sage);
+    background: var(--sage);
+    color: #fff;
+}
+
+.td-key-equals:hover {
+    background: var(--sage-deep);
+    border-color: var(--sage-deep);
+}
+
+/* ---------- Notes ---------- */
+
+.td-notes {
+    width: min(360px, calc(100vw - 32px));
+}
+
+.td-notes-text {
+    display: block;
+    width: 100%;
+    min-height: 200px;
+    max-height: 60vh;
+    padding: 10px 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: #fcfdfa;
+    font: inherit;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--sage-ink);
+    resize: vertical;
+}
+
+.td-notes-text:focus {
+    outline: none;
+    border-color: var(--sage);
+    box-shadow: 0 0 0 3px var(--sage-ring);
+    background: #fff;
+}
+
+.td-notes-status {
+    min-height: 1.3em;
+    margin: 6px 2px 0;
+    font-size: 0.8rem;
+    color: var(--sage-ink-muted);
+}
+
+.td-notes-status.is-error {
+    color: var(--sage-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .td-dock * {
+        transition: none !important;
+    }
+}

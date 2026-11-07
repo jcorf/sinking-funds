@@ -56,9 +56,9 @@ Database setup/reset is done via POST endpoints rather than a migration tool: `/
 
 ## Frontend architecture
 
-- Entry point [App.js](web-app/app/src/App.js) sets up routes (`/dashboard`, `/sinking-funds`, `/credit-cards`, `/recalculate`, `/users/:id/:categoryName`) and holds the shared `startDate` state used across Recalculate/InfoPage.
+- Entry point [App.js](web-app/app/src/App.js) sets up routes (`/dashboard`, `/sinking-funds`, `/credit-cards`, `/budget-categories`, `/users/:id/:categoryName`) and mounts the bottom-left tools dock (calculator + notes). Recalculating lives in the Sinking Funds status pill; each goal's plan start (`calculated_from` / `plan_start`) drives its schedule.
 - [components/utils/api.js](web-app/app/src/components/utils/api.js) is the only place that talks to the Flask backend (all `fetch` calls). [components/utils/lib.js](web-app/app/src/components/utils/lib.js) builds query-string URLs (`url()`, `obj()`) and has date helpers (`getTodayDate`, `getOneYearDate`) and the emoji picker list.
-- `components/whole-view/` holds one folder per page/feature (Grid, InfoCard, InfoPage, AddCard, Recalculate, Dashboard, CreditCards, EmojiPicker, TextField, Summary), each with its own `.js`/`.css` pair.
+- `components/whole-view/` holds one folder per page/feature (Grid = Sinking Funds overview, InfoPage = goal detail, SinkingFunds = their shared parts, BudgetCategories, CreditCards, Dashboard, Login, Tools = calculator/notes dock, Summary), each with its own `.js`/`.css` pair. CRA loads every stylesheet on every page, so page CSS uses a class prefix (`sf-`, `gd-`, `bc-`, `lg-`, `td-`).
 - Drag-and-drop reordering (sinking fund cards and credit cards) uses `@dnd-kit`; reorder is persisted via `updateCardOrder`/`updateCreditCardOrder` in api.js, which hit `/update_card_order`/`/update_credit_card_order`.
 
 ## Commit conventions

@@ -249,6 +249,11 @@ Quiet until you touch it.
 ### Lock / unlock (Budget Categories)
 A pill button in the page header. **Locked is the default** (remembered per browser): amounts show as right-aligned tabular text in the same column the inputs use, and drag handles, delete, and the "Add…" rows are hidden, giving a clean read-only view. **Unlock to edit** restores the inputs; the button turns solid sage and reads **Lock**.
 
+### Tools dock (every page after login)
+Two quiet round buttons pinned bottom-left (calculator, notes); each turns solid sage while its panel is open. Panels are white, 12px corners, floating shadow, Castoro titles, and open above the dock, side by side when both are open (stacking on narrow screens). The dock lifts above bottom-pinned bars (the Sinking Funds reconcile bar; the Budget Categories phone bar).
+- **Calculator:** immediate-execution keypad (C, backspace, %, ÷ × − +, ±, ., =) with keyboard input while focused, a tape of the last 8 lines, and Copy result. Money-like results keep cents ("192.98 + 86.12 = 279.10"). Never `eval`; nothing saved.
+- **Notes:** one autosaving notepad stored in the database (`notes` table), with "Saved 9:40 PM" / retry status.
+
 ### Results panel ("This paycheck")
 The signature component.
 - **Content:** a label/amount list with muted minus signs for deductions, a bold subtotal between firm hairlines, and a 2px ink rule above the final figure.
