@@ -20,6 +20,12 @@ body:has(.sf-reconcile) .td-dock {
     body:has(.cc-net) .td-dock {
         --td-bottom: 84px;
     }
+
+    /* Sit just above the bottom sheet, whatever height it has (see useSheetHeight.js) */
+    body:has(.bc-math) .td-dock,
+    body:has(.cc-net) .td-dock {
+        --td-bottom: calc(var(--sheet-height, 68px) + 16px);
+    }
 }
 
 .td-buttons {

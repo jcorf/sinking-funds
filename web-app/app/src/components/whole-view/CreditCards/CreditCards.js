@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import useSheetHeight from '../Tools/useSheetHeight';
 import {
   DndContext,
   closestCenter,
@@ -16,7 +17,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronRight, GripVertical, Lock, LockOpen, Plus, X } from 'lucide-react';
+import { Check, ChevronRight, GripVertical, Lock, LockOpen, Plus, X } from 'lucide-react';
 import './CreditCards.css';
 import { getAllyBankBalance, updateCreditCardOrder } from '../../utils/api';
 import { url } from '../../utils/lib';
@@ -123,7 +124,7 @@ function SourcePicker({ value, onChange }) {
    module level (stable identity), with its own draft until Save.
    --------------------------------------------------------------------------- */
 
-function TransactionList({ kind, subs, locked, onSave, onClose }) {
+function TransactionList({ kind, subs, locked, onSave, onPost, onClose }) {
   const [draft, setDraft] = useState(() => subs.map((s) => ({ ...s })));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -143,6 +144,17 @@ function TransactionList({ kind, subs, locked, onSave, onClose }) {
     setSaving(false);
     if (ok) onClose();
     else setError("Couldn't save these transactions. Check that the app's backend is running.");
+  };
+
+  // Moves one pending transaction into Posted. Indexes only line up with the
+  // saved list, so this is offered once any edits are saved or cancelled.
+  const post = async (i) => {
+    setSaving(true);
+    setError('');
+    const ok = await onPost(i);
+    setSaving(false);
+    if (ok) onClose();
+    else setError("Couldn't post that transaction. Check that the app's backend is running.");
   };
 
   return (
@@ -178,6 +190,18 @@ function TransactionList({ kind, subs, locked, onSave, onClose }) {
                 onCommit={(v) => update(i, 'amount', v)}
               />
               <SourcePicker value={row.source} onChange={(v) => update(i, 'source', v)} />
+              {kind === 'pending' && (
+                <button
+                  type="button"
+                  className="cc-icon-button cc-txn-post"
+                  aria-label={`Mark ${row.name || 'transaction'} as posted`}
+                  title={changed ? 'Save or cancel your edits first' : 'Mark as posted: adds to Posted and removes it from Pending'}
+                  disabled={changed || saving}
+                  onClick={() => post(i)}
+                >
+                  <Check size={14} aria-hidden="true" />
+                </button>
+              )}
               <button
                 type="button"
                 className="cc-icon-button cc-txn-remove"
@@ -223,7 +247,7 @@ function TransactionList({ kind, subs, locked, onSave, onClose }) {
    One card row.
    --------------------------------------------------------------------------- */
 
-function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onRemove }) {
+function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onPostPending, onRemove }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
   const pendingSubs = parseSubs(card.pending_sub_balances);
   const coveredSubs = parseSubs(card.covered_sub_balances);
@@ -303,6 +327,7 @@ function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onRem
           subs={expanded === 'pending' ? pendingSubs : coveredSubs}
           locked={locked}
           onSave={(subs) => onSaveSubs(expanded, subs)}
+          onPost={onPostPending}
           onClose={() => onToggle(expanded)}
         />
       )}
@@ -316,6 +341,8 @@ function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onRem
 
 function NetPanel({ totalOwed, bucket, ready, locked, onBucket }) {
   const [expanded, setExpanded] = useState(false);
+  const asideRef = useRef(null);
+  useSheetHeight(asideRef);
   // Until both the cards and the bucket have loaded, show placeholders rather
   // than a net computed from partial data (which flashed red, then green).
   const net = ready && bucket !== null ? toCents(totalOwed - bucket) : null;
@@ -335,7 +362,7 @@ function NetPanel({ totalOwed, bucket, ready, locked, onBucket }) {
   const shownNet = net === null ? '—' : formatMoney(Math.abs(net));
 
   return (
-    <aside className={`cc-net is-${state} ${expanded ? 'is-expanded' : ''}`} aria-label="Cards vs bucket">
+    <aside ref={asideRef} className={`cc-net is-${state} ${expanded ? 'is-expanded' : ''}`} aria-label="Cards vs bucket">
       <button type="button" className="cc-net-bar" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
         <span className="cc-net-bar-item">
           <span className="cc-net-bar-label">{label}</span>
@@ -471,6 +498,13 @@ const CreditCards = () => {
     return ok;
   };
 
+  const postPending = async (card, index) => {
+    setError('');
+    const ok = await postJson('/post_pending_transaction', { card_name: card.card_name, index });
+    await refresh();
+    return ok;
+  };
+
   // Saved once when the field is left (not per keystroke); Net change uses
   // the new value immediately because it's derived from state on render.
   const updateBucket = async (value) => {
@@ -590,6 +624,7 @@ const CreditCards = () => {
                         onToggle={(kind) => toggleExpanded(card.id, kind)}
                         onPosted={(v) => updatePosted(card, v)}
                         onSaveSubs={(kind, subs) => saveSubs(card, kind, subs)}
+                        onPostPending={(index) => postPending(card, index)}
                         onRemove={() => removeCard(card)}
                       />
                     ))}

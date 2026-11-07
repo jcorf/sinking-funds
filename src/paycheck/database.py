@@ -408,6 +408,35 @@ def update_pending_sub_balances(card_name, sub_balances):
         return False
 
 
+def post_pending_transaction(card_name, index):
+    """Move one pending transaction to posted: add its amount to posted_transactions,
+    remove it from the pending list, and keep every total in sync."""
+    try:
+        card = get_credit_card_info(card_name)
+        if not card:
+            print(f"Card {card_name} not found")
+            return False
+        subs = json.loads(card['pending_sub_balances'] or '[]')
+        if not isinstance(index, int) or index < 0 or index >= len(subs):
+            print(f"No pending transaction at index {index} for {card_name}")
+            return False
+
+        amount = float(subs[index]['amount'])
+        remaining = subs[:index] + subs[index + 1:]
+        total_pending = round(sum(float(b['amount']) for b in remaining), 2)
+        posted = round(card['posted_transactions'] + amount, 2)
+        total_balance = posted + total_pending - card['covered_transactions']
+
+        query = ("UPDATE credit_cards SET posted_transactions = ?, pending_sub_balances = ?, "
+                 "pending_transactions = ?, total_balance = ?, last_updated = ? WHERE card_name = ?")
+        execute_query(query, posted, json.dumps(remaining), total_pending, total_balance, nowString(), card_name)
+        print(f"POSTED pending transaction {index} ({amount}) on {card_name}")
+        return True
+    except Exception as e:
+        print("Exception posting pending transaction:", e)
+        return False
+
+
 def delete_credit_card(card_name):
     try:
         query = "DELETE FROM credit_cards WHERE card_name = ?"

@@ -511,6 +511,18 @@
   outline: none;
 }
 
+/* "Mark as posted" is a positive action, so it hovers sage rather than red */
+.cc-icon-button.cc-txn-post:hover:not(:disabled),
+.cc-icon-button.cc-txn-post:focus-visible {
+  color: var(--sage);
+  background: var(--sage-ring);
+}
+
+.cc-icon-button.cc-txn-post:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Source tags: words always shown, sage-family tints */
 .cc-sources {
   display: inline-flex;
