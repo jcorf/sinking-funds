@@ -87,13 +87,26 @@ const POST_TAX_BENEFIT_API = {
   reorder: updatePostTaxBenefitOrder,
 };
 
+// Last-known lists and paycheck settings, kept across page visits so coming
+// back to this page shows real numbers immediately (no $0 -> real flash)
+// while a fresh copy loads quietly in the background.
+const listCache = new Map();
+let settingsCache = null;
+
 function useAmountList(api) {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(() => listCache.get(api) || []);
+  const [loaded, setLoaded] = useState(() => listCache.has(api));
 
   const refetch = useCallback(async () => {
     const data = await api.fetchAll();
     setItems(data.data || []);
+    setLoaded(true);
   }, [api]);
+
+  // Keep the cache in step with every change (fetches, edits, reorders).
+  useEffect(() => {
+    if (loaded) listCache.set(api, items);
+  }, [api, items, loaded]);
 
   useEffect(() => {
     refetch();
@@ -141,7 +154,7 @@ function useAmountList(api) {
     });
   };
 
-  return { items, total: sumAmounts(items), addItem, removeItem, previewAmount, commitAmount, move };
+  return { items, loaded, total: sumAmounts(items), addItem, removeItem, previewAmount, commitAmount, move };
 }
 
 // Remembers which setup sections are collapsed. Best effort: storage can be
@@ -371,7 +384,7 @@ function SetupSection({ id, label, total, collapsed, onToggle, children }) {
           <ChevronIcon />
         </span>
         <span className="bc-section-toggle-label">{label}</span>
-        <span className="bc-section-total">{formatCurrency(total)}</span>
+        <span className="bc-section-total">{total === null ? '—' : formatCurrency(total)}</span>
       </button>
       {!collapsed && <div id={bodyId}>{children}</div>}
     </section>
@@ -385,22 +398,24 @@ function MathLine({ label, amount, operator, emphasis }) {
         {operator && <span className="bc-op">{operator}</span>}
         {label}
       </dt>
-      <dd>{formatCurrency(amount)}</dd>
+      <dd>{amount === null ? '—' : formatCurrency(amount)}</dd>
     </div>
   );
 }
 
-function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross }) {
+function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross, ready = true }) {
   const [expanded, setExpanded] = useState(false);
   const available = gross - preTax - taxes - postTax;
   const leftover = available - categories;
-  // With no gross pay entered there is nothing to be "over" yet.
-  const noPay = gross === 0;
-  const over = !noPay && leftover < -0.004;
-  const exact = !noPay && Math.abs(leftover) < 0.005;
+  // With no gross pay entered there is nothing to be "over" yet. Until every
+  // input has loaded, show placeholders instead of math on partial data.
+  const noPay = ready && gross === 0;
+  const over = ready && !noPay && leftover < -0.004;
+  const exact = ready && !noPay && Math.abs(leftover) < 0.005;
 
-  const leftoverLabel = over ? 'Over budget by' : 'Leftover';
-  const leftoverAmount = noPay ? '—' : formatCurrency(Math.abs(leftover));
+  const leftoverLabel = !ready ? 'Loading…' : over ? 'Over budget by' : 'Leftover';
+  const leftoverAmount = !ready || noPay ? '—' : formatCurrency(Math.abs(leftover));
+  const money = (n) => (ready ? n : null);
 
   return (
     <aside
@@ -416,7 +431,7 @@ function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross })
       >
         <span className="bc-math-bar-item">
           <span className="bc-math-bar-label">Available</span>
-          <span className="bc-math-bar-value">{formatCurrency(available)}</span>
+          <span className="bc-math-bar-value">{ready ? formatCurrency(available) : '—'}</span>
         </span>
         <span className="bc-math-bar-item">
           <span className="bc-math-bar-label">{leftoverLabel}</span>
@@ -430,12 +445,12 @@ function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross })
       <div className="bc-math-body">
         <h2 className="bc-math-title">This paycheck</h2>
         <dl className="bc-math-list">
-          <MathLine label="Gross pay" amount={gross} />
-          <MathLine operator="−" label="Pre-tax" amount={preTax} />
-          <MathLine operator="−" label="Taxes" amount={taxes} />
-          <MathLine operator="−" label="Post-tax" amount={postTax} />
-          <MathLine label="Available to budget" amount={available} emphasis />
-          <MathLine operator="−" label="Categories" amount={categories} />
+          <MathLine label="Gross pay" amount={money(gross)} />
+          <MathLine operator="−" label="Pre-tax" amount={money(preTax)} />
+          <MathLine operator="−" label="Taxes" amount={money(taxes)} />
+          <MathLine operator="−" label="Post-tax" amount={money(postTax)} />
+          <MathLine label="Available to budget" amount={money(available)} emphasis />
+          <MathLine operator="−" label="Categories" amount={money(categories)} />
         </dl>
 
         <div className="bc-leftover" aria-live="polite">
@@ -486,17 +501,27 @@ const BudgetCategories = () => {
   };
 
   // Standing values (the backend field is still called net_pay, but it holds gross pay).
-  const [settings, setSettings] = useState({ net_pay: 0, pre_tax_retirement: 0, taxes: 0 });
+  const [settings, setSettings] = useState(settingsCache || { net_pay: 0, pre_tax_retirement: 0, taxes: 0 });
+  const [settingsLoaded, setSettingsLoaded] = useState(settingsCache !== null);
 
   useEffect(() => {
-    getPaycheckSettings().then((s) =>
+    getPaycheckSettings().then((s) => {
       setSettings({
         net_pay: parseFloat(s.net_pay || 0),
         pre_tax_retirement: parseFloat(s.pre_tax_retirement || 0),
         taxes: parseFloat(s.taxes || 0),
-      })
-    );
+      });
+      setSettingsLoaded(true);
+    });
   }, []);
+
+  useEffect(() => {
+    if (settingsLoaded) settingsCache = settings;
+  }, [settings, settingsLoaded]);
+
+  // Only show the paycheck math once every input has loaded at least once.
+  const ready =
+    settingsLoaded && categories.loaded && preTaxBenefits.loaded && postTaxInvestments.loaded && postTaxBenefits.loaded;
 
   const previewSetting = (field) => (amount) => setSettings((prev) => ({ ...prev, [field]: amount }));
   const commitSetting = (field) => (amount) => {
@@ -543,7 +568,7 @@ const BudgetCategories = () => {
             <header className="bc-section-header">
               <h2>Categories</h2>
               <span className="bc-section-total">
-                {formatCurrency(categories.total)}
+                {categories.loaded ? formatCurrency(categories.total) : '—'}
                 <span className="bc-section-total-unit"> per paycheck</span>
               </span>
             </header>
@@ -586,7 +611,7 @@ const BudgetCategories = () => {
             <SetupSection
               id="pre-tax-benefits"
               label="Pre-tax benefits"
-              total={preTaxBenefits.total}
+              total={preTaxBenefits.loaded ? preTaxBenefits.total : null}
               collapsed={!!collapsed.preTaxBenefits}
               onToggle={() => toggleCollapsed('preTaxBenefits')}
             >
@@ -596,7 +621,7 @@ const BudgetCategories = () => {
             <SetupSection
               id="post-tax-investments"
               label="Post-tax retirement & investments"
-              total={postTaxInvestments.total}
+              total={postTaxInvestments.loaded ? postTaxInvestments.total : null}
               collapsed={!!collapsed.postTaxInvestments}
               onToggle={() => toggleCollapsed('postTaxInvestments')}
             >
@@ -606,7 +631,7 @@ const BudgetCategories = () => {
             <SetupSection
               id="post-tax-benefits"
               label="Post-tax benefits"
-              total={postTaxBenefits.total}
+              total={postTaxBenefits.loaded ? postTaxBenefits.total : null}
               collapsed={!!collapsed.postTaxBenefits}
               onToggle={() => toggleCollapsed('postTaxBenefits')}
             >
@@ -622,6 +647,7 @@ const BudgetCategories = () => {
           postTax={totalPostTax}
           categories={categories.total}
           onSetGross={focusGross}
+          ready={ready}
         />
       </div>
     </div>
