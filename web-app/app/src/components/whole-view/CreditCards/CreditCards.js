@@ -414,6 +414,9 @@ function PayPanel({ cards, bucket, onPay }) {
 
   const card = cards.find((c) => String(c.id) === String(cardId));
   const value = toCents(amount);
+  // Quick fills: everything owed, or everything except what hasn't posted yet.
+  const fullBalance = card ? toCents(card.total_balance) : 0;
+  const postedOnly = card ? toCents(card.total_balance - card.pending_transactions) : 0;
   const valid = !!card && value > 0;
   const overBucket = valid && bucket !== null && value > bucket + 0.004;
 
@@ -460,10 +463,19 @@ function PayPanel({ cards, bucket, onPay }) {
             onChange={(e) => setAmount(e.target.value)}
           />
         </label>
-        {card && toCents(card.total_balance) > 0 && (
-          <button type="button" className="cc-text-button" onClick={() => setAmount(String(toCents(card.total_balance)))}>
-            Use full balance ({formatMoney(card.total_balance)})
-          </button>
+        {card && (fullBalance > 0 || postedOnly > 0) && (
+          <span className="cc-pay-fill">
+            {fullBalance > 0 && (
+              <button type="button" className="cc-text-button" onClick={() => setAmount(String(fullBalance))}>
+                Full balance ({formatMoney(fullBalance)})
+              </button>
+            )}
+            {postedOnly > 0 && postedOnly !== fullBalance && (
+              <button type="button" className="cc-text-button" onClick={() => setAmount(String(postedOnly))}>
+                Minus pending ({formatMoney(postedOnly)})
+              </button>
+            )}
+          </span>
         )}
         {overBucket && <p className="cc-pay-note">That's more than the {formatMoney(bucket)} allocated.</p>}
         <button type="submit" className="sf-btn-primary cc-btn-sm" disabled={!valid || paying}>

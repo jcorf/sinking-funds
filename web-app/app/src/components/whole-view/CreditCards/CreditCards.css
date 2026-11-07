@@ -623,8 +623,10 @@
   width: 100%;
 }
 
-.cc-pay-form .cc-text-button {
-  justify-self: start;
+.cc-pay-fill {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
 }
 
 .cc-pay-note {
