@@ -437,6 +437,59 @@ def post_pending_transaction(card_name, index):
         return False
 
 
+def pay_credit_card(card_name, amount):
+    """Record a payment to a card: subtract it from that card's posted balance and
+    from the Allocated (Ally bucket) balance together."""
+    try:
+        amount = round(float(amount), 2)
+        if amount <= 0:
+            print("Payment amount must be positive")
+            return False
+        card = get_credit_card_info(card_name)
+        if not card:
+            print(f"Card {card_name} not found")
+            return False
+        bucket = get_ally_bank_balance()
+        if bucket is None:
+            print("Ally bank balance unavailable")
+            return False
+
+        posted = round(card['posted_transactions'] - amount, 2)
+        total_balance = posted + card['pending_transactions'] - card['covered_transactions']
+        query = "UPDATE credit_cards SET posted_transactions = ?, total_balance = ?, last_updated = ? WHERE card_name = ?"
+        execute_query(query, posted, total_balance, nowString(), card_name)
+        update_ally_bank_balance(round(bucket - amount, 2))
+        print(f"PAID {amount} to {card_name} (posted {card['posted_transactions']} -> {posted})")
+        return True
+    except Exception as e:
+        print("Exception paying credit card:", e)
+        return False
+
+
+def rename_credit_card(card_name, new_name):
+    """Rename a card. Rejects an empty name or one another card already has
+    (case-insensitive)."""
+    try:
+        new_name = (new_name or '').strip()
+        if not new_name:
+            print("Card name can't be empty")
+            return False
+        if not get_credit_card_info(card_name):
+            print(f"Card {card_name} not found")
+            return False
+        names = [row[0] for row in select_query("SELECT card_name FROM credit_cards")]
+        if any(n != card_name and n.lower() == new_name.lower() for n in names):
+            print(f"A card called {new_name} already exists")
+            return False
+        execute_query("UPDATE credit_cards SET card_name = ?, last_updated = ? WHERE card_name = ?",
+                      new_name, nowString(), card_name)
+        print(f"RENAMED credit card {card_name} -> {new_name}")
+        return True
+    except Exception as e:
+        print("Exception renaming credit card:", e)
+        return False
+
+
 def delete_credit_card(card_name):
     try:
         query = "DELETE FROM credit_cards WHERE card_name = ?"

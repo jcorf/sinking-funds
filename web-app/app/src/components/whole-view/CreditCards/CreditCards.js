@@ -247,7 +247,38 @@ function TransactionList({ kind, subs, locked, onSave, onPost, onClose }) {
    One card row.
    --------------------------------------------------------------------------- */
 
-function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onPostPending, onRemove }) {
+// The card's name: plain text when locked, a field when unlocked. Saved when
+// the field is left (or Enter); Esc puts the old name back.
+function CardName({ name, locked, onRename }) {
+  const [draft, setDraft] = useState(name);
+  useEffect(() => setDraft(name), [name]);
+  if (locked) return <span className="cc-name">{name}</span>;
+
+  const commit = () => {
+    const next = draft.trim();
+    if (!next || next === name) setDraft(name);
+    else onRename(next);
+  };
+
+  return (
+    <input
+      className="sf-date cc-name-input"
+      aria-label={`Rename ${name}`}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.target.blur();
+        if (e.key === 'Escape') {
+          setDraft(name);
+          e.target.blur();
+        }
+      }}
+    />
+  );
+}
+
+function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onPostPending, onRename, onRemove }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
   const pendingSubs = parseSubs(card.pending_sub_balances);
   const coveredSubs = parseSubs(card.covered_sub_balances);
@@ -281,7 +312,7 @@ function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onPos
             <GripVertical size={16} aria-hidden="true" />
           </button>
         )}
-        <span className="cc-name">{card.card_name}</span>
+        <CardName name={card.card_name} locked={locked} onRename={onRename} />
         <span className="cc-col cc-col-posted" data-label="Posted">
           {locked ? (
             <span className="cc-num">{formatMoney(card.posted_transactions)}</span>
@@ -402,6 +433,96 @@ function NetPanel({ totalOwed, bucket, ready, locked, onBucket }) {
 }
 
 /* ---------------------------------------------------------------------------
+   "Pay a card" panel: a payment of any amount comes off the chosen card's
+   Posted balance and off the Allocated (bucket) amount.
+   --------------------------------------------------------------------------- */
+
+function PayPanel({ cards, bucket, onPay }) {
+  const [cardId, setCardId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [paying, setPaying] = useState(false);
+  const [message, setMessage] = useState(null); // { ok, text }
+
+  const card = cards.find((c) => String(c.id) === String(cardId));
+  const value = toCents(amount);
+  // Quick fills: everything owed, or everything except what hasn't posted yet.
+  const fullBalance = card ? toCents(card.total_balance) : 0;
+  const postedOnly = card ? toCents(card.total_balance - card.pending_transactions) : 0;
+  const valid = !!card && value > 0;
+  const overBucket = valid && bucket !== null && value > bucket + 0.004;
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!valid || paying) return;
+    setPaying(true);
+    setMessage(null);
+    const ok = await onPay(card, value);
+    setPaying(false);
+    if (ok) {
+      setMessage({ ok: true, text: `Paid ${formatMoney(value)} to ${card.card_name}.` });
+      setAmount('');
+    } else {
+      setMessage({ ok: false, text: "Couldn't record that payment. Check that the app's backend is running." });
+    }
+  };
+
+  return (
+    <aside className="cc-pay" aria-label="Pay a card">
+      <h2 className="cc-net-title">Pay a card</h2>
+      <form onSubmit={submit} className="cc-pay-form">
+        <label className="cc-pay-field">
+          <span>Card</span>
+          <select className="sf-date" value={cardId} onChange={(e) => setCardId(e.target.value)}>
+            <option value="">Choose a card…</option>
+            {cards.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.card_name} ({formatMoney(c.total_balance)})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="cc-pay-field">
+          <span>Amount</span>
+          <input
+            className="sf-date"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </label>
+        {card && (fullBalance > 0 || postedOnly > 0) && (
+          <span className="cc-pay-fill">
+            {fullBalance > 0 && (
+              <button type="button" className="cc-text-button" onClick={() => setAmount(String(fullBalance))}>
+                Full balance ({formatMoney(fullBalance)})
+              </button>
+            )}
+            {postedOnly > 0 && postedOnly !== fullBalance && (
+              <button type="button" className="cc-text-button" onClick={() => setAmount(String(postedOnly))}>
+                Minus pending ({formatMoney(postedOnly)})
+              </button>
+            )}
+          </span>
+        )}
+        {overBucket && <p className="cc-pay-note">That's more than the {formatMoney(bucket)} allocated.</p>}
+        <button type="submit" className="sf-btn-primary cc-btn-sm" disabled={!valid || paying}>
+          {paying ? 'Paying…' : 'Make payment'}
+        </button>
+        {message && (
+          <p className={message.ok ? 'cc-pay-note is-ok' : 'cc-error'} role={message.ok ? 'status' : 'alert'}>
+            {message.text}
+          </p>
+        )}
+      </form>
+    </aside>
+  );
+}
+
+/* ---------------------------------------------------------------------------
    Page
    --------------------------------------------------------------------------- */
 
@@ -505,6 +626,18 @@ const CreditCards = () => {
     return ok;
   };
 
+  const payCard = async (card, amount) => {
+    setError('');
+    const ok = await postJson('/pay_credit_card', { card_name: card.card_name, amount });
+    if (ok) {
+      const fresh = await getAllyBankBalance();
+      cache.bucket = fresh;
+      setBucket(fresh);
+    }
+    await refresh();
+    return ok;
+  };
+
   // Saved once when the field is left (not per keystroke); Net change uses
   // the new value immediately because it's derived from state on render.
   const updateBucket = async (value) => {
@@ -529,6 +662,17 @@ const CreditCards = () => {
     setError('');
     const ok = await postJson('/add_credit_card', { card_name: name.trim() });
     if (!ok) fail("Couldn't add the card.");
+    refresh();
+  };
+
+  const renameCard = async (card, newName) => {
+    setError('');
+    if (cards.some((c) => c.id !== card.id && c.card_name.toLowerCase() === newName.toLowerCase())) {
+      fail(`You already have a card called "${newName}".`);
+      return;
+    }
+    const ok = await postJson('/rename_credit_card', { card_name: card.card_name, new_name: newName });
+    if (!ok) fail(`Couldn't rename ${card.card_name}.`);
     refresh();
   };
 
@@ -625,6 +769,7 @@ const CreditCards = () => {
                         onPosted={(v) => updatePosted(card, v)}
                         onSaveSubs={(kind, subs) => saveSubs(card, kind, subs)}
                         onPostPending={(index) => postPending(card, index)}
+                        onRename={(name) => renameCard(card, name)}
                         onRemove={() => removeCard(card)}
                       />
                     ))}
@@ -670,13 +815,16 @@ const CreditCards = () => {
           </section>
         </div>
 
-        <NetPanel
-          totalOwed={totalOwed}
-          bucket={bucket}
-          ready={loaded && bucketLoaded}
-          locked={locked}
-          onBucket={updateBucket}
-        />
+        <div className="cc-side">
+          <NetPanel
+            totalOwed={totalOwed}
+            bucket={bucket}
+            ready={loaded && bucketLoaded}
+            locked={locked}
+            onBucket={updateBucket}
+          />
+          {!locked && <PayPanel cards={cards} bucket={bucket} onPay={payCard} />}
+        </div>
       </div>
     </div>
   );

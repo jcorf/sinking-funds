@@ -273,19 +273,6 @@
     width: 100%;
 }
 
-/* Selects match the inputs, not the browser's gray dropdown */
-.ct-page select.sf-date {
-    appearance: none;
-    -webkit-appearance: none;
-    padding: 0 32px 0 12px;
-    background-color: #fff;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234d5a49' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 16px;
-    cursor: pointer;
-}
-
 .ct-field input.sf-date {
     padding: 0 10px;
 }

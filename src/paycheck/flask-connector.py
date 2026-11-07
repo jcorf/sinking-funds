@@ -29,7 +29,7 @@ from database import (update_field,
                       add_credit_card, get_all_credit_cards,
                       update_credit_card_balance, delete_credit_card,
                       get_ally_bank_balance, update_ally_bank_balance,
-                      update_covered_sub_balances, update_pending_sub_balances, post_pending_transaction, update_credit_card_order,
+                      update_covered_sub_balances, update_pending_sub_balances, post_pending_transaction, pay_credit_card, rename_credit_card, update_credit_card_order,
                       add_budget_category, get_all_budget_categories, update_budget_category_field,
                       delete_budget_category, update_budget_category_order,
                       get_paycheck_settings, update_paycheck_settings_field,
@@ -529,6 +529,24 @@ def update_pending_sub_balances_route():
 def post_pending_transaction_route():
     data = request.get_json()
     result = post_pending_transaction(data.get('card_name'), data.get('index'))
+    return jsonify(result)
+
+
+@app.route('/pay_credit_card', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def pay_credit_card_route():
+    data = request.get_json()
+    result = pay_credit_card(data.get('card_name'), data.get('amount'))
+    return jsonify(result)
+
+
+@app.route('/rename_credit_card', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def rename_credit_card_route():
+    data = request.get_json()
+    result = rename_credit_card(data.get('card_name'), data.get('new_name'))
     return jsonify(result)
 
 
