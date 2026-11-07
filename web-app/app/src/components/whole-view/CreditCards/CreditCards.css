@@ -104,7 +104,9 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
-  margin: 0 16px 12px;
+  /* Right inset = row padding (12) + delete column (30) + gap (10), so the
+     total lines up with the Balance column (One Edge Rule) */
+  margin: 0 52px 12px 16px;
 }
 
 .cc-section-header h2 {
@@ -648,6 +650,11 @@
   color: var(--sage-error);
 }
 
+.cc-net.is-loading .cc-net-value,
+.cc-net.is-loading .cc-net-bar-value {
+  color: var(--sage-ink-muted);
+}
+
 .cc-net-note {
   margin: 8px 0 0;
   font-size: 0.9rem;
@@ -658,6 +665,10 @@
 /* ---------- Narrow / zoomed in ---------- */
 
 @media (max-width: 900px) {
+  .cc-section-header {
+    margin-right: 16px;
+  }
+
   .cc-page {
     padding: 20px 16px 140px;
   }

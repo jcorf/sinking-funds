@@ -314,23 +314,32 @@ function CardRow({ card, locked, expanded, onToggle, onPosted, onSaveSubs, onRem
    "Cards vs bucket" panel: total owed − bucket = net change.
    --------------------------------------------------------------------------- */
 
-function NetPanel({ totalOwed, bucket, locked, onBucket }) {
+function NetPanel({ totalOwed, bucket, ready, locked, onBucket }) {
   const [expanded, setExpanded] = useState(false);
-  const net = toCents(totalOwed - (bucket || 0));
-  const state = net > 0.004 ? 'short' : net < -0.004 ? 'ahead' : 'even';
-  const label = { short: 'Move into the bucket', ahead: 'Bucket covers your cards', even: 'Bucket matches your cards' }[state];
+  // Until both the cards and the bucket have loaded, show placeholders rather
+  // than a net computed from partial data (which flashed red, then green).
+  const net = ready && bucket !== null ? toCents(totalOwed - bucket) : null;
+  const state = net === null ? 'loading' : net > 0.004 ? 'short' : net < -0.004 ? 'ahead' : 'even';
+  const label = {
+    loading: ready ? "Couldn't load the bucket" : 'Loading…',
+    short: 'Move into the bucket',
+    ahead: 'Bucket covers your cards',
+    even: 'Bucket matches your cards',
+  }[state];
   const note = {
+    loading: '',
     short: `Your cards owe ${formatMoney(net)} more than the bucket holds.`,
-    ahead: `${formatMoney(-net)} to spare.`,
+    ahead: `${formatMoney(-(net || 0))} to spare.`,
     even: 'Nothing to move.',
   }[state];
+  const shownNet = net === null ? '—' : formatMoney(Math.abs(net));
 
   return (
     <aside className={`cc-net is-${state} ${expanded ? 'is-expanded' : ''}`} aria-label="Cards vs bucket">
       <button type="button" className="cc-net-bar" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
         <span className="cc-net-bar-item">
           <span className="cc-net-bar-label">{label}</span>
-          <span className="cc-net-bar-value cc-num">{formatMoney(Math.abs(net))}</span>
+          <span className="cc-net-bar-value cc-num">{shownNet}</span>
         </span>
         <ChevronRight size={16} aria-hidden="true" className={`cc-net-bar-chev ${expanded ? 'is-open' : ''}`} />
       </button>
@@ -340,15 +349,15 @@ function NetPanel({ totalOwed, bucket, locked, onBucket }) {
         <dl className="cc-net-list">
           <div className="cc-net-line">
             <dt>Total owed</dt>
-            <dd className="cc-num">{formatMoney(totalOwed)}</dd>
+            <dd className="cc-num">{ready ? formatMoney(totalOwed) : '—'}</dd>
           </div>
           <div className="cc-net-line">
             <dt>
               <span className="cc-op">−</span>Saved in bucket
             </dt>
             <dd>
-              {locked ? (
-                <span className="cc-num">{bucket === null ? '—' : formatMoney(bucket)}</span>
+              {locked || !ready ? (
+                <span className="cc-num">{!ready || bucket === null ? '—' : formatMoney(bucket)}</span>
               ) : (
                 <MoneyInput value={bucket || 0} label="Saved in bucket" onCommit={onBucket} />
               )}
@@ -357,8 +366,8 @@ function NetPanel({ totalOwed, bucket, locked, onBucket }) {
         </dl>
         <div className="cc-net-result" aria-live="polite">
           <div className="cc-net-label">{label}</div>
-          <div className="cc-net-value cc-num">{formatMoney(Math.abs(net))}</div>
-          <p className="cc-net-note">{note}</p>
+          <div className="cc-net-value cc-num">{shownNet}</div>
+          {note && <p className="cc-net-note">{note}</p>}
         </div>
       </div>
     </aside>
@@ -371,10 +380,16 @@ function NetPanel({ totalOwed, bucket, locked, onBucket }) {
 
 const LOCK_KEY = 'credit-cards:locked';
 
+// Last-known cards and bucket, kept across page visits so switching back to
+// this page shows the figures immediately (no "—" then number flash) while a
+// fresh copy loads quietly in the background.
+const cache = { cards: null, bucket: null, bucketLoaded: false };
+
 const CreditCards = () => {
-  const [cards, setCards] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-  const [bucket, setBucket] = useState(null);
+  const [cards, setCards] = useState(cache.cards || []);
+  const [loaded, setLoaded] = useState(cache.cards !== null);
+  const [bucket, setBucket] = useState(cache.bucket);
+  const [bucketLoaded, setBucketLoaded] = useState(cache.bucketLoaded);
   const [expanded, setExpanded] = useState({}); // { [cardId]: 'pending' | 'covered' }
   const [activeId, setActiveId] = useState(null);
   const [error, setError] = useState('');
@@ -395,7 +410,8 @@ const CreditCards = () => {
     try {
       const response = await fetch(url('/get_credit_cards'), { credentials: 'include' });
       const data = await response.json();
-      setCards(data.data || []);
+      cache.cards = data.data || [];
+      setCards(cache.cards);
     } catch {
       setError("Couldn't load your cards.");
     } finally {
@@ -405,7 +421,12 @@ const CreditCards = () => {
 
   useEffect(() => {
     refresh();
-    getAllyBankBalance().then(setBucket);
+    getAllyBankBalance().then((b) => {
+      cache.bucket = b;
+      cache.bucketLoaded = true;
+      setBucket(b);
+      setBucketLoaded(true);
+    });
   }, [refresh]);
 
   const toggleLocked = () => {
@@ -456,9 +477,11 @@ const CreditCards = () => {
     setError('');
     const previous = bucket;
     setBucket(toCents(value));
+    cache.bucket = toCents(value);
     const ok = await postJson('/update_ally_bank_balance', { balance: toCents(value) });
     if (!ok) {
       setBucket(previous);
+      cache.bucket = previous;
       fail("Couldn't save the bucket balance.");
     }
   };
@@ -496,6 +519,7 @@ const CreditCards = () => {
         items.findIndex((c) => c.id === over.id)
       );
       updateCreditCardOrder(reordered.map((c) => c.id));
+      cache.cards = reordered;
       return reordered;
     });
   };
@@ -524,7 +548,7 @@ const CreditCards = () => {
             <header className="cc-section-header">
               <h2>Cards</h2>
               <span className="cc-section-total">
-                <span className="cc-num">{formatMoney(totalOwed)}</span>
+                <span className="cc-num">{loaded ? formatMoney(totalOwed) : '—'}</span>
                 <span className="cc-muted"> owed</span>
               </span>
             </header>
@@ -615,7 +639,13 @@ const CreditCards = () => {
           </section>
         </div>
 
-        <NetPanel totalOwed={totalOwed} bucket={bucket} locked={locked} onBucket={updateBucket} />
+        <NetPanel
+          totalOwed={totalOwed}
+          bucket={bucket}
+          ready={loaded && bucketLoaded}
+          locked={locked}
+          onBucket={updateBucket}
+        />
       </div>
     </div>
   );
