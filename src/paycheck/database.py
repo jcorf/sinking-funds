@@ -693,6 +693,178 @@ def update_post_tax_contribution_order(card_orders):
         return False
 
 
+# PRE-TAX BENEFITS FUNCTIONS (same shape as post_tax_contributions)
+
+VALID_PRE_TAX_BENEFIT_FIELDS = {"category", "amount"}
+
+
+def setup_pre_tax_benefits_database():
+    execute_query('''
+    CREATE TABLE IF NOT EXISTS pre_tax_benefits (
+        id INTEGER PRIMARY KEY,
+        category TEXT UNIQUE NOT NULL,
+        amount REAL NOT NULL DEFAULT 0,
+        display_order INTEGER DEFAULT 0,
+        last_updated DATE NOT NULL
+    )
+    ''')
+    print("SET UP pre-tax benefits database")
+    return True
+
+
+def add_pre_tax_benefit(category, amount=0):
+    try:
+        max_order_query = "SELECT COALESCE(MAX(display_order), -1) FROM pre_tax_benefits"
+        max_order_result = select_query(max_order_query)
+        next_order = max_order_result[0][0] + 1 if max_order_result else 0
+
+        query = """INSERT INTO pre_tax_benefits (category, amount, display_order, last_updated)
+                                              VALUES (?, ?, ?, ?)"""
+        execute_query(query, category, amount, next_order, nowString())
+        print(f"ADDED {category} to pre-tax benefits database")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def get_all_pre_tax_benefits():
+    if not table_exists('pre_tax_benefits'):
+        print("Pre-tax benefits table doesn't exist, creating it...")
+        setup_pre_tax_benefits_database()
+        print("✅ Pre-tax benefits table created")
+
+    query = "SELECT id, category, amount, display_order FROM pre_tax_benefits ORDER BY display_order"
+    rows = select_query(query)
+    cols = ["id", "category", "amount", "display_order"]
+    return [listToDict(row, cols) for row in rows]
+
+
+def update_pre_tax_benefit_field(field_to_change, new_value, category):
+    try:
+        if field_to_change not in VALID_PRE_TAX_BENEFIT_FIELDS:
+            print(f"Rejected update: invalid field name {field_to_change!r}")
+            return False
+
+        query = f"UPDATE pre_tax_benefits SET {field_to_change} = ?, last_updated = ? WHERE category = ?"
+        execute_query(query, new_value, nowString(), category)
+        print(f"UPDATED pre-tax benefit {category} {field_to_change} to {new_value}")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def delete_pre_tax_benefit(category):
+    try:
+        query = "DELETE FROM pre_tax_benefits WHERE category = ?"
+        execute_query(query, category)
+        print(f"DELETED pre-tax benefit {category}")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def update_pre_tax_benefit_order(card_orders):
+    """Update the display order for multiple pre-tax benefits"""
+    try:
+        for order, card_id in enumerate(card_orders):
+            query = "UPDATE pre_tax_benefits SET display_order = ? WHERE id = ?"
+            execute_query(query, order, card_id)
+        print(f"UPDATED pre-tax benefit order for {len(card_orders)} categories")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+# POST-TAX BENEFITS FUNCTIONS (same shape as post_tax_contributions)
+
+VALID_POST_TAX_BENEFIT_FIELDS = {"category", "amount"}
+
+
+def setup_post_tax_benefits_database():
+    execute_query('''
+    CREATE TABLE IF NOT EXISTS post_tax_benefits (
+        id INTEGER PRIMARY KEY,
+        category TEXT UNIQUE NOT NULL,
+        amount REAL NOT NULL DEFAULT 0,
+        display_order INTEGER DEFAULT 0,
+        last_updated DATE NOT NULL
+    )
+    ''')
+    print("SET UP post-tax benefits database")
+    return True
+
+
+def add_post_tax_benefit(category, amount=0):
+    try:
+        max_order_query = "SELECT COALESCE(MAX(display_order), -1) FROM post_tax_benefits"
+        max_order_result = select_query(max_order_query)
+        next_order = max_order_result[0][0] + 1 if max_order_result else 0
+
+        query = """INSERT INTO post_tax_benefits (category, amount, display_order, last_updated)
+                                               VALUES (?, ?, ?, ?)"""
+        execute_query(query, category, amount, next_order, nowString())
+        print(f"ADDED {category} to post-tax benefits database")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def get_all_post_tax_benefits():
+    if not table_exists('post_tax_benefits'):
+        print("Post-tax benefits table doesn't exist, creating it...")
+        setup_post_tax_benefits_database()
+        print("✅ Post-tax benefits table created")
+
+    query = "SELECT id, category, amount, display_order FROM post_tax_benefits ORDER BY display_order"
+    rows = select_query(query)
+    cols = ["id", "category", "amount", "display_order"]
+    return [listToDict(row, cols) for row in rows]
+
+
+def update_post_tax_benefit_field(field_to_change, new_value, category):
+    try:
+        if field_to_change not in VALID_POST_TAX_BENEFIT_FIELDS:
+            print(f"Rejected update: invalid field name {field_to_change!r}")
+            return False
+
+        query = f"UPDATE post_tax_benefits SET {field_to_change} = ?, last_updated = ? WHERE category = ?"
+        execute_query(query, new_value, nowString(), category)
+        print(f"UPDATED post-tax benefit {category} {field_to_change} to {new_value}")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def delete_post_tax_benefit(category):
+    try:
+        query = "DELETE FROM post_tax_benefits WHERE category = ?"
+        execute_query(query, category)
+        print(f"DELETED post-tax benefit {category}")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
+def update_post_tax_benefit_order(card_orders):
+    """Update the display order for multiple post-tax benefits"""
+    try:
+        for order, card_id in enumerate(card_orders):
+            query = "UPDATE post_tax_benefits SET display_order = ? WHERE id = ?"
+            execute_query(query, order, card_id)
+        print(f"UPDATED post-tax benefit order for {len(card_orders)} categories")
+        return True
+    except Exception as e:
+        print("Exception", e)
+        return False
+
+
 # TESTS
 if False:
     print("----------------")

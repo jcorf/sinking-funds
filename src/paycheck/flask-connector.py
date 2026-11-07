@@ -28,7 +28,11 @@ from database import (update_field, setup_database, delete_database,
                       delete_budget_category, update_budget_category_order,
                       get_paycheck_settings, update_paycheck_settings_field,
                       add_post_tax_contribution, get_all_post_tax_contributions, update_post_tax_contribution_field,
-                      delete_post_tax_contribution, update_post_tax_contribution_order
+                      delete_post_tax_contribution, update_post_tax_contribution_order,
+                      add_pre_tax_benefit, get_all_pre_tax_benefits, update_pre_tax_benefit_field,
+                      delete_pre_tax_benefit, update_pre_tax_benefit_order,
+                      add_post_tax_benefit, get_all_post_tax_benefits, update_post_tax_benefit_field,
+                      delete_post_tax_benefit, update_post_tax_benefit_order
                      )
 from paycheck import saved_by_paycheck, save_per_paycheck
 from utils.utils import nowString
@@ -476,6 +480,104 @@ def remove_post_tax_contribution_route():
 def update_post_tax_contribution_order_route():
     card_orders = request.get_json().get('card_orders', [])
     result = update_post_tax_contribution_order(card_orders)
+    return jsonify({"success": result})
+
+
+# PRE-TAX BENEFIT ROUTES
+
+@app.route('/get_pre_tax_benefits', methods=['GET'])
+@login_required
+def get_pre_tax_benefits_route():
+    result = get_all_pre_tax_benefits()
+    return jsonify({"data": result})
+
+
+@app.route('/add_pre_tax_benefit', methods=['POST', 'PUT'])
+@login_required
+def add_pre_tax_benefit_route():
+    data = request.get_json()
+    category = data.get('category')
+    amount = data.get('amount', 0)
+    result = add_pre_tax_benefit(category, float(amount))
+    return jsonify(result)
+
+
+@app.route('/update_pre_tax_benefit', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_pre_tax_benefit_route():
+    data = request.get_json()
+    category = data.get('category')
+    field_to_change = data.get('field_to_change')
+    new_value = data.get('new_value')
+    result = update_pre_tax_benefit_field(field_to_change, new_value, category)
+    return jsonify({"success": result})
+
+
+@app.route('/remove_pre_tax_benefit', methods=['DELETE'])
+@login_required
+def remove_pre_tax_benefit_route():
+    data = request.get_json()
+    category = data.get('category')
+    result = delete_pre_tax_benefit(category)
+    return jsonify(result)
+
+
+@app.route('/update_pre_tax_benefit_order', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_pre_tax_benefit_order_route():
+    card_orders = request.get_json().get('card_orders', [])
+    result = update_pre_tax_benefit_order(card_orders)
+    return jsonify({"success": result})
+
+
+# POST-TAX BENEFIT ROUTES
+
+@app.route('/get_post_tax_benefits', methods=['GET'])
+@login_required
+def get_post_tax_benefits_route():
+    result = get_all_post_tax_benefits()
+    return jsonify({"data": result})
+
+
+@app.route('/add_post_tax_benefit', methods=['POST', 'PUT'])
+@login_required
+def add_post_tax_benefit_route():
+    data = request.get_json()
+    category = data.get('category')
+    amount = data.get('amount', 0)
+    result = add_post_tax_benefit(category, float(amount))
+    return jsonify(result)
+
+
+@app.route('/update_post_tax_benefit', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_post_tax_benefit_route():
+    data = request.get_json()
+    category = data.get('category')
+    field_to_change = data.get('field_to_change')
+    new_value = data.get('new_value')
+    result = update_post_tax_benefit_field(field_to_change, new_value, category)
+    return jsonify({"success": result})
+
+
+@app.route('/remove_post_tax_benefit', methods=['DELETE'])
+@login_required
+def remove_post_tax_benefit_route():
+    data = request.get_json()
+    category = data.get('category')
+    result = delete_post_tax_benefit(category)
+    return jsonify(result)
+
+
+@app.route('/update_post_tax_benefit_order', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_post_tax_benefit_order_route():
+    card_orders = request.get_json().get('card_orders', [])
+    result = update_post_tax_benefit_order(card_orders)
     return jsonify({"success": result})
 
 
