@@ -160,7 +160,6 @@
     width: 40px;
     height: 40px;
     padding: 0;
-    margin-left: auto;
     border: 1px solid rgba(63, 92, 58, 0.18);
     border-radius: 999px;
     background: rgba(207, 222, 190, 0.18);
@@ -174,6 +173,24 @@
 .nb-logout:hover {
     border-color: rgba(63, 92, 58, 0.35);
     background: rgba(207, 222, 190, 0.32);
+    color: var(--sage);
+}
+
+.nb-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.nb-settings {
+    text-decoration: none;
+}
+
+/* On the Settings page, the gear reads as the current tab */
+.nb-settings.is-current {
+    border-color: rgba(63, 92, 58, 0.35);
+    background: var(--sage-tint);
     color: var(--sage);
 }
 

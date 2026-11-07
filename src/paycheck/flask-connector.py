@@ -244,6 +244,28 @@ def get_category_info_route():
     return jsonify(with_plan_start(result))
 
 
+@app.route('/upcoming_paydays', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@login_required
+def upcoming_paydays_route():
+    """The next `count` paydays from the same bimonthly rules the savings
+    math uses. `scheduled` is the 15th / last day of the month it stands for;
+    when it differs from `date`, the payday moved back off a weekend."""
+    import calendar
+    try:
+        count = max(1, min(24, int(request.args.get('count', 6))))
+    except ValueError:
+        count = 6
+    today = stringToDate(nowString())
+    _, dates = bimonthly_paycheck_dates(today, today + timedelta(days=16 * count + 31))
+    out = []
+    for d in sorted(dates)[:count]:
+        # A weekend shift moves back at most two days, within the same month.
+        scheduled = d.replace(day=15) if d.day <= 15 else d.replace(day=calendar.monthrange(d.year, d.month)[1])
+        out.append({"date": dateToString(d), "scheduled": dateToString(scheduled)})
+    return jsonify({"data": out})
+
+
 def first_payday_on_or_after(date_string):
     """First bimonthly payday on/after a YYYY-MM-DD date, or None."""
     if not date_string:

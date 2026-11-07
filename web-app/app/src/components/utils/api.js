@@ -671,3 +671,18 @@ export async function downloadExport(kind = 'json') {
         return false;
     }
 }
+
+// ---- Settings --------------------------------------------------------------
+
+// The next `count` paydays: [{ date, scheduled }] (scheduled differs from
+// date when the payday moved back off a weekend), or null on failure.
+export async function getUpcomingPaydays(count = 6) {
+    try {
+        const response = await fetch(url('/upcoming_paydays', ['count'], [count]), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return (await response.json()).data || [];
+    } catch (error) {
+        console.error('Error fetching upcoming paydays:', error);
+        return null;
+    }
+}

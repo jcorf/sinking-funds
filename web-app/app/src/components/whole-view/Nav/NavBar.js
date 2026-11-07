@@ -1,7 +1,7 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import { JarMark } from '../Login/Login';
 import { isTestEnv } from '../../utils/lib';
 import './NavBar.css';
@@ -117,9 +117,20 @@ export default function NavBar({ onLogout }) {
                     })}
                 </nav>
 
-                <button type="button" className="nb-logout" onClick={onLogout} aria-label="Log out" title="Log out">
-                    <LogOut size={18} aria-hidden="true" />
-                </button>
+                <div className="nb-actions">
+                    <Link
+                        to="/settings"
+                        className={`nb-logout nb-settings ${pathname.startsWith('/settings') ? 'is-current' : ''}`}
+                        aria-label="Settings"
+                        aria-current={pathname.startsWith('/settings') ? 'page' : undefined}
+                        title="Settings"
+                    >
+                        <Settings size={18} aria-hidden="true" />
+                    </Link>
+                    <button type="button" className="nb-logout" onClick={onLogout} aria-label="Log out" title="Log out">
+                        <LogOut size={18} aria-hidden="true" />
+                    </button>
+                </div>
             </header>
         </div>
     );
