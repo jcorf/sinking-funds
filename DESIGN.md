@@ -270,9 +270,9 @@ The signature component.
 A full-width text button: chevron (rotates 90° when open), title-weight label, and the section's total on the right. The total stays visible while the section is collapsed. Open/closed state is remembered between visits.
 
 ### Navigation
-- **Style:** a charcoal bar with light text links (17px, 14px × 16px padding). Hover is a light gray wash; the active link is green.
-- **Behavior:** sticky and wraps when narrow. "Log out" stays right-aligned.
-- **Test instance:** the bar turns test amber.
+- **Style:** a floating white capsule (30px corners, 1px hairline, soft shadow) on a page-colored band, sticky at the top (never `position: fixed`). Left: the jar mark in a solid sage circle + "Sinking Funds" in Castoro. Middle: page links in the sans; the current page is a soft sage pill (`sage-tint`, sage text, 600), and a goal's detail page counts as Sinking Funds. Right: a quiet outlined **Log out** pill.
+- **Test instance:** amber (`test-amber`) 2px outline and a small uppercase TEST tag beside the wordmark (plus the TEST DATA corner badge).
+- **Narrow / zoomed:** links drop to their own row inside the capsule; the wordmark hides under 420px. `--nav-height` (index.css) is what pinned panels offset from.
 
 ### Sinking Funds (overview and goal detail)
 The second sage surface: working-page structure from Budget Categories, color and serif from Login.

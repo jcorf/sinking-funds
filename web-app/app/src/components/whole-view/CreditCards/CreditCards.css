@@ -569,7 +569,7 @@
 
 .cc-net {
   position: sticky;
-  top: 72px;
+  top: calc(var(--nav-height) + 12px);
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 12px;

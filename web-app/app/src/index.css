@@ -23,6 +23,8 @@
     --line: #e4e8de;
     --line-strong: #cfd6c6;
     --serif: 'Castoro', Georgia, 'Times New Roman', serif;
+    /* Sticky nav (NavBar) height incl. its padding; pinned panels sit below it */
+    --nav-height: 84px;
 }
 
 body {

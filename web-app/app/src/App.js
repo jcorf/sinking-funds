@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from "react";
-import {BrowserRouter as Router, Link, Route, Routes} from "react-router-dom";
+import {BrowserRouter as Router, Route, Routes} from "react-router-dom";
 
 import './App.css';
 
@@ -10,6 +10,7 @@ import CreditCards from "./components/whole-view/CreditCards/CreditCards";
 import BudgetCategories from "./components/whole-view/BudgetCategories/BudgetCategories";
 import Login from "./components/whole-view/Login/Login";
 import ToolsDock from "./components/whole-view/Tools/ToolsDock";
+import NavBar from "./components/whole-view/Nav/NavBar";
 import {isTestEnv} from "./components/utils/lib";
 import {getSession, logout} from "./components/utils/api";
 
@@ -57,15 +58,7 @@ export default function App() {
             <div>
                 <TestBadge/>
                 <ToolsDock/>
-                <div className={isTestEnv ? "topnav test-env" : "topnav"}>
-                    <nav>
-                        <span className="nav-bar-buttons"> <Link to="/dashboard">Dashboard</Link></span>
-                        <span className="nav-bar-buttons"> <Link to="/sinking-funds">Sinking Funds</Link></span>
-                        <span className="nav-bar-buttons"> <Link to="/credit-cards">Credit Cards</Link></span>
-                        <span className="nav-bar-buttons"> <Link to="/budget-categories">Budget Categories</Link></span>
-                    </nav>
-                    <span className="nav-bar-buttons logout-button" onClick={handleLogout}>Log out</span>
-                </div>
+                <NavBar onLogout={handleLogout}/>
                 <div>
                     <Routes>
                         <Route path='/' element={<Dashboard/>}/>

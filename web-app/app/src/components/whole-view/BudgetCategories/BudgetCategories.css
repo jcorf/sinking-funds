@@ -431,7 +431,7 @@
 
 .bc-math {
   position: sticky;
-  top: 72px;
+  top: calc(var(--nav-height) + 12px);
   background: var(--bc-surface);
   border: 1px solid var(--bc-line);
   border-radius: 12px;
