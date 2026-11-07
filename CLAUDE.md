@@ -54,7 +54,6 @@ The frontend lives entirely under `web-app/app/` (there is nothing else in `web-
 - [paycheck.py](src/paycheck/paycheck.py) + [schedules/bimonthly.py](src/paycheck/schedules/bimonthly.py) — the actual savings-per-paycheck math, dispatched by a `frequency` string. Only `"bimonthly"` is implemented (paydays = 15th and last day of month, shifted back to Friday if it falls on a weekend). Adding a new pay schedule means adding a new module under `schedules/` and a new branch in `paycheck.py`'s dispatch functions (`saved_by_paycheck`, `save_per_paycheck`).
 - [utils/reference/database_constants.py](src/paycheck/utils/reference/database_constants.py) — single `DATABASE_NAME` constant (`sinkingFunds.db`) used everywhere via import.
 - Credit card balance model: `total_balance = posted_transactions + pending_transactions - covered_transactions`. `covered_sub_balances`/`pending_sub_balances` store itemized breakdowns as JSON strings; updating them (`update_covered_sub_balances`/`update_pending_sub_balances`) recalculates the aggregate field and `total_balance` together — keep both in sync if editing this logic.
-- `notebooks/` contains the original Jupyter-prototype versions of the calculation logic (`sinkingFunds.py`, `calculateFunctions.py`). It's not imported by the running app — treat it as historical reference only, not a dependency.
 
 ## Frontend architecture
 
