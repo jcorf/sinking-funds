@@ -1,43 +1,212 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-06T20:30:00-05:00",
+  "generatedAt": "2026-11-06T21:15:00-05:00",
   "title": "Design System: Sinking Funds",
   "extensions": {
     "colorMeta": {
-      "accent-purple": { "role": "primary", "displayName": "Ledger Purple", "canonical": "#6f42c1", "tonalRamp": ["#2a1550", "#3d1f73", "#522a98", "#6f42c1", "#8c68d0", "#ab91de", "#cdbdec", "#f3eefb"] },
-      "accent-blue": { "role": "primary", "displayName": "Savings Blue", "canonical": "#007bff", "tonalRamp": ["#00224a", "#003a7a", "#0056b3", "#007bff", "#3d9bff", "#7cbcff", "#bcdcff", "#eaf4ff"] },
-      "over-red": { "role": "semantic", "displayName": "Over-Budget Red", "canonical": "#c92a2a", "tonalRamp": ["#4a0f0f", "#7a1818", "#a42222", "#c92a2a", "#e05454", "#ec8a8a", "#f6c4c4", "#fff5f5"] },
-      "nav-charcoal": { "role": "neutral", "displayName": "Charcoal", "canonical": "#333333" },
-      "nav-active-green": { "role": "semantic", "displayName": "Nav Active Green", "canonical": "#04aa6d" },
-      "test-amber": { "role": "semantic", "displayName": "Test Amber", "canonical": "#b45309" },
-      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#212529", "tonalRamp": ["#212529", "#343a40", "#495057", "#6c757d", "#adb5bd", "#ced4da", "#e9ecef", "#f8f9fa"] },
-      "page": { "role": "neutral", "displayName": "Table Gray", "canonical": "#f2f2f2" },
-      "surface": { "role": "neutral", "displayName": "Paper", "canonical": "#ffffff" }
+      "sage": {
+        "role": "primary",
+        "displayName": "Sage",
+        "canonical": "#3f5c3a",
+        "tonalRamp": [
+          "#1d2a1e",
+          "#2a3d27",
+          "#344d30",
+          "#3f5c3a",
+          "#5f7a58",
+          "#8c9e78",
+          "#cfdabd",
+          "#eef3e6"
+        ]
+      },
+      "sage-field": {
+        "role": "neutral",
+        "displayName": "Sage Field",
+        "canonical": "#d8e2c8"
+      },
+      "sage-frame": {
+        "role": "neutral",
+        "displayName": "Sage Frame",
+        "canonical": "#8c9e78"
+      },
+      "sage-ink": {
+        "role": "neutral",
+        "displayName": "Sage Ink",
+        "canonical": "#1d2a1e"
+      },
+      "accent-purple": {
+        "role": "legacy",
+        "displayName": "Ledger Purple",
+        "canonical": "#6f42c1",
+        "tonalRamp": [
+          "#2a1550",
+          "#3d1f73",
+          "#522a98",
+          "#6f42c1",
+          "#8c68d0",
+          "#ab91de",
+          "#cdbdec",
+          "#f3eefb"
+        ]
+      },
+      "accent-blue": {
+        "role": "legacy",
+        "displayName": "Savings Blue",
+        "canonical": "#007bff",
+        "tonalRamp": [
+          "#00224a",
+          "#003a7a",
+          "#0056b3",
+          "#007bff",
+          "#3d9bff",
+          "#7cbcff",
+          "#bcdcff",
+          "#eaf4ff"
+        ]
+      },
+      "over-red": {
+        "role": "semantic",
+        "displayName": "Over-Budget Red",
+        "canonical": "#c92a2a",
+        "tonalRamp": [
+          "#4a0f0f",
+          "#7a1818",
+          "#a42222",
+          "#c92a2a",
+          "#e05454",
+          "#ec8a8a",
+          "#f6c4c4",
+          "#fff5f5"
+        ]
+      },
+      "nav-charcoal": {
+        "role": "neutral",
+        "displayName": "Charcoal",
+        "canonical": "#333333"
+      },
+      "nav-active-green": {
+        "role": "semantic",
+        "displayName": "Nav Active Green",
+        "canonical": "#04aa6d"
+      },
+      "test-amber": {
+        "role": "semantic",
+        "displayName": "Test Amber",
+        "canonical": "#b45309"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#212529",
+        "tonalRamp": [
+          "#212529",
+          "#343a40",
+          "#495057",
+          "#6c757d",
+          "#adb5bd",
+          "#ced4da",
+          "#e9ecef",
+          "#f8f9fa"
+        ]
+      },
+      "page": {
+        "role": "neutral",
+        "displayName": "Table Gray",
+        "canonical": "#f2f2f2"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#ffffff"
+      }
     },
     "typographyMeta": {
-      "headline": { "displayName": "Headline", "purpose": "Centered page title, one per page." },
-      "title": { "displayName": "Title", "purpose": "Section headings, with the section total on the right." },
-      "body": { "displayName": "Body", "purpose": "Row names and input values." },
-      "label": { "displayName": "Label", "purpose": "Small sentence-case labels above values." },
-      "figure": { "displayName": "Figure", "purpose": "The one result number on a page (Leftover). Tabular." }
+      "display": {
+        "displayName": "Display (Castoro)",
+        "purpose": "Welcome headline, wordmark and card titles on sage surfaces."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Centered page title, one per page."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings, with the section total on the right."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Row names and input values."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Small sentence-case labels above values."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "The one result number on a page (Leftover). Tabular."
+      }
     },
     "shadows": [
-      { "name": "resting", "value": "0 1px 2px rgba(33, 37, 41, 0.04)", "purpose": "Lists and panels at rest." },
-      { "name": "pinned", "value": "0 6px 20px rgba(33, 37, 41, 0.06)", "purpose": "The pinned results panel." },
-      { "name": "floating-up", "value": "0 -6px 24px rgba(33, 37, 41, 0.12)", "purpose": "Bottom results bar on narrow screens." },
-      { "name": "floating-drag", "value": "0 12px 28px rgba(33, 37, 41, 0.18)", "purpose": "A row being dragged." },
-      { "name": "focus-ring", "value": "0 0 0 3px rgba(111, 66, 193, 0.18)", "purpose": "Focused money input." }
+      {
+        "name": "resting",
+        "value": "0 1px 2px rgba(33, 37, 41, 0.04)",
+        "purpose": "Lists and panels at rest."
+      },
+      {
+        "name": "pinned",
+        "value": "0 6px 20px rgba(33, 37, 41, 0.06)",
+        "purpose": "The pinned results panel."
+      },
+      {
+        "name": "floating-up",
+        "value": "0 -6px 24px rgba(33, 37, 41, 0.12)",
+        "purpose": "Bottom results bar on narrow screens."
+      },
+      {
+        "name": "floating-drag",
+        "value": "0 12px 28px rgba(33, 37, 41, 0.18)",
+        "purpose": "A row being dragged."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 3px rgba(111, 66, 193, 0.18)",
+        "purpose": "Focused money input."
+      }
     ],
     "motion": [
-      { "name": "state", "value": "0.15s ease", "purpose": "Hover/focus color, border and opacity changes." },
-      { "name": "chevron", "value": "0.2s cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Collapsible chevron rotation." }
+      {
+        "name": "state",
+        "value": "0.15s ease",
+        "purpose": "Hover/focus color, border and opacity changes."
+      },
+      {
+        "name": "chevron",
+        "value": "0.2s cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Collapsible chevron rotation."
+      }
     ],
     "breakpoints": [
-      { "name": "narrow", "value": "900px", "purpose": "Below this, single column and the results panel becomes a bottom bar." },
-      { "name": "mobile", "value": "768px", "purpose": "Legacy page-level breakpoint on older pages." }
+      {
+        "name": "narrow",
+        "value": "900px",
+        "purpose": "Below this, single column and the results panel becomes a bottom bar."
+      },
+      {
+        "name": "mobile",
+        "value": "768px",
+        "purpose": "Legacy page-level breakpoint on older pages."
+      }
     ]
   },
   "components": [
+    {
+      "name": "Sage Primary Button",
+      "kind": "button",
+      "refersTo": "button-sage",
+      "description": "Full-width primary action on sage surfaces (Login).",
+      "html": "<button class=\"ds-btn-sage\">Log in</button>",
+      "css": ".ds-btn-sage { width: 320px; height: 50px; border: none; border-radius: 10px; background: #3f5c3a; color: #fff; font-family: Arial, sans-serif; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.15s ease; } .ds-btn-sage:hover { background: #344d30; } .ds-btn-sage:focus-visible { outline: 3px solid rgba(63, 92, 58, 0.28); outline-offset: 2px; } .ds-btn-sage:disabled { background: #56704f; cursor: progress; }"
+    },
     {
       "name": "Money Input",
       "kind": "input",
@@ -88,7 +257,7 @@
   ],
   "narrative": {
     "northStar": "The Kitchen-Table Planner",
-    "overview": "The app should feel like sitting down at your own kitchen table on payday with a notepad and a calculator: personal, unhurried and approachable, never corporate or bank-like. It's your money in your words (\"bucket\", \"leftover\", \"covered\"), laid out so you can see the whole paycheck at a glance and trust the arithmetic without checking it twice. The visual system is mid-redesign: the Budget Categories page is the reference for the new direction, and older pages move toward it as they're touched. The warmth comes from plain language, generous spacing, and copy that talks to you, not from invented warm colors or decoration.",
+    "overview": "Direction decided: the app is moving to muted sage green, and the Login page is the first surface built in it. The app should feel like sitting down at your own kitchen table on payday with a notepad and a calculator: personal, unhurried and approachable, never corporate or bank-like. It's your money in your words (\"bucket\", \"leftover\", \"covered\"), laid out so you can see the whole paycheck at a glance and trust the arithmetic without checking it twice. The visual system is mid-redesign: the Budget Categories page is the reference for the new direction, and older pages move toward it as they're touched. The warmth comes from plain language, generous spacing, and copy that talks to you, not from invented warm colors or decoration.",
     "keyCharacteristics": [
       "Light gray page (`page`) with white panels; one accent at a time on any given page",
       "Lists of rows (name on the left, money input on the right), not one card per item",
@@ -97,14 +266,39 @@
       "Plain-language states for good and bad outcomes (\"Over budget by\", \"Every dollar is assigned\")"
     ],
     "rules": [
-      { "name": "The One Accent Rule", "body": "Each page uses exactly one accent color. Red appears only when something is actually wrong.", "section": "colors" },
-      { "name": "The Words-Not-Just-Red Rule", "body": "A bad state always changes the label too (\"Over budget by $42.10\"), not just the color.", "section": "colors" },
-      { "name": "The Tabular Money Rule", "body": "Every money value uses tabular figures (`font-variant-numeric: tabular-nums`) and lines up on the right, so columns of amounts can be scanned.", "section": "typography" },
-      { "name": "The Sentence Case Rule", "body": "Labels are sentence case (\"Pre-tax benefits\"). The older uppercase, letter-spaced micro-labels (\"POSTED\", \"AMOUNT PER PAYCHECK\") are legacy and shouldn't be copied into new work.", "section": "typography" },
-      { "name": "The Zoom-Proof Rule", "body": "No layout styles (flex centering, `height: 100vh`) on `body` or `#root`, and no hardcoded navbar offsets. Every page must stay fully reachable at 200% zoom.", "section": "layout" },
-      { "name": "The Earned Shadow Rule", "body": "A shadow means the thing is above the page: pinned, dragged or open. Shadows don't signal hover. The older zero-offset blue hover glow (`0 0 8px rgb(0,140,255)`) is legacy and shouldn't spread.", "section": "elevation" }
+      {
+        "name": "The One Accent Rule",
+        "body": "Each page uses exactly one accent color. Red appears only when something is actually wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Words-Not-Just-Red Rule",
+        "body": "A bad state always changes the label too (\"Over budget by $42.10\"), not just the color.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Money Rule",
+        "body": "Every money value uses tabular figures (`font-variant-numeric: tabular-nums`) and lines up on the right, so columns of amounts can be scanned.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sentence Case Rule",
+        "body": "Labels are sentence case (\"Pre-tax benefits\"). The older uppercase, letter-spaced micro-labels (\"POSTED\", \"AMOUNT PER PAYCHECK\") are legacy and shouldn't be copied into new work.",
+        "section": "typography"
+      },
+      {
+        "name": "The Zoom-Proof Rule",
+        "body": "No layout styles (flex centering, `height: 100vh`) on `body` or `#root`, and no hardcoded navbar offsets. Every page must stay fully reachable at 200% zoom.",
+        "section": "layout"
+      },
+      {
+        "name": "The Earned Shadow Rule",
+        "body": "A shadow means the thing is above the page: pinned, dragged or open. Shadows don't signal hover. The older zero-offset blue hover glow (`0 0 8px rgb(0,140,255)`) is legacy and shouldn't spread.",
+        "section": "elevation"
+      }
     ],
     "dos": [
+      "Do take color, display type, and the field-and-card treatment from the Login page, and working-page structure from Budget Categories.",
       "Do follow the Budget Categories page for new or redesigned pages: rows inside one list, money inputs, results pinned beside the work.",
       "Do use tabular figures and right-alignment for every money value.",
       "Do say the state in words (\"Over budget by $42.10\", \"Every dollar is assigned\") as well as with color.",
@@ -113,7 +307,7 @@
       "Do use inline SVG icons (grip, close, chevron) in one consistent stroke."
     ],
     "donts": [
-      "Don't use both accent colors on one page, or settle the purple-vs-blue decision on your own. It's open.",
+      "Don't introduce new purple or blue. New and redesigned surfaces use sage. Don't mix sage with a legacy accent on one page.",
       "Don't put layout styles on `body`/`#root`, or offset content by a hardcoded navbar height.",
       "Don't add gradients, zero-offset glow shadows, or uppercase letter-spaced micro-labels to new work. They're legacy.",
       "Don't use one card per item for lists of amounts. Use rows in a single list.",

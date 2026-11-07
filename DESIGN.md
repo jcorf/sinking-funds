@@ -2,6 +2,16 @@
 name: Sinking Funds
 description: A personal, paycheck-by-paycheck money planner.
 colors:
+  sage: "#3f5c3a"
+  sage-deep: "#344d30"
+  sage-field: "#d8e2c8"
+  sage-shape: "#cfdabd"
+  sage-frame: "#8c9e78"
+  sage-ink: "#1d2a1e"
+  sage-ink-muted: "#43533f"
+  sage-input: "#f4f6f0"
+  sage-input-line: "#7f9070"
+  sage-error: "#a3261f"
   accent-purple: "#6f42c1"
   accent-purple-soft: "#f3eefb"
   accent-blue: "#007bff"
@@ -22,6 +32,12 @@ colors:
   surface-muted: "#f8f9fa"
   page: "#f2f2f2"
 typography:
+  display:
+    fontFamily: "Castoro, Georgia, serif"
+    fontSize: "clamp(2.75rem, 5.6vw, 4.75rem)"
+    fontWeight: 400
+    lineHeight: 1.04
+    letterSpacing: "-0.015em"
   headline:
     fontFamily: "Arial, sans-serif"
     fontSize: "2em"
@@ -87,6 +103,11 @@ components:
     textColor: "{colors.surface}"
     rounded: "{rounded.md}"
     padding: "12px 24px"
+  button-sage:
+    backgroundColor: "{colors.sage}"
+    textColor: "{colors.surface}"
+    rounded: "10px"
+    height: "50px"
   balance-chip:
     backgroundColor: "{colors.debt-red-soft}"
     textColor: "{colors.debt-red}"
@@ -101,6 +122,8 @@ components:
 **Creative North Star: "The Kitchen-Table Planner"**
 
 The app should feel like sitting down at your own kitchen table on payday with a notepad and a calculator: personal, unhurried and approachable, never corporate or bank-like. It's your money in your words ("bucket", "leftover", "covered"), laid out so you can see the whole paycheck at a glance and trust the arithmetic without checking it twice.
+
+**Direction decided (2026-11-06): the app is moving to muted sage green.** The **Login** page (`components/whole-view/Login/`) is the first surface built in it: a sage field with soft organic shapes, Castoro serif display type, and a deep-sage primary button. Other pages move to green gradually; purple and blue are now legacy accents.
 
 The visual system is **mid-redesign**. The **Budget Categories** page (`components/whole-view/BudgetCategories/`) is the reference for the new direction:
 - one calm list per job, on white panels over a light gray page
@@ -121,13 +144,21 @@ The North Star is the target. The current neutrals are cool Bootstrap grays, and
 
 ## Colors
 
-A neutral gray base with one saturated accent per page. Which accent becomes the single app-wide color is undecided.
+A neutral base moving to **muted sage green** as the one app-wide color. Purple and blue remain on pages that haven't been redesigned yet.
 
-### Primary
+### Primary: Sage (the direction)
+- **Sage** (`sage`, hover `sage-deep`): primary buttons, focus rings (as a 28% wash), links. White text on it is 7.5:1.
+- **Sage Field** (`sage-field`) with **Sage Shape** (`sage-shape`): the soft ground and its organic-shape pattern. These two stay close in tone so the pattern never competes with text.
+- **Sage Frame** (`sage-frame`): the outer page color around an inset field.
+- **Sage Ink** (`sage-ink`) and **Muted Sage Ink** (`sage-ink-muted`): text on sage grounds (11:1 and 6.1:1 on the field).
+- **Sage Input** (`sage-input`, border `sage-input-line`): input fills on sage-themed surfaces. The border clears the 3:1 non-text minimum.
+- **Sage Error** (`sage-error`): error text and invalid-field borders on sage surfaces.
+
+### Legacy accents
 - **Ledger Purple** (`accent-purple`): the accent on Credit Cards and Budget Categories. Used for focus rings, input focus borders, the drag handle on hover, the Leftover figure, and links. Its soft tint (`accent-purple-soft`) is the hover and focus wash behind small controls.
 - **Savings Blue** (`accent-blue`, deeper `accent-blue-deep`): the accent on Sinking Funds, Dashboard, InfoPage and Recalculate. Used for progress bars, the Recalculate button, and focus states on those pages.
 
-> **Open decision:** purple vs blue as the single app-wide accent is undecided while the redesign is in progress. Until it's decided, keep each page on its existing accent and never use both on one page.
+> **Decided:** muted sage green replaces both purple and blue. Redesign a page into sage as a whole. Until a page is redesigned it keeps its existing accent; never mix accents on one page.
 
 ### Semantic
 - **Over-Budget Red** (`over-red`, tint `over-red-soft`): only for a negative result (Leftover below zero) and destructive hover states such as the delete button. Always paired with words, never color alone.
@@ -152,11 +183,13 @@ A neutral gray base with one saturated accent per page. Which accent becomes the
 
 ## Typography
 
+**Display Font:** Castoro (with Georgia, serif fallback), self-hosted from `src/assets/fonts/` under the SIL Open Font License. Used only for display: headlines, the wordmark, and card titles. Never for body text, labels or numbers.
 **Body Font:** Arial (with sans-serif fallback). It's set on `body` in `InfoCard.css` and `AddCard.css`, and overrides the system-font stack in `index.css`.
 
 **Character:** one plain, familiar sans for everything. Hierarchy comes from size and weight, not from mixing typefaces.
 
 ### Hierarchy
+- **Display** (Castoro 400, fluid up to 4.75rem, line-height 1.04): the welcome headline on sage surfaces. One per page at most.
 - **Headline** (700, 2em): the centered page title (`h1`), one per page.
 - **Title** (700, 1.25rem): section headings such as "Categories" and "Paycheck setup", left-aligned, with the section's total on the right of the same line.
 - **Body** (500, 1rem, line-height 1.35): row names and input values.
@@ -226,12 +259,20 @@ A full-width text button: chevron (rotates 90° when open), title-weight label, 
 - **Behavior:** sticky and wraps when narrow. "Log out" stays right-aligned.
 - **Test instance:** the bar turns test amber.
 
+### Login and brand mark
+The first sage surface, and the reference for the new direction.
+- **Composition:** a frame-colored page with a 24px-rounded inset field carrying the organic pattern (`src/assets/login-pattern.svg`: soft, closed, rounded forms at two scales and two close greens, with no hooks or points). Welcome on the left (mark, Castoro wordmark, display headline, one muted line), and a white 20px-radius card on the right. It stacks below 900px and uses a minimum height, never a fixed one.
+- **Card:** a Castoro title, labels above the fields (no placeholder-only fields), 48px inputs with 10px corners and a sage focus ring, a show-password eye button, and a full-width sage button that reads "Logging in…" on a deeper sage while submitting.
+- **Errors:** plain-language text under the fields. Only a credential mismatch marks the fields invalid; a server error doesn't.
+- **Brand mark** (`JarMark` in `Login.js`): an open jar with three edge-on coins stacked inside and one coin above the mouth. Single color (`currentColor`), 2px stroke on a 32 grid. Reads at 16–96px; intended to become the favicon.
+
 ### Buttons (legacy)
 - **Primary:** the Recalculate button, a blue gradient with a lift-on-hover shadow. It predates the redesign. New primary buttons should be a flat accent color with an 8px radius and no gradient.
 
 ## Do's and Don'ts
 
 ### Do:
+- **Do** take color, display type, and the field-and-card treatment from the Login page, and working-page structure from Budget Categories.
 - **Do** follow the Budget Categories page for new or redesigned pages: rows inside one list, money inputs, results pinned beside the work.
 - **Do** use tabular figures and right-alignment for every money value.
 - **Do** say the state in words ("Over budget by $42.10", "Every dollar is assigned") as well as with color.
@@ -240,7 +281,7 @@ A full-width text button: chevron (rotates 90° when open), title-weight label, 
 - **Do** use inline SVG icons (grip, close, chevron) in one consistent stroke.
 
 ### Don't:
-- **Don't** use both accent colors on one page, or settle the purple-vs-blue decision on your own. It's open.
+- **Don't** introduce new purple or blue. New and redesigned surfaces use sage. Don't mix sage with a legacy accent on one page.
 - **Don't** put layout styles on `body`/`#root`, or offset content by a hardcoded navbar height.
 - **Don't** add gradients, zero-offset glow shadows, or uppercase letter-spaced micro-labels to new work. They're legacy.
 - **Don't** use one card per item for lists of amounts. Use rows in a single list.
