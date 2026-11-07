@@ -39,6 +39,13 @@ Your paycheck from top to bottom: Gross Pay, then Pre-Tax (retirement and other 
 
 ![What If](docs/screenshots/what-if.png)
 
+### Contributions
+Plan how much to put in each paycheck to reach a yearly maximum, such as a 401k or Roth IRA. Add an account with its yearly maximum, enter what you've contributed so far and as of which paycheck (or **Start of year**, if nothing has gone in yet, so all 24 paychecks count), and choose the paycheck to reach the maximum by (the last one of the year by default). The **slider** picks how many of the remaining paychecks to contribute from, starting with the next one, and the amount per paycheck follows. You can also type an amount, or a percent with each account's **$ / %** switch: of gross pay for pre-tax accounts, and of net pay for post-tax ones like a Roth IRA. The note under the amount shows both percents. The lock icon makes the page read-only until you unlock it. **Split into periods** (up to three) gives different back-to-back stretches of paychecks different amounts, for example the last two at your employer match minimum and the rest spread over the earlier ones. Leave one amount empty and it takes whatever is left. **Paycheck by paycheck** shows each contribution and the running total. The arrow beside an account's name minimizes it to a one-line summary. **Apply to Paycheck…** copies the amount into your Paycheck page after showing what will change.
+
+![Contributions](docs/screenshots/contributions.png)
+
+![Contributions split into periods](docs/screenshots/contributions-periods.png)
+
 ### Credit Cards
 Each card's **Posted**, **Pending** and **Covered** amounts and the resulting balance. Click a Pending or Covered amount to list its individual transactions. **Cards vs bucket** compares the total owed with the money set aside for the cards (the bucket), and tells you how much to move or how much is spare. Locked by default, like Paycheck.
 
@@ -125,7 +132,7 @@ web-app/app/src/
   components/utils/api.js All calls to the backend
   components/whole-view/  One folder per page: Dashboard (Overview), Grid (Sinking Funds),
                           InfoPage (a goal), BudgetCategories (Paycheck), CreditCards,
-                          Settings, Login, Nav, Tools, plus SinkingFunds (shared parts)
+                          Contributions, Settings, Login, Nav, Tools, plus SinkingFunds (shared parts)
 ```
 
 ## API
@@ -142,4 +149,5 @@ Every route except `/`, `/login` and `/session` requires being logged in.
 | Bucket | `GET /get_ally_bank_balance`, `POST /update_ally_bank_balance` |
 | Paycheck | `GET /get_paycheck_settings`, `POST /update_paycheck_settings`; and for each of `budget_category`, `pre_tax_benefit`, `post_tax_contribution`, `post_tax_benefit`: `GET /get_*s`, `POST /add_*`, `POST /update_*`, `POST /update_*_order`, `DELETE /remove_*` |
 | Notes | `GET /get_notes`, `POST /update_notes` |
+| Contributions | `GET /contribution_plans`, `POST /add_contribution_plan`, `POST /update_contribution_plan`, `DELETE /remove_contribution_plan`, `GET /paydays?after=&through=` |
 | Export | `GET /export` (JSON), `GET /export_goals.csv` |

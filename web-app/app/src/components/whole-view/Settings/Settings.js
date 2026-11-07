@@ -132,6 +132,42 @@ export default function Settings() {
                 </dl>
             </Section>
 
+            <Section title="Contributions">
+                <dl className="st-rules">
+                    <Rule label="Left to contribute" detail="Your total is counted on the “as of” paycheck itself">
+                        Yearly maximum − Contributed so far
+                    </Rule>
+                    <Rule label="Paychecks in the plan" detail="Pick “Start of year” as the “as of” point to count all 24. The end defaults to the last paycheck of the year">
+                        After the “as of” paycheck, through the “reach it by” paycheck
+                    </Rule>
+                    <Rule label="Per paycheck" detail="Rounded up to the cent; the last one takes up the slack">
+                        Left to contribute ÷ paychecks chosen on the slider
+                    </Rule>
+                    <Rule label="Which paychecks" detail="The rest stay at $0 once you reach the maximum">
+                        The next ones, starting with the first after “as of”
+                    </Rule>
+                    <Rule label="Periods" detail="Up to three back-to-back stretches of paychecks, starting with the next one">
+                        Each has its own amount per paycheck
+                    </Rule>
+                    <Rule label="The rest" detail="Leave an amount empty: the open periods share what the fixed ones leave, and the last paycheck takes up any cents">
+                        Left to contribute − fixed amounts
+                    </Rule>
+                    <Rule label="Match minimum" detail="A reminder only: a period under it just gets a note, since a smaller contribution earns a smaller match">
+                        Match % × Gross Pay
+                    </Rule>
+                    <Rule label="Percent, pre-tax accounts" detail="The % switch uses gross pay">
+                        Per paycheck ÷ Gross Pay
+                    </Rule>
+                    <Rule label="Percent, post-tax accounts" detail="The % net switch uses net pay, since these come out of take-home pay. Net Pay is as on the Paycheck page">
+                        Per paycheck ÷ (Gross Pay − Pre-Tax − Taxes)
+                    </Rule>
+                    <Rule label="Percent note">Post-tax accounts also show the percent of gross pay</Rule>
+                    <Rule label="Yearly maximums" detail="They change every year, so you type them in">
+                        Entered by hand
+                    </Rule>
+                </dl>
+            </Section>
+
             <Section title="Credit Cards">
                 <dl className="st-rules">
                     <Rule label="Card balance">Posted + Pending − Covered</Rule>

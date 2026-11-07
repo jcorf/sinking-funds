@@ -44,7 +44,9 @@ from paycheck import saved_by_paycheck, save_per_paycheck
 from utils.utils import nowString, stringToDate, dateToString
 from database import get_notes, update_notes
 from database import (get_goal_spending, spend_from_goal, remove_goal_spending, delete_goal_spending_for,
-                      export_all_tables)
+                      export_all_tables,
+                      get_contribution_plans, add_contribution_plan, update_contribution_plan_field,
+                      delete_contribution_plan)
 from schedules.bimonthly import _remaining_paychecks as bimonthly_paycheck_dates
 from datetime import timedelta
 
@@ -312,6 +314,63 @@ def remove_goal_spending_route():
         return jsonify({"error": "No such entry"}), 404
     update_to_save_single(goal_id, 'id', get_start_date_args(data))
     return jsonify({"success": True})
+
+
+# CONTRIBUTION PLANNER
+
+@app.route('/paydays', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@login_required
+def paydays_route():
+    """Paydays after `after` (exclusive) through `through` (inclusive), or, if
+    `after` is omitted, from `through`'s January 1st. Dates are YYYY-MM-DD."""
+    try:
+        through = stringToDate(request.args.get('through') or '')
+        after = stringToDate(request.args['after']) if request.args.get('after') else None
+    except ValueError:
+        return jsonify({"error": "dates must look like 2026-12-31"}), 400
+    start = (after + timedelta(days=1)) if after else through.replace(month=1, day=1)
+    _, dates = bimonthly_paycheck_dates(start, through)
+    return jsonify({"data": [dateToString(d) for d in sorted(dates)]})
+
+
+@app.route('/contribution_plans', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@login_required
+def get_contribution_plans_route():
+    return jsonify({"data": get_contribution_plans()})
+
+
+@app.route('/add_contribution_plan', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def add_contribution_plan_route():
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    try:
+        annual_max = float(data.get('annual_max') or 0)
+    except (TypeError, ValueError):
+        annual_max = -1
+    if not name or annual_max < 0 or data.get('tax_type') not in ('pre', 'post'):
+        return jsonify({"error": "Give the account a name, a type and a yearly maximum."}), 400
+    plan_id = add_contribution_plan(name, data['tax_type'], annual_max, data.get('ytd_as_of'))
+    return jsonify({"id": plan_id})
+
+
+@app.route('/update_contribution_plan', methods=['POST'])
+@cross_origin(supports_credentials=True)
+@login_required
+def update_contribution_plan_route():
+    data = request.get_json() or {}
+    ok = update_contribution_plan_field(data.get('id'), data.get('field'), data.get('value'))
+    return jsonify({"success": ok}), (200 if ok else 400)
+
+
+@app.route('/remove_contribution_plan', methods=['DELETE'])
+@cross_origin(supports_credentials=True)
+@login_required
+def remove_contribution_plan_route():
+    return jsonify({"success": delete_contribution_plan((request.get_json() or {}).get('id'))})
 
 
 # EXPORT

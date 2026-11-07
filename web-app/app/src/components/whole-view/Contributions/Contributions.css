@@ -1,0 +1,858 @@
+/* Contribution planner. ct- prefixed: CRA loads every stylesheet everywhere.
+   Shares buttons, money inputs, selects and the progress bar from
+   SinkingFunds/GoalParts.css. */
+
+.ct-page {
+    box-sizing: border-box;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 24px 96px;
+    color: var(--sage-ink);
+}
+
+.ct-page *,
+.ct-page *::before,
+.ct-page *::after {
+    box-sizing: border-box;
+}
+
+.ct-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+/* Icon-only, like the Paycheck page's lock */
+/* Needs the extra class: .ct-pill, defined later, sets padding too */
+.ct-pill.ct-lock {
+    flex: none;
+    width: 36px;
+    margin-top: 14px;
+    padding: 0;
+}
+
+.ct-title {
+    margin: 8px 0 0;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 2.6rem;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+}
+
+.ct-lede {
+    max-width: 60ch;
+    margin: 10px 0 0;
+    line-height: 1.5;
+    color: var(--sage-ink-muted);
+}
+
+/* $ / % switch, one per account */
+.ct-unit {
+    display: inline-flex;
+    flex: none;
+    padding: 3px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: #fff;
+}
+
+.ct-unit button {
+    min-width: 40px;
+    height: 32px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--sage-ink-muted);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ct-unit button:hover {
+    color: var(--sage);
+}
+
+.ct-unit button.is-on {
+    background: var(--sage);
+    color: #fff;
+}
+
+.ct-unit button:focus-visible {
+    outline: 3px solid var(--sage-ring);
+    outline-offset: 1px;
+}
+
+/* ---------- Locked: read-only, reads like text ---------- */
+
+.ct-page .sf-money.is-disabled input,
+.ct-pct.is-disabled input {
+    border-color: transparent;
+    background: transparent;
+    color: var(--sage-ink);
+    cursor: default;
+}
+
+.ct-page select.sf-date:disabled {
+    border-color: transparent;
+    background-image: none;
+    background-color: transparent;
+    padding-left: 0;
+    color: var(--sage-ink);
+    opacity: 1;
+    cursor: default;
+}
+
+.ct-name:read-only:hover {
+    border-color: transparent;
+}
+
+.ct-range:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+/* ---------- Account card ---------- */
+
+.ct-card {
+    margin-top: 24px;
+    padding: 22px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(29, 42, 30, 0.04);
+}
+
+.ct-card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ct-collapse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    margin-left: -6px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--sage-ink-muted);
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.ct-collapse:hover,
+.ct-collapse:focus-visible {
+    background: var(--sage-tint);
+    color: var(--sage);
+    outline: none;
+}
+
+.ct-collapse svg {
+    transition: transform 0.2s ease;
+}
+
+.ct-collapse.is-collapsed svg {
+    transform: rotate(-90deg);
+}
+
+.ct-mini {
+    flex: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--sage-ink-muted);
+    white-space: nowrap;
+}
+
+.ct-name {
+    flex: 1;
+    min-width: 0;
+    padding: 2px 8px;
+    margin-left: -4px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    font-family: var(--serif);
+    font-size: 1.8rem;
+    line-height: 1.2;
+    color: var(--sage-ink);
+}
+
+.ct-name:hover {
+    border-color: var(--line-strong);
+}
+
+.ct-name:focus {
+    outline: none;
+    border-color: var(--sage);
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--sage-ring);
+}
+
+.ct-type {
+    flex: none;
+}
+
+.ct-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--sage-ink-muted);
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+/* Red only as the destructive hover/focus state (DESIGN.md) */
+.ct-icon-btn:hover,
+.ct-icon-btn:focus-visible {
+    color: var(--sage-error);
+    background: #fdf0ef;
+    outline: none;
+}
+
+.ct-confirm {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+}
+
+.ct-progress-block {
+    margin: 14px 0 20px;
+}
+
+.ct-card.is-collapsed .ct-progress-block {
+    margin-bottom: 0;
+}
+
+.ct-progress-text {
+    margin: 10px 0 0;
+    font-size: 0.95rem;
+    color: var(--sage-ink-muted);
+}
+
+.ct-progress-text strong {
+    color: var(--sage-ink);
+}
+
+.ct-fields {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px 20px;
+}
+
+.ct-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.ct-field > span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--sage-ink);
+}
+
+.ct-field .sf-money,
+.ct-field .sf-money input,
+.ct-field select.sf-date,
+.ct-field input.sf-date {
+    width: 100%;
+}
+
+/* Selects match the inputs, not the browser's gray dropdown */
+.ct-page select.sf-date {
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 0 32px 0 12px;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234d5a49' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    cursor: pointer;
+}
+
+.ct-field input.sf-date {
+    padding: 0 10px;
+}
+
+/* ---------- The plan ---------- */
+
+.ct-plan {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+}
+
+.ct-slider-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Quiet text-style action */
+.ct-link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--sage);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ct-link:hover,
+.ct-link:focus-visible {
+    text-decoration: underline;
+    outline: none;
+}
+
+.ct-slider-head label {
+    font-size: 1rem;
+}
+
+.ct-range {
+    display: block;
+    width: 100%;
+    height: 28px;
+    margin: 10px 0 2px;
+    accent-color: var(--sage);
+    cursor: pointer;
+}
+
+.ct-range:focus-visible {
+    outline: 3px solid var(--sage-ring);
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+
+.ct-slider-ends {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--sage-ink-muted);
+}
+
+.ct-result {
+    margin-top: 18px;
+    padding: 18px;
+    border-radius: 12px;
+    background: var(--sage-tint);
+}
+
+.ct-result-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 16px;
+}
+
+.ct-per {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+}
+
+.ct-per .sf-money input,
+.ct-pct input {
+    width: 150px;
+    height: 48px;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.ct-per-label {
+    font-size: 1.05rem;
+    color: var(--sage-ink-muted);
+}
+
+.ct-pct {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.ct-pct input {
+    box-sizing: border-box;
+    padding: 0 30px 0 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: #fff;
+    font-family: inherit;
+    color: var(--sage-ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ct-pct input:hover {
+    border-color: var(--sage);
+}
+
+.ct-pct input:focus {
+    outline: none;
+    border-color: var(--sage);
+    box-shadow: 0 0 0 3px var(--sage-ring);
+}
+
+.ct-pct-sign {
+    position: absolute;
+    right: 12px;
+    font-size: 1.2rem;
+    color: var(--sage-ink-muted);
+    pointer-events: none;
+}
+
+.ct-equals {
+    min-height: 1.4em;
+    margin: 8px 0 0;
+}
+
+.ct-summary {
+    margin: 12px 0 0;
+    line-height: 1.5;
+}
+
+.ct-fine {
+    margin: 4px 0 0;
+    font-size: 0.88rem;
+}
+
+.ct-details {
+    margin-top: 16px;
+}
+
+.ct-details summary {
+    display: inline-block;
+    padding: 4px 0;
+    color: var(--sage);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ct-table {
+    width: 100%;
+    margin-top: 10px;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.ct-table th {
+    padding: 9px 14px;
+    background: #f7f9f3;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: left;
+    color: var(--sage-ink-muted);
+}
+
+.ct-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line);
+}
+
+.ct-table tr:last-child td {
+    border-bottom: none;
+}
+
+.ct-table .ct-right {
+    text-align: right;
+}
+
+.ct-table .ct-skipped td {
+    color: var(--sage-ink-muted);
+}
+
+.ct-apply-btn {
+    margin-top: 14px;
+}
+
+/* Pill buttons, as on the Paycheck page (What If, Lock) */
+.ct-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--sage-ink-muted);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.ct-pill:hover:not(:disabled) {
+    border-color: var(--sage);
+    color: var(--sage);
+}
+
+.ct-pill:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.ct-pill:focus-visible {
+    outline: 3px solid var(--sage-ring);
+    outline-offset: 2px;
+}
+
+.ct-pill.is-primary {
+    border-color: var(--sage);
+    background: var(--sage);
+    color: #fff;
+}
+
+.ct-pill.is-primary:hover:not(:disabled) {
+    background: var(--sage-deep);
+    border-color: var(--sage-deep);
+    color: #fff;
+}
+
+/* Red only as the destructive state (DESIGN.md) */
+.ct-pill.is-danger {
+    border-color: var(--sage-error);
+    background: #fdf0ef;
+    color: var(--sage-error);
+}
+
+.ct-apply {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    background: #f7f9f3;
+    border: 1px solid var(--line);
+}
+
+.ct-apply .ct-field {
+    max-width: 340px;
+}
+
+.ct-apply-note {
+    margin: 12px 0 0;
+    line-height: 1.5;
+}
+
+.ct-ok {
+    color: var(--sage);
+    font-weight: 600;
+}
+
+.ct-apply-actions,
+.ct-add-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.ct-message {
+    margin: 20px 0 0;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--sage-tint);
+    line-height: 1.5;
+}
+
+.ct-error {
+    margin: 14px 0 0;
+    color: var(--sage-error);
+}
+
+/* ---------- Adding an account ---------- */
+
+.ct-empty {
+    margin: 28px 0 0;
+    color: var(--sage-ink-muted);
+}
+
+/* Same dashed "add" row as Add a goal */
+.ct-add-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 68px;
+    margin-top: 24px;
+    padding: 12px 16px;
+    border: 1.5px dashed #a9b79a;
+    border-radius: 14px;
+    background: transparent;
+    color: var(--sage);
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.ct-add-btn:hover,
+.ct-add-btn:focus-visible {
+    background: #f8faf4;
+    outline: none;
+}
+
+.ct-add-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--sage-tile);
+}
+
+.ct-add {
+    margin-top: 24px;
+    padding: 22px;
+    background: #fff;
+    border: 1px dashed var(--line-strong);
+    border-radius: 14px;
+}
+
+.ct-add .ct-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ct-add-title {
+    margin: 0 0 14px;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 1.4rem;
+}
+
+@media (max-width: 700px) {
+    .ct-page {
+        padding: 20px 16px 96px;
+    }
+
+    .ct-title {
+        font-size: 2rem;
+    }
+
+    .ct-card {
+        padding: 16px;
+    }
+
+    .ct-fields,
+    .ct-add .ct-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ct-name {
+        font-size: 1.45rem;
+    }
+
+    .ct-table th,
+    .ct-table td {
+        padding: 9px 10px;
+    }
+}
+
+@media (max-width: 460px) {
+    .ct-mini {
+        display: none;
+    }
+
+    .ct-add .ct-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---------- Periods ---------- */
+
+.ct-periods-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ct-periods-head h3 {
+    margin: 0;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 1.25rem;
+}
+
+.ct-periods-hint {
+    margin: 4px 0 14px;
+    font-size: 0.92rem;
+}
+
+.ct-match {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    margin-bottom: 14px;
+    font-size: 0.95rem;
+}
+
+.ct-match > span:first-child {
+    font-weight: 600;
+}
+
+.ct-small {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.ct-small input {
+    box-sizing: border-box;
+    width: 64px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: #fff;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: right;
+    color: var(--sage-ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ct-small:has(.ct-small-suffix) input {
+    padding-right: 24px;
+}
+
+.ct-small-suffix {
+    position: absolute;
+    right: 10px;
+    color: var(--sage-ink-muted);
+    pointer-events: none;
+}
+
+.ct-small input:hover {
+    border-color: var(--sage);
+}
+
+.ct-small input:focus {
+    outline: none;
+    border-color: var(--sage);
+    box-shadow: 0 0 0 3px var(--sage-ring);
+}
+
+.ct-small.is-disabled input {
+    border-color: transparent;
+    background: transparent;
+}
+
+.ct-period-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ct-period {
+    display: grid;
+    grid-template-columns: minmax(120px, 1.2fr) auto auto minmax(0, 1.4fr) auto;
+    align-items: end;
+    gap: 8px 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--sage-tint);
+}
+
+.ct-period-when {
+    align-self: center;
+    font-weight: 600;
+}
+
+.ct-period-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.ct-period-field .sf-money,
+.ct-period-field .sf-money input {
+    width: 130px;
+}
+
+.ct-period-result {
+    align-self: center;
+    min-width: 0;
+    font-size: 0.95rem;
+    color: var(--sage-ink-muted);
+}
+
+.ct-period-result strong {
+    color: var(--sage-ink);
+}
+
+.ct-period-remove {
+    align-self: center;
+}
+
+.ct-period-note {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.88rem;
+}
+
+.ct-add-period {
+    display: block;
+    margin-top: 12px;
+}
+
+.ct-status {
+    margin: 14px 0 0;
+    line-height: 1.5;
+}
+
+.ct-over {
+    color: var(--sage-error);
+}
+
+@media (max-width: 700px) {
+    .ct-period {
+        grid-template-columns: 1fr 1fr auto;
+    }
+
+    .ct-period-when {
+        grid-column: 1 / -1;
+    }
+
+    .ct-period-result {
+        grid-column: 1 / -1;
+    }
+
+    .ct-period-field .sf-money,
+    .ct-period-field .sf-money input {
+        width: 100%;
+    }
+}

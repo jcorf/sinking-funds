@@ -667,3 +667,79 @@ export async function getUpcomingPaydays(count = 6) {
         return null;
     }
 }
+
+// ---- Contribution planner --------------------------------------------------
+
+// Paydays from `after` (exclusive) through `through`, or from January 1st of
+// `through`'s year when `after` is omitted: ['YYYY-MM-DD', ...], or null.
+export async function getPaydays(through, after) {
+    try {
+        const keys = after ? ['after', 'through'] : ['through'];
+        const values = after ? [after, through] : [through];
+        const response = await fetch(url('/paydays', keys, values), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return (await response.json()).data || [];
+    } catch (error) {
+        console.error('Error fetching paydays:', error);
+        return null;
+    }
+}
+
+export async function getContributionPlans() {
+    try {
+        const response = await fetch(url('/contribution_plans'), {credentials: 'include'});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return (await response.json()).data || [];
+    } catch (error) {
+        console.error('Error fetching contribution plans:', error);
+        return null;
+    }
+}
+
+// Returns { id } on success or { error } with a message to show.
+export async function addContributionPlan({name, taxType, annualMax, ytdAsOf}) {
+    try {
+        const response = await fetch(url('/add_contribution_plan'), {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name, tax_type: taxType, annual_max: annualMax, ytd_as_of: ytdAsOf}),
+        });
+        const data = await response.json();
+        if (!response.ok) return {error: data.error || "That didn't save."};
+        return data;
+    } catch (error) {
+        console.error('Error adding contribution plan:', error);
+        return {error: "That didn't save. Check that the app's backend is running, then try again."};
+    }
+}
+
+export async function updateContributionPlan(id, field, value) {
+    try {
+        const response = await fetch(url('/update_contribution_plan'), {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id, field, value}),
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Error updating contribution plan:', error);
+        return false;
+    }
+}
+
+export async function removeContributionPlan(id) {
+    try {
+        const response = await fetch(url('/remove_contribution_plan'), {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id}),
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Error removing contribution plan:', error);
+        return false;
+    }
+}

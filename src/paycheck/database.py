@@ -1027,6 +1027,107 @@ def delete_goal_spending_for(goal_id):
 # Export: every table as plain rows, for a portable backup.
 # ---------------------------------------------------------------------------
 
+# CONTRIBUTION PLANS (401k / Roth IRA style yearly maximums)
+
+VALID_CONTRIBUTION_PLAN_FIELDS = {
+    "name", "tax_type", "annual_max", "ytd_amount", "ytd_as_of", "end_date", "num_paychecks", "apply_to",
+    "periods", "match_pct",
+}
+CONTRIBUTION_PLAN_COLUMNS = ["id", "name", "tax_type", "annual_max", "ytd_amount", "ytd_as_of",
+                             "end_date", "num_paychecks", "apply_to", "periods", "match_pct"]
+MAX_CONTRIBUTION_PERIODS = 3
+
+
+def setup_contribution_plans_database():
+    execute_query('''
+    CREATE TABLE IF NOT EXISTS contribution_plans (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        tax_type TEXT NOT NULL DEFAULT 'pre',
+        annual_max REAL NOT NULL DEFAULT 0,
+        ytd_amount REAL NOT NULL DEFAULT 0,
+        ytd_as_of TEXT,
+        end_date TEXT,
+        num_paychecks INTEGER,
+        apply_to TEXT,
+        periods TEXT,
+        match_pct REAL,
+        last_updated DATE NOT NULL
+    )
+    ''')
+    return True
+
+
+def ensure_contribution_plan_columns():
+    """Add the periods and match_pct columns to a table that predates them."""
+    existing = {row[1] for row in select_query("PRAGMA table_info(contribution_plans)")}
+    for column, kind in (("periods", "TEXT"), ("match_pct", "REAL")):
+        if column not in existing:
+            execute_query(f"ALTER TABLE contribution_plans ADD COLUMN {column} {kind}")
+
+
+def valid_contribution_periods(value):
+    """`periods` is NULL (use the slider) or JSON: up to three {count, amount}
+    objects, where amount is a dollar figure per paycheck or null for 'the rest'."""
+    if value is None:
+        return True
+    try:
+        periods = json.loads(value)
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(periods, list) or not 1 <= len(periods) <= MAX_CONTRIBUTION_PERIODS:
+        return False
+    for p in periods:
+        if not isinstance(p, dict) or not isinstance(p.get("count"), int) or p["count"] < 1:
+            return False
+        amount = p.get("amount")
+        if amount is not None and (isinstance(amount, bool) or not isinstance(amount, (int, float)) or amount < 0):
+            return False
+    return True
+
+
+def get_contribution_plans():
+    if not table_exists('contribution_plans'):
+        setup_contribution_plans_database()
+    ensure_contribution_plan_columns()
+    rows = select_query(f"SELECT {', '.join(CONTRIBUTION_PLAN_COLUMNS)} FROM contribution_plans ORDER BY id")
+    return [listToDict(row, CONTRIBUTION_PLAN_COLUMNS) for row in rows]
+
+
+def add_contribution_plan(name, tax_type, annual_max, ytd_as_of):
+    if tax_type not in ("pre", "post"):
+        return None
+    if not table_exists('contribution_plans'):
+        setup_contribution_plans_database()
+    ensure_contribution_plan_columns()
+    execute_query(
+        "INSERT INTO contribution_plans (name, tax_type, annual_max, ytd_as_of, last_updated) VALUES (?, ?, ?, ?, ?)",
+        name, tax_type, annual_max, ytd_as_of, nowString())
+    rows = select_query("SELECT MAX(id) FROM contribution_plans")
+    return rows[0][0]
+
+
+def update_contribution_plan_field(plan_id, field, value):
+    """`end_date`, `num_paychecks`, `apply_to`, `periods` and `match_pct` may be set back to NULL by passing None."""
+    if field not in VALID_CONTRIBUTION_PLAN_FIELDS:
+        return False
+    if field == "tax_type" and value not in ("pre", "post"):
+        return False
+    if field == "periods" and not valid_contribution_periods(value):
+        return False
+    if field == "match_pct" and value is not None and not (
+            isinstance(value, (int, float)) and not isinstance(value, bool) and 0 <= value <= 100):
+        return False
+    execute_query(f"UPDATE contribution_plans SET {field} = ?, last_updated = ? WHERE id = ?",
+                  value, nowString(), plan_id)
+    return True
+
+
+def delete_contribution_plan(plan_id):
+    execute_query("DELETE FROM contribution_plans WHERE id = ?", plan_id)
+    return True
+
+
 def export_all_tables():
     import sqlite3
     from utils.reference.database_constants import DATABASE_NAME

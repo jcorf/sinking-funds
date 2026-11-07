@@ -27,8 +27,10 @@ from database import (  # noqa: E402
     update_ally_bank_balance, update_covered_sub_balances, update_notes,
     update_paycheck_settings_field, update_pending_sub_balances,
     setup_goal_spending_database, spend_from_goal,
+    get_contribution_plans, add_contribution_plan, update_contribution_plan_field,
 )
 from paycheck import save_per_paycheck  # noqa: E402
+from schedules.bimonthly import _remaining_paychecks  # noqa: E402
 from utils.database_utils import execute_query  # noqa: E402
 
 today = date.today()
@@ -45,8 +47,9 @@ for getter in (get_all_data, get_all_credit_cards, get_all_budget_categories, ge
                get_ally_bank_balance, get_notes):
     getter()
 setup_goal_spending_database()
+get_contribution_plans()
 for table in ('savings', 'goal_spending', 'credit_cards', 'budget_categories', 'pre_tax_benefits',
-              'post_tax_contributions', 'post_tax_benefits'):
+              'post_tax_contributions', 'post_tax_benefits', 'contribution_plans'):
     execute_query(f"DELETE FROM {table}")
 
 # Sinking funds: (name, saved, goal, months until due, icon)
@@ -89,6 +92,16 @@ for name, amount in [('Sample: Rent', 1000), ('Sample: Groceries', 200), ('Sampl
 add_pre_tax_benefit('Sample: Health insurance', 75)
 add_post_tax_contribution('Sample: Roth IRA', 100)
 add_post_tax_benefit('Sample: Life insurance', 10)
+
+# Contribution plans: (name, tax type, yearly max, contributed so far)
+_, _paydays = _remaining_paychecks(date(today.year, 1, 1), today)
+last_payday = max(_paydays).isoformat() if _paydays else start
+for name, tax_type, annual_max, ytd in [
+    ('Sample: 401k', 'pre', 6000, 4000),
+    ('Sample: Roth IRA', 'post', 3000, 1000),
+]:
+    plan_id = add_contribution_plan(name, tax_type, annual_max, last_payday)
+    update_contribution_plan_field(plan_id, 'ytd_amount', ytd)
 
 update_notes("This is the TEST instance. Everything here is made-up sample data.")
 print(f"🌱 Seeded demo data into {target}")

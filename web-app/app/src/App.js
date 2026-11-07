@@ -12,6 +12,7 @@ import Login from "./components/whole-view/Login/Login";
 import ToolsDock from "./components/whole-view/Tools/ToolsDock";
 import NavBar from "./components/whole-view/Nav/NavBar";
 import Settings from "./components/whole-view/Settings/Settings";
+import Contributions from "./components/whole-view/Contributions/Contributions";
 import {isTestEnv} from "./components/utils/lib";
 import {getSession, logout} from "./components/utils/api";
 
@@ -67,6 +68,7 @@ export default function App() {
                         <Route path='/dashboard' element={<Dashboard/>}/>
                         <Route path='/credit-cards' element={<CreditCards/>}/>
                         <Route path='/budget-categories' element={<BudgetCategories/>}/>
+                        <Route path='/contributions' element={<Contributions/>}/>
                         <Route path='/settings' element={<Settings/>}/>
                     </Routes>
                 </div>
