@@ -532,13 +532,13 @@ const CreditCards = () => {
         <h1>Credit Cards</h1>
         <button
           type="button"
-          className={`cc-lock ${locked ? '' : 'is-unlocked'}`}
+          className={`cc-lock cc-lock-icon ${locked ? '' : 'is-unlocked'}`}
           onClick={toggleLocked}
           aria-pressed={!locked}
+          aria-label={locked ? 'Unlock to edit' : 'Lock'}
           title={locked ? 'Unlock to edit balances, transactions, and cards' : 'Lock to show a clean read-only view'}
         >
-          {locked ? <Lock size={15} aria-hidden="true" /> : <LockOpen size={15} aria-hidden="true" />}
-          {locked ? 'Unlock to edit' : 'Lock'}
+          {locked ? <Lock size={17} aria-hidden="true" /> : <LockOpen size={17} aria-hidden="true" />}
         </button>
       </header>
 

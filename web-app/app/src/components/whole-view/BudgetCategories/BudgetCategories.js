@@ -702,13 +702,13 @@ const BudgetCategories = () => {
         </button>
         <button
           type="button"
-          className={`bc-lock ${locked ? '' : 'is-unlocked'}`}
+          className={`bc-lock bc-lock-icon ${locked ? '' : 'is-unlocked'}`}
           onClick={toggleLocked}
           aria-pressed={!locked}
+          aria-label={locked ? 'Unlock to edit' : 'Lock'}
           title={locked ? 'Unlock to edit amounts, reorder, add or delete' : 'Lock to show a clean read-only view'}
         >
-          {locked ? <Lock size={15} aria-hidden="true" /> : <LockOpen size={15} aria-hidden="true" />}
-          {locked ? 'Unlock to Edit' : 'Lock'}
+          {locked ? <Lock size={17} aria-hidden="true" /> : <LockOpen size={17} aria-hidden="true" />}
         </button>
         </div>
       </header>

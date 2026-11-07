@@ -95,6 +95,13 @@
   color: #fff;
 }
 
+/* Icon only (label on hover and for screen readers) */
+.bc-lock.bc-lock-icon {
+  justify-content: center;
+  width: 36px;
+  padding: 0;
+}
+
 .bc-lock:focus-visible {
   outline: 3px solid var(--sage-ring);
   outline-offset: 2px;

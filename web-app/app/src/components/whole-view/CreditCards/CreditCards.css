@@ -86,6 +86,13 @@
   color: #fff;
 }
 
+/* Icon only (label on hover and for screen readers) */
+.cc-lock.cc-lock-icon {
+  justify-content: center;
+  width: 36px;
+  padding: 0;
+}
+
 .cc-lock:focus-visible {
   outline: 3px solid var(--sage-ring);
   outline-offset: 2px;
