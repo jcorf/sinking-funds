@@ -60,3 +60,23 @@
     color: white;
 }
 
+
+/* Test instance (start_test.sh): make it impossible to mistake for real data */
+.topnav.test-env {
+    background-color: #b45309;
+}
+
+.test-env-badge {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    z-index: 2000;
+    background-color: #b45309;
+    color: #fff;
+    font-weight: bold;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    padding: 6px 12px;
+    border-radius: 4px;
+    pointer-events: none;
+}

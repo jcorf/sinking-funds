@@ -8,6 +8,12 @@ from flask_login import login_required, login_user, logout_user, current_user
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 
+# Browsers scope cookies by host, not port, so a test instance on :5002 and
+# the real one on :5001 would overwrite each other's session cookie if both
+# used Flask's default name. Each instance gets its own.
+app.config['SESSION_COOKIE_NAME'] = os.environ.get("SESSION_COOKIE_NAME", "session")
+app.config['REMEMBER_COOKIE_NAME'] = os.environ.get("REMEMBER_COOKIE_NAME", "remember_token")
+
 # CORS is only needed in local dev, where the React dev server (:3000) and
 # Flask (:5000) are different origins. In production Flask serves the built
 # frontend itself, so requests are same-origin and CORS is not needed.
@@ -584,6 +590,9 @@ def update_post_tax_benefit_order_route():
 # @app.route('/updatePaycheckFrequency, methods=["POST"])
 
 if __name__ == '__main__':
-    # Port 5001, not 5000: macOS's AirPlay Receiver squats on 5000 by default
-    # and will intermittently steal connections meant for this server.
-    app.run(debug=True, port=5001)
+    # Default port 5001, not 5000: macOS's AirPlay Receiver squats on 5000 by
+    # default and will intermittently steal connections meant for this server.
+    from utils.reference.database_constants import DATABASE_NAME
+    port = int(os.environ.get("PORT", 5001))
+    print(f"Using database: {DATABASE_NAME}")
+    app.run(debug=True, port=port)
