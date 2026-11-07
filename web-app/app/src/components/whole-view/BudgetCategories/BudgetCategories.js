@@ -598,7 +598,7 @@ const BudgetCategories = () => {
               <ul className="bc-list">{fieldRow('pre_tax_retirement', 'bc-pre-tax-retirement', 'Retirement')}</ul>
               <SetupSection
                 id="pre-tax-benefits"
-                label="Contributions"
+                label="Other Contributions"
                 total={preTaxBenefits.loaded ? preTaxBenefits.total : null}
                 collapsed={!!collapsed.preTaxBenefits}
                 onToggle={() => toggleCollapsed('preTaxBenefits')}
