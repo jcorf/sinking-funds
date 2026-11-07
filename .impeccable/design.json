@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T20:30:00-05:00",
+  "title": "Design System: Sinking Funds",
+  "extensions": {
+    "colorMeta": {
+      "accent-purple": { "role": "primary", "displayName": "Ledger Purple", "canonical": "#6f42c1", "tonalRamp": ["#2a1550", "#3d1f73", "#522a98", "#6f42c1", "#8c68d0", "#ab91de", "#cdbdec", "#f3eefb"] },
+      "accent-blue": { "role": "primary", "displayName": "Savings Blue", "canonical": "#007bff", "tonalRamp": ["#00224a", "#003a7a", "#0056b3", "#007bff", "#3d9bff", "#7cbcff", "#bcdcff", "#eaf4ff"] },
+      "over-red": { "role": "semantic", "displayName": "Over-Budget Red", "canonical": "#c92a2a", "tonalRamp": ["#4a0f0f", "#7a1818", "#a42222", "#c92a2a", "#e05454", "#ec8a8a", "#f6c4c4", "#fff5f5"] },
+      "nav-charcoal": { "role": "neutral", "displayName": "Charcoal", "canonical": "#333333" },
+      "nav-active-green": { "role": "semantic", "displayName": "Nav Active Green", "canonical": "#04aa6d" },
+      "test-amber": { "role": "semantic", "displayName": "Test Amber", "canonical": "#b45309" },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#212529", "tonalRamp": ["#212529", "#343a40", "#495057", "#6c757d", "#adb5bd", "#ced4da", "#e9ecef", "#f8f9fa"] },
+      "page": { "role": "neutral", "displayName": "Table Gray", "canonical": "#f2f2f2" },
+      "surface": { "role": "neutral", "displayName": "Paper", "canonical": "#ffffff" }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "Centered page title, one per page." },
+      "title": { "displayName": "Title", "purpose": "Section headings, with the section total on the right." },
+      "body": { "displayName": "Body", "purpose": "Row names and input values." },
+      "label": { "displayName": "Label", "purpose": "Small sentence-case labels above values." },
+      "figure": { "displayName": "Figure", "purpose": "The one result number on a page (Leftover). Tabular." }
+    },
+    "shadows": [
+      { "name": "resting", "value": "0 1px 2px rgba(33, 37, 41, 0.04)", "purpose": "Lists and panels at rest." },
+      { "name": "pinned", "value": "0 6px 20px rgba(33, 37, 41, 0.06)", "purpose": "The pinned results panel." },
+      { "name": "floating-up", "value": "0 -6px 24px rgba(33, 37, 41, 0.12)", "purpose": "Bottom results bar on narrow screens." },
+      { "name": "floating-drag", "value": "0 12px 28px rgba(33, 37, 41, 0.18)", "purpose": "A row being dragged." },
+      { "name": "focus-ring", "value": "0 0 0 3px rgba(111, 66, 193, 0.18)", "purpose": "Focused money input." }
+    ],
+    "motion": [
+      { "name": "state", "value": "0.15s ease", "purpose": "Hover/focus color, border and opacity changes." },
+      { "name": "chevron", "value": "0.2s cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Collapsible chevron rotation." }
+    ],
+    "breakpoints": [
+      { "name": "narrow", "value": "900px", "purpose": "Below this, single column and the results panel becomes a bottom bar." },
+      { "name": "mobile", "value": "768px", "purpose": "Legacy page-level breakpoint on older pages." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Money Input",
+      "kind": "input",
+      "refersTo": "money-input",
+      "description": "Dollar amount field: muted $ prefix, right-aligned tabular value, purple focus.",
+      "html": "<span class=\"ds-money\"><span class=\"ds-money-sign\">$</span><input class=\"ds-money-input\" type=\"text\" inputmode=\"decimal\" value=\"250.00\" aria-label=\"Groceries per paycheck\"></span>",
+      "css": ".ds-money { position: relative; display: inline-flex; align-items: center; font-family: Arial, sans-serif; } .ds-money-sign { position: absolute; left: 11px; color: #6c757d; pointer-events: none; } .ds-money-input { width: 132px; height: 38px; padding: 0 12px 0 24px; border: 1px solid #dee2e6; border-radius: 6px; background: #fff; font: inherit; font-size: 1rem; font-weight: 500; color: #212529; text-align: right; font-variant-numeric: tabular-nums; transition: border-color 0.15s ease, box-shadow 0.15s ease; } .ds-money-input:hover { border-color: #c5b3e6; } .ds-money-input:focus, .ds-money-input:focus-visible { outline: none; border-color: #6f42c1; box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.18); }"
+    },
+    {
+      "name": "Amount List",
+      "kind": "custom",
+      "refersTo": "list-row",
+      "description": "Rows of name + amount inside one white list, with an add row at the end.",
+      "html": "<ul class=\"ds-list\"><li class=\"ds-row\"><button class=\"ds-drag\" aria-label=\"Reorder Rent\"><svg width=\"12\" height=\"16\" viewBox=\"0 0 12 16\"><circle cx=\"3\" cy=\"3\" r=\"1.4\"/><circle cx=\"9\" cy=\"3\" r=\"1.4\"/><circle cx=\"3\" cy=\"8\" r=\"1.4\"/><circle cx=\"9\" cy=\"8\" r=\"1.4\"/><circle cx=\"3\" cy=\"13\" r=\"1.4\"/><circle cx=\"9\" cy=\"13\" r=\"1.4\"/></svg></button><span class=\"ds-row-name\">Rent</span><span class=\"ds-row-amt\">$ 900.00</span><button class=\"ds-delete\" aria-label=\"Delete Rent\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\"><path d=\"M2 2l8 8M10 2l-8 8\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\"/></svg></button></li><li class=\"ds-row\"><button class=\"ds-drag\" aria-label=\"Reorder Groceries\"><svg width=\"12\" height=\"16\" viewBox=\"0 0 12 16\"><circle cx=\"3\" cy=\"3\" r=\"1.4\"/><circle cx=\"9\" cy=\"3\" r=\"1.4\"/><circle cx=\"3\" cy=\"8\" r=\"1.4\"/><circle cx=\"9\" cy=\"8\" r=\"1.4\"/><circle cx=\"3\" cy=\"13\" r=\"1.4\"/><circle cx=\"9\" cy=\"13\" r=\"1.4\"/></svg></button><span class=\"ds-row-name\">Groceries</span><span class=\"ds-row-amt\">$ 250.00</span><button class=\"ds-delete\" aria-label=\"Delete Groceries\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\"><path d=\"M2 2l8 8M10 2l-8 8\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\"/></svg></button></li><li class=\"ds-add\"><input placeholder=\"Add a category…\" aria-label=\"Add a category\"></li></ul>",
+      "css": ".ds-list { list-style: none; margin: 0; padding: 0; width: 420px; background: #fff; border: 1px solid #e9ecef; border-radius: 10px; box-shadow: 0 1px 2px rgba(33,37,41,0.04); font-family: Arial, sans-serif; overflow: hidden; } .ds-row { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 6px 8px 6px 4px; border-bottom: 1px solid #e9ecef; transition: background-color 0.15s ease; } .ds-row:hover, .ds-row:focus-within { background: #fcfbfe; } .ds-drag { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 36px; border: none; border-radius: 6px; background: transparent; color: #ced4da; fill: currentColor; cursor: grab; } .ds-drag:hover, .ds-drag:focus-visible { color: #6f42c1; background: #f3eefb; outline: none; } .ds-row-name { flex: 1; font-weight: 500; color: #212529; } .ds-row-amt { font-variant-numeric: tabular-nums; font-weight: 500; color: #212529; padding: 0 8px; } .ds-delete { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 1px solid transparent; border-radius: 50%; background: transparent; color: #6c757d; cursor: pointer; opacity: 0; transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease; } .ds-row:hover .ds-delete, .ds-row:focus-within .ds-delete { opacity: 1; } .ds-delete:hover, .ds-delete:focus-visible { color: #c92a2a; background: #fff5f5; border-color: #ffc9c9; outline: none; } .ds-add input { display: block; width: 100%; height: 48px; padding: 0 16px 0 40px; border: none; background: transparent; font: inherit; color: #212529; box-sizing: border-box; } .ds-add input:focus { outline: none; background: #f3eefb; }"
+    },
+    {
+      "name": "Results Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Signature component: the pinned 'This paycheck' math ending in one large figure.",
+      "html": "<aside class=\"ds-math\"><h2 class=\"ds-math-title\">This paycheck</h2><dl class=\"ds-math-list\"><div class=\"ds-line\"><dt>Gross pay</dt><dd>$3,200.00</dd></div><div class=\"ds-line\"><dt><span class=\"ds-op\">−</span>Pre-tax</dt><dd>$326.20</dd></div><div class=\"ds-line\"><dt><span class=\"ds-op\">−</span>Taxes</dt><dd>$610.00</dd></div><div class=\"ds-line ds-sub\"><dt>Available to budget</dt><dd>$2,263.80</dd></div><div class=\"ds-line\"><dt><span class=\"ds-op\">−</span>Categories</dt><dd>$1,590.50</dd></div></dl><div class=\"ds-leftover\"><div class=\"ds-leftover-label\">Leftover</div><div class=\"ds-leftover-value\">$673.30</div></div></aside>",
+      "css": ".ds-math { width: 320px; padding: 20px; background: #fff; border: 1px solid #e9ecef; border-radius: 12px; box-shadow: 0 6px 20px rgba(33,37,41,0.06); font-family: Arial, sans-serif; color: #212529; box-sizing: border-box; } .ds-math-title { margin: 0 0 14px; font-size: 1rem; font-weight: 700; } .ds-math-list { margin: 0; } .ds-line { display: flex; justify-content: space-between; padding: 5px 0; } .ds-line dt { color: #495057; } .ds-line dd { margin: 0; font-variant-numeric: tabular-nums; } .ds-op { display: inline-block; width: 1.1em; color: #6c757d; } .ds-sub { margin: 6px 0; padding: 9px 0; border-top: 1px solid #dee2e6; border-bottom: 1px solid #dee2e6; } .ds-sub dt, .ds-sub dd { font-weight: 700; color: #212529; } .ds-leftover { margin-top: 16px; padding-top: 16px; border-top: 2px solid #212529; } .ds-leftover-label { font-size: 0.95rem; font-weight: 600; color: #495057; } .ds-leftover-value { font-size: 2.25rem; font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; color: #6f42c1; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Collapsible Section Header",
+      "kind": "custom",
+      "description": "Full-width toggle: chevron, label, and the section total that stays visible when collapsed.",
+      "html": "<button class=\"ds-toggle\" aria-expanded=\"true\"><span class=\"ds-chev\"><svg width=\"10\" height=\"10\" viewBox=\"0 0 10 10\"><path d=\"M3.5 1.5L7 5l-3.5 3.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span><span class=\"ds-toggle-label\">Pre-tax benefits</span><span class=\"ds-toggle-total\">$134.20</span></button>",
+      "css": ".ds-toggle { display: flex; align-items: center; gap: 8px; width: 420px; padding: 8px 4px; border: none; border-radius: 6px; background: transparent; font-family: Arial, sans-serif; font-size: 1rem; color: #212529; text-align: left; cursor: pointer; } .ds-toggle:hover .ds-toggle-label { color: #6f42c1; } .ds-toggle:focus-visible { outline: 2px solid #6f42c1; outline-offset: 2px; } .ds-chev { display: inline-flex; color: #6c757d; transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1); } .ds-toggle[aria-expanded=\"true\"] .ds-chev { transform: rotate(90deg); } .ds-toggle-label { flex: 1; font-weight: 600; transition: color 0.15s ease; } .ds-toggle-total { font-weight: 600; color: #495057; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Navigation Bar",
+      "kind": "nav",
+      "refersTo": "nav-bar",
+      "description": "Sticky charcoal bar; light links, gray hover, green active; amber on the test instance.",
+      "html": "<div class=\"ds-nav\"><nav><a class=\"ds-nav-link\" href=\"#\">Dashboard</a><a class=\"ds-nav-link is-active\" href=\"#\">Budget Categories</a><a class=\"ds-nav-link\" href=\"#\">Credit Cards</a></nav><a class=\"ds-nav-link ds-logout\" href=\"#\">Log out</a></div>",
+      "css": ".ds-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; background: #333; font-family: Arial, sans-serif; } .ds-nav-link { display: inline-block; padding: 14px 16px; color: #f2f2f2; font-size: 17px; text-decoration: none; } .ds-nav-link:hover, .ds-nav-link:focus-visible { background: #ddd; color: #000; outline: none; } .ds-nav-link.is-active { background: #04aa6d; color: #fff; } .ds-logout { margin-left: auto; text-decoration: underline; }"
+    },
+    {
+      "name": "Primary Button (legacy)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Recalculate's button. Predates the redesign; new primary buttons drop the gradient and lift.",
+      "html": "<button class=\"ds-btn-primary\">Recalculate</button>",
+      "css": ".ds-btn-primary { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: #fff; padding: 12px 24px; border: none; border-radius: 8px; font-family: Arial, sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; min-width: 140px; box-shadow: 0 4px 12px rgba(0,123,255,0.3); transition: all 0.3s ease; } .ds-btn-primary:hover { background: linear-gradient(135deg, #0056b3 0%, #004085 100%); transform: translateY(-2px); } .ds-btn-primary:focus-visible { outline: 2px solid #0056b3; outline-offset: 2px; } .ds-btn-primary:active { transform: translateY(0); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Kitchen-Table Planner",
+    "overview": "The app should feel like sitting down at your own kitchen table on payday with a notepad and a calculator: personal, unhurried and approachable, never corporate or bank-like. It's your money in your words (\"bucket\", \"leftover\", \"covered\"), laid out so you can see the whole paycheck at a glance and trust the arithmetic without checking it twice. The visual system is mid-redesign: the Budget Categories page is the reference for the new direction, and older pages move toward it as they're touched. The warmth comes from plain language, generous spacing, and copy that talks to you, not from invented warm colors or decoration.",
+    "keyCharacteristics": [
+      "Light gray page (`page`) with white panels; one accent at a time on any given page",
+      "Lists of rows (name on the left, money input on the right), not one card per item",
+      "Money always in tabular figures, right-aligned, with a muted `$` sign",
+      "The result of every calculation is visible without scrolling (a pinned panel, or a bottom bar on narrow screens)",
+      "Plain-language states for good and bad outcomes (\"Over budget by\", \"Every dollar is assigned\")"
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Each page uses exactly one accent color. Red appears only when something is actually wrong.", "section": "colors" },
+      { "name": "The Words-Not-Just-Red Rule", "body": "A bad state always changes the label too (\"Over budget by $42.10\"), not just the color.", "section": "colors" },
+      { "name": "The Tabular Money Rule", "body": "Every money value uses tabular figures (`font-variant-numeric: tabular-nums`) and lines up on the right, so columns of amounts can be scanned.", "section": "typography" },
+      { "name": "The Sentence Case Rule", "body": "Labels are sentence case (\"Pre-tax benefits\"). The older uppercase, letter-spaced micro-labels (\"POSTED\", \"AMOUNT PER PAYCHECK\") are legacy and shouldn't be copied into new work.", "section": "typography" },
+      { "name": "The Zoom-Proof Rule", "body": "No layout styles (flex centering, `height: 100vh`) on `body` or `#root`, and no hardcoded navbar offsets. Every page must stay fully reachable at 200% zoom.", "section": "layout" },
+      { "name": "The Earned Shadow Rule", "body": "A shadow means the thing is above the page: pinned, dragged or open. Shadows don't signal hover. The older zero-offset blue hover glow (`0 0 8px rgb(0,140,255)`) is legacy and shouldn't spread.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do follow the Budget Categories page for new or redesigned pages: rows inside one list, money inputs, results pinned beside the work.",
+      "Do use tabular figures and right-alignment for every money value.",
+      "Do say the state in words (\"Over budget by $42.10\", \"Every dollar is assigned\") as well as with color.",
+      "Do prefix page-specific CSS classes (for example `bc-`). Create React App loads every stylesheet on every page, so unprefixed names like `.drag-handle` leak between pages.",
+      "Do check every page at 200% zoom and below 900px wide.",
+      "Do use inline SVG icons (grip, close, chevron) in one consistent stroke."
+    ],
+    "donts": [
+      "Don't use both accent colors on one page, or settle the purple-vs-blue decision on your own. It's open.",
+      "Don't put layout styles on `body`/`#root`, or offset content by a hardcoded navbar height.",
+      "Don't add gradients, zero-offset glow shadows, or uppercase letter-spaced micro-labels to new work. They're legacy.",
+      "Don't use one card per item for lists of amounts. Use rows in a single list.",
+      "Don't use test amber anywhere except the test instance's indicators.",
+      "Don't put real financial figures in screenshots, fixtures or examples. Use mock numbers."
+    ]
+  }
+}

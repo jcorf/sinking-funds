@@ -1,0 +1,248 @@
+---
+name: Sinking Funds
+description: A personal, paycheck-by-paycheck money planner.
+colors:
+  accent-purple: "#6f42c1"
+  accent-purple-soft: "#f3eefb"
+  accent-blue: "#007bff"
+  accent-blue-deep: "#0056b3"
+  over-red: "#c92a2a"
+  over-red-soft: "#fff5f5"
+  debt-red: "#dc3545"
+  debt-red-soft: "#ffe6e6"
+  nav-charcoal: "#333333"
+  nav-active-green: "#04aa6d"
+  test-amber: "#b45309"
+  ink: "#212529"
+  ink-secondary: "#495057"
+  ink-muted: "#6c757d"
+  line: "#e9ecef"
+  line-strong: "#dee2e6"
+  surface: "#ffffff"
+  surface-muted: "#f8f9fa"
+  page: "#f2f2f2"
+typography:
+  headline:
+    fontFamily: "Arial, sans-serif"
+    fontSize: "2em"
+    fontWeight: 700
+  title:
+    fontFamily: "Arial, sans-serif"
+    fontSize: "1.25rem"
+    fontWeight: 700
+  body:
+    fontFamily: "Arial, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 500
+    lineHeight: 1.35
+  label:
+    fontFamily: "Arial, sans-serif"
+    fontSize: "0.8rem"
+    fontWeight: 600
+  figure:
+    fontFamily: "Arial, sans-serif"
+    fontSize: "2.25rem"
+    fontWeight: 700
+    lineHeight: 1.15
+    letterSpacing: "-0.01em"
+    fontFeature: "tnum"
+rounded:
+  sm: "6px"
+  md: "8px"
+  lg: "10px"
+  xl: "12px"
+  full: "50%"
+spacing:
+  xs: "4px"
+  sm: "8px"
+  md: "16px"
+  lg: "24px"
+  xl: "32px"
+  xxl: "48px"
+components:
+  money-input:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+    height: "38px"
+    width: "132px"
+  list-row:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    height: "52px"
+  panel:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.xl}"
+    padding: "20px"
+  nav-bar:
+    backgroundColor: "{colors.nav-charcoal}"
+    textColor: "#f2f2f2"
+    padding: "14px 16px"
+  nav-bar-test:
+    backgroundColor: "{colors.test-amber}"
+    textColor: "#ffffff"
+  button-primary:
+    backgroundColor: "{colors.accent-blue}"
+    textColor: "{colors.surface}"
+    rounded: "{rounded.md}"
+    padding: "12px 24px"
+  balance-chip:
+    backgroundColor: "{colors.debt-red-soft}"
+    textColor: "{colors.debt-red}"
+    rounded: "{rounded.md}"
+    padding: "8px 12px"
+---
+
+# Design System: Sinking Funds
+
+## Overview
+
+**Creative North Star: "The Kitchen-Table Planner"**
+
+The app should feel like sitting down at your own kitchen table on payday with a notepad and a calculator: personal, unhurried and approachable, never corporate or bank-like. It's your money in your words ("bucket", "leftover", "covered"), laid out so you can see the whole paycheck at a glance and trust the arithmetic without checking it twice.
+
+The visual system is **mid-redesign**. The **Budget Categories** page (`components/whole-view/BudgetCategories/`) is the reference for the new direction:
+- one calm list per job, on white panels over a light gray page
+- the running math pinned beside the work
+- numbers in tabular figures
+- a single large "result" figure
+
+The other pages still use the older, more decorative style: gradient buttons, hover glows, uppercase micro-labels, each page with its own card treatment. New work follows the Budget Categories direction, and older pages move toward it as they're touched.
+
+The North Star is the target. The current neutrals are cool Bootstrap grays, and nothing warmer has been chosen yet. Don't invent warm colors, illustrations or handwriting fonts to fake the feeling. The warmth comes from plain language, generous spacing, and copy that talks to you ("Every dollar is assigned.").
+
+**Key Characteristics:**
+- Light gray page (`page`) with white panels; one accent at a time on any given page
+- Lists of rows (name on the left, money input on the right), not one card per item
+- Money always in tabular figures, right-aligned, with a muted `$` sign
+- The result of every calculation is visible without scrolling (a pinned panel, or a bottom bar on narrow screens)
+- Plain-language states for good and bad outcomes ("Over budget by", "Every dollar is assigned")
+
+## Colors
+
+A neutral gray base with one saturated accent per page. Which accent becomes the single app-wide color is undecided.
+
+### Primary
+- **Ledger Purple** (`accent-purple`): the accent on Credit Cards and Budget Categories. Used for focus rings, input focus borders, the drag handle on hover, the Leftover figure, and links. Its soft tint (`accent-purple-soft`) is the hover and focus wash behind small controls.
+- **Savings Blue** (`accent-blue`, deeper `accent-blue-deep`): the accent on Sinking Funds, Dashboard, InfoPage and Recalculate. Used for progress bars, the Recalculate button, and focus states on those pages.
+
+> **Open decision:** purple vs blue as the single app-wide accent is undecided while the redesign is in progress. Until it's decided, keep each page on its existing accent and never use both on one page.
+
+### Semantic
+- **Over-Budget Red** (`over-red`, tint `over-red-soft`): only for a negative result (Leftover below zero) and destructive hover states such as the delete button. Always paired with words, never color alone.
+- **Debt Red** (`debt-red`, tint `debt-red-soft`): the older Credit Cards balance chip. It's legacy; prefer Over-Budget Red in new work.
+- **Nav Active Green** (`nav-active-green`): the active-link state in the navbar and on the login button.
+- **Test Amber** (`test-amber`): reserved for the test instance's navbar and "TEST DATA" badge. Never use it for anything else, so it can't be mistaken for real data.
+
+### Neutral
+- **Ink** (`ink`): primary text, row names, totals.
+- **Slate** (`ink-secondary`): secondary text, labels in the math panel.
+- **Muted Slate** (`ink-muted`): hints, the `$` sign, units ("per paycheck"), notes under results.
+- **Hairline** (`line`): row dividers and panel borders.
+- **Firm Hairline** (`line-strong`): input borders and subtotal rules.
+- **Paper** (`surface`): panels, lists, inputs.
+- **Soft Paper** (`surface-muted`): the older card fill on Credit Cards and some summary boxes.
+- **Table Gray** (`page`): the page background.
+- **Charcoal** (`nav-charcoal`): the navbar.
+
+**The One Accent Rule.** Each page uses exactly one accent color. Red appears only when something is actually wrong.
+
+**The Words-Not-Just-Red Rule.** A bad state always changes the label too ("Over budget by $42.10"), not just the color.
+
+## Typography
+
+**Body Font:** Arial (with sans-serif fallback). It's set on `body` in `InfoCard.css` and `AddCard.css`, and overrides the system-font stack in `index.css`.
+
+**Character:** one plain, familiar sans for everything. Hierarchy comes from size and weight, not from mixing typefaces.
+
+### Hierarchy
+- **Headline** (700, 2em): the centered page title (`h1`), one per page.
+- **Title** (700, 1.25rem): section headings such as "Categories" and "Paycheck setup", left-aligned, with the section's total on the right of the same line.
+- **Body** (500, 1rem, line-height 1.35): row names and input values.
+- **Label** (600, 0.8–0.95rem): small labels above values, like "Leftover" or "Available" in the bottom bar. Sentence case.
+- **Figure** (700, 2.25rem, tabular): the one result number on a page, such as Leftover.
+
+**The Tabular Money Rule.** Every money value uses tabular figures (`font-variant-numeric: tabular-nums`) and lines up on the right, so columns of amounts can be scanned.
+
+**The Sentence Case Rule.** Labels are sentence case ("Pre-tax benefits"). The older uppercase, letter-spaced micro-labels ("POSTED", "AMOUNT PER PAYCHECK") are legacy and shouldn't be copied into new work.
+
+## Layout
+
+- **Width:** content is centered with a max width of about 1100–1200px and 24px side padding (16px on narrow screens).
+- **Work page pattern:** a two-column grid, with the working list in a flexible main column and a 320px results panel on the right that stays pinned 72px from the top (clearing the sticky navbar). Columns are 32px apart.
+- **Spacing rhythm:** 4 / 8 / 16 / 24 / 32 / 48px. 48px separates major sections; 12–20px separates a heading from its list or from collapsible sub-sections.
+- **Rows:** at least 52px tall, with a 1px hairline between them and no gap. A list reads as one object.
+- **Narrow or zoomed in (below 900px):** a single column. The results panel turns into a bar pinned to the bottom of the screen that expands when tapped, and the page gets extra bottom padding so the bar never covers the last row.
+- **Navbar:** sticky (never `position: fixed` with a hardcoded offset) and wraps onto two lines when the window is narrow.
+
+**The Zoom-Proof Rule.** No layout styles (flex centering, `height: 100vh`) on `body` or `#root`, and no hardcoded navbar offsets. Every page must stay fully reachable at 200% zoom.
+
+## Elevation & Depth
+
+A mostly flat system: depth comes from white panels on the light gray page, plus very soft, low shadows. Stronger shadows are for things that genuinely float.
+
+- **Resting** (`0 1px 2px rgba(33,37,41,0.04)`): lists and panels at rest. Barely there; the border does most of the work.
+- **Pinned** (`0 6px 20px rgba(33,37,41,0.06)`): the pinned results panel.
+- **Floating** (`0 -6px 24px rgba(33,37,41,0.12)` upward, `0 12px 28px rgba(33,37,41,0.18)` downward): the bottom bar on narrow screens, and a row being dragged.
+
+**The Earned Shadow Rule.** A shadow means the thing is above the page: pinned, dragged or open. Shadows don't signal hover. The older zero-offset blue hover glow (`0 0 8px rgb(0,140,255)`) is legacy and shouldn't spread.
+
+## Shapes
+
+Gently rounded, never pill-shaped except for circular icon buttons.
+- **Inputs:** 6px corners.
+- **Older cards and buttons:** 8px.
+- **Lists:** 10px.
+- **Panels:** 12px.
+- **Icon buttons:** circles (50%).
+
+Borders are 1px hairlines. The 2px colored borders on older inputs and chips are legacy.
+
+## Components
+
+### Money input
+Quiet until you touch it.
+- **Shape:** 6px corners, 38px tall, 132px wide (116px on narrow screens).
+- **Style:** white with a 1px firm-hairline border. The value is right-aligned in tabular figures, with a muted `$` on the left inside the box.
+- **States:** the border tints purple on hover. On focus it turns accent purple with a 3px soft purple ring, and the whole value is selected. Enter saves, the same as leaving the field.
+- **Behavior:** totals update as you type; the value is saved once, when you leave the field, and only if it changed.
+
+### List rows
+- **Structure:** drag handle (a grip icon, gray until hovered), name, money input, then a delete button.
+- **Delete:** hidden until the row is hovered or has keyboard focus (intentional), then a circular icon button that turns red on hover.
+- **Container:** rows sit inside one white, 10px-rounded list with hairline dividers. Adding happens in a borderless last row ("Add a category…"); press Enter to add.
+
+### Results panel ("This paycheck")
+The signature component.
+- **Content:** a label/amount list with muted minus signs for deductions, a bold subtotal between firm hairlines, and a 2px ink rule above the final figure.
+- **Final figure:** in the accent color when healthy, red with an "Over budget by" label when negative, and "—" with a prompt when there's nothing to calculate yet.
+
+### Collapsible section
+A full-width text button: chevron (rotates 90° when open), title-weight label, and the section's total on the right. The total stays visible while the section is collapsed. Open/closed state is remembered between visits.
+
+### Navigation
+- **Style:** a charcoal bar with light text links (17px, 14px × 16px padding). Hover is a light gray wash; the active link is green.
+- **Behavior:** sticky and wraps when narrow. "Log out" stays right-aligned.
+- **Test instance:** the bar turns test amber.
+
+### Buttons (legacy)
+- **Primary:** the Recalculate button, a blue gradient with a lift-on-hover shadow. It predates the redesign. New primary buttons should be a flat accent color with an 8px radius and no gradient.
+
+## Do's and Don'ts
+
+### Do:
+- **Do** follow the Budget Categories page for new or redesigned pages: rows inside one list, money inputs, results pinned beside the work.
+- **Do** use tabular figures and right-alignment for every money value.
+- **Do** say the state in words ("Over budget by $42.10", "Every dollar is assigned") as well as with color.
+- **Do** prefix page-specific CSS classes (for example `bc-`). Create React App loads every stylesheet on every page, so unprefixed names like `.drag-handle` leak between pages.
+- **Do** check every page at 200% zoom and below 900px wide.
+- **Do** use inline SVG icons (grip, close, chevron) in one consistent stroke.
+
+### Don't:
+- **Don't** use both accent colors on one page, or settle the purple-vs-blue decision on your own. It's open.
+- **Don't** put layout styles on `body`/`#root`, or offset content by a hardcoded navbar height.
+- **Don't** add gradients, zero-offset glow shadows, or uppercase letter-spaced micro-labels to new work. They're legacy.
+- **Don't** use one card per item for lists of amounts. Use rows in a single list.
+- **Don't** use test amber anywhere except the test instance's indicators.
+- **Don't** put real financial figures in screenshots, fixtures or examples. Use mock numbers.
