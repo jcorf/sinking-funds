@@ -93,7 +93,7 @@
 /* Hidden without taking up space until the pill is hovered. Visually
    hidden (not display: none) so the buttons stay reachable by keyboard:
    tabbing onto one reveals the group via :focus-within. */
-.sf-status:not(:hover):not(:focus-within) .sf-recalc:not(.is-busy) {
+.sf-status:not(:hover):not(:focus-within) .sf-recalc:not(.is-busy):not(.is-open) {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -111,6 +111,38 @@
 
 .sf-status .sf-btn-small {
     height: 28px;
+}
+
+.sf-other-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sf-date-small {
+    height: 28px;
+    font-size: 0.88rem;
+}
+
+.sf-other-cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--sage-ink-muted);
+    cursor: pointer;
+}
+
+.sf-other-cancel:hover,
+.sf-other-cancel:focus-visible {
+    background: var(--sage-tint);
+    color: var(--sage-ink);
+    outline: none;
 }
 
 .sf-recalc-label {

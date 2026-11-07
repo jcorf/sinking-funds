@@ -37,7 +37,6 @@ sinking-funds/
 │   │   │   │   ├── Grid/        # Main grid view of savings cards
 │   │   │   │   ├── InfoCard/    # Individual savings card component
 │   │   │   │   ├── AddCard/     # Add new savings category
-│   │   │   │   ├── Recalculate/ # Recalculate all savings
 │   │   │   │   └── InfoPage/    # Detailed category information
 │   │   │   └── utils/
 │   │   │       ├── api.js       # API communication functions
@@ -131,9 +130,9 @@ sinking-funds/
 
 ### Recalculating All Categories
 
-1. Navigate to the "Recalculate" page
-2. Select a new start date
-3. Click "Recalculate" to update all categories with the new timeline
+1. On the Sinking Funds page, hover the status pill ("Earliest plan starts with…")
+2. Choose **last** or **next** paycheck, or **Other date…** to pick any start date
+3. Every goal recalculates its per-paycheck amount from that start
 
 ### Reordering Categories
 

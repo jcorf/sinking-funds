@@ -5,12 +5,11 @@ import './App.css';
 
 import Grid from "./components/whole-view/Grid/Grid";
 import {InfoPage} from "./components/whole-view/InfoPage/InfoPage";
-import Recalculate from "./components/whole-view/Recalculate/Recalculate";
 import Dashboard from "./components/whole-view/Dashboard/Dashboard";
 import CreditCards from "./components/whole-view/CreditCards/CreditCards";
 import BudgetCategories from "./components/whole-view/BudgetCategories/BudgetCategories";
 import Login from "./components/whole-view/Login/Login";
-import {getTodayDate, isTestEnv} from "./components/utils/lib";
+import {isTestEnv} from "./components/utils/lib";
 import {getSession, logout} from "./components/utils/api";
 
 function TestBadge() {
@@ -18,7 +17,6 @@ function TestBadge() {
 }
 
 export default function App() {
-    const [startDate, setStartDate] = useState(getTodayDate());
     const [authChecked, setAuthChecked] = useState(false);
     const [authenticated, setAuthenticated] = useState(false);
 
@@ -34,10 +32,6 @@ export default function App() {
             setAuthChecked(true);
         });
     }, []);
-
-    function updateStartDate(date) {
-        setStartDate(date);
-    }
 
     async function handleLogout() {
         await logout();
@@ -67,7 +61,6 @@ export default function App() {
                         <span className="nav-bar-buttons"> <Link to="/sinking-funds">Sinking Funds</Link></span>
                         <span className="nav-bar-buttons"> <Link to="/credit-cards">Credit Cards</Link></span>
                         <span className="nav-bar-buttons"> <Link to="/budget-categories">Budget Categories</Link></span>
-                        <span className="nav-bar-buttons"> <Link to="/recalculate">Recalculate</Link></span>
                     </nav>
                     <span className="nav-bar-buttons logout-button" onClick={handleLogout}>Log out</span>
                 </div>
@@ -75,11 +68,10 @@ export default function App() {
                     <Routes>
                         <Route path='/' element={<Dashboard/>}/>
                         <Route path='/sinking-funds' element={<Grid/>}/>
-                        <Route path='/users/:id/:categoryName' element={<InfoPage startDate={startDate}/>}/>
+                        <Route path='/users/:id/:categoryName' element={<InfoPage/>}/>
                         <Route path='/dashboard' element={<Dashboard/>}/>
                         <Route path='/credit-cards' element={<CreditCards/>}/>
                         <Route path='/budget-categories' element={<BudgetCategories/>}/>
-                        <Route path='/recalculate' element={<Recalculate startDate={startDate} updateStartDate={updateStartDate} />}></Route>
                     </Routes>
                 </div>
             </div>

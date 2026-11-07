@@ -544,6 +544,10 @@ const Grid = () => {
         setToast({ message: `Updated ${plural(applied.length, 'goal')}`, changes: applied });
     };
 
+    // "Other date…" in the pill: recalculate every goal from any start date.
+    const [otherOpen, setOtherOpen] = useState(false);
+    const [otherDate, setOtherDate] = useState('');
+
     const recalculate = async (startDate) => {
         setRecalculating(true);
         await updateAllCategories(startDate);
@@ -605,7 +609,7 @@ const Grid = () => {
                 </span>
                 {payday && payday.previous && payday.next && (
                     <span
-                        className={`sf-recalc ${recalculating ? 'is-busy' : ''}`}
+                        className={`sf-recalc ${recalculating ? 'is-busy' : ''} ${otherOpen ? 'is-open' : ''}`}
                         role="group"
                         aria-label="Recalculate amounts"
                     >
@@ -631,6 +635,50 @@ const Grid = () => {
                         >
                             {fmtShort(recalcStartFor(payday.next))} · next
                         </button>
+                        {otherOpen ? (
+                            <span className="sf-other-date">
+                                <input
+                                    type="date"
+                                    className="sf-date sf-date-small"
+                                    aria-label="Recalculate from date"
+                                    value={otherDate}
+                                    onChange={(e) => setOtherDate(e.target.value)}
+                                    autoFocus
+                                />
+                                <button
+                                    type="button"
+                                    className="sf-btn-small"
+                                    disabled={!otherDate || !!recalculating}
+                                    onClick={async () => {
+                                        await recalculate(otherDate);
+                                        setOtherOpen(false);
+                                    }}
+                                >
+                                    Apply
+                                </button>
+                                <button
+                                    type="button"
+                                    className="sf-other-cancel"
+                                    aria-label="Cancel other date"
+                                    onClick={() => setOtherOpen(false)}
+                                >
+                                    <X size={14} aria-hidden="true" />
+                                </button>
+                            </span>
+                        ) : (
+                            <button
+                                type="button"
+                                className="sf-btn-small"
+                                disabled={!!recalculating}
+                                onClick={() => {
+                                    setOtherDate(getTodayDate());
+                                    setOtherOpen(true);
+                                }}
+                                title="Recalculate every goal from a date you pick"
+                            >
+                                Other date…
+                            </button>
+                        )}
                     </span>
                 )}
             </div>

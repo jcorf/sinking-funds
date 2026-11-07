@@ -7,7 +7,7 @@ import { formatDate, formatMoney, formatPercent, goalStatus, plural, shiftDate, 
 import { getTodayDate } from '../../utils/lib';
 import { IconPicker, MoneyInput } from '../SinkingFunds/GoalParts';
 
-export function InfoPage({ startDate }) {
+export function InfoPage() {
     const { id, categoryName } = useParams();
     const navigate = useNavigate();
 
@@ -30,9 +30,9 @@ export function InfoPage({ startDate }) {
         setName(data.category);
         // The schedule follows the goal's own plan start, so its first row is
         // the paycheck the per-paycheck amount (and "Log") applies to.
-        const sched = await getPaycheckSchedule(data.category, data.calculated_from || startDate);
+        const sched = await getPaycheckSchedule(data.category, data.calculated_from || getTodayDate());
         setSchedule(sched && !sched.error ? sched : {});
-    }, [startDate]);
+    }, []);
 
     useEffect(() => {
         window.scrollTo(0, 0);
