@@ -12,6 +12,16 @@ A personal finance web app for tracking "sinking funds" (savings goals), credit 
 ./start_app.sh          # starts both backend and frontend, backs up the db first
 ```
 
+To experiment without touching real data, run a second, isolated instance alongside it:
+
+```bash
+./start_test.sh          # fresh copy of the real db -> localhost:3001 / :5002
+./start_test.sh --keep   # reuse the test db from last run
+./start_test.sh --empty  # start from an empty db
+```
+
+The test instance uses `src/paycheck/sinkingFunds_test.db` (gitignored), its own session cookie names, and shows an orange navbar + "TEST DATA" badge. Wiring: backend reads `SINKING_FUNDS_DB` (db path, defaults to the absolute path of `src/paycheck/sinkingFunds.db`) and `PORT` (default 5001); frontend reads `REACT_APP_API_PORT` (default 5001) and `REACT_APP_ENV_LABEL`.
+
 Or manually:
 
 ```bash

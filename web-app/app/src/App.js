@@ -10,13 +10,23 @@ import Dashboard from "./components/whole-view/Dashboard/Dashboard";
 import CreditCards from "./components/whole-view/CreditCards/CreditCards";
 import BudgetCategories from "./components/whole-view/BudgetCategories/BudgetCategories";
 import Login from "./components/whole-view/Login/Login";
-import {getTodayDate} from "./components/utils/lib";
+import {getTodayDate, isTestEnv} from "./components/utils/lib";
 import {getSession, logout} from "./components/utils/api";
+
+function TestBadge() {
+    return isTestEnv ? <div className="test-env-badge">TEST DATA</div> : null;
+}
 
 export default function App() {
     const [startDate, setStartDate] = useState(getTodayDate());
     const [authChecked, setAuthChecked] = useState(false);
     const [authenticated, setAuthenticated] = useState(false);
+
+    useEffect(() => {
+        if (isTestEnv) {
+            document.title = `[TEST] ${document.title}`;
+        }
+    }, []);
 
     useEffect(() => {
         getSession().then((session) => {
@@ -39,13 +49,19 @@ export default function App() {
     }
 
     if (!authenticated) {
-        return <Login onLoginSuccess={() => setAuthenticated(true)} />;
+        return (
+            <>
+                <TestBadge/>
+                <Login onLoginSuccess={() => setAuthenticated(true)} />
+            </>
+        );
     }
 
     return (
         <Router>
             <div>
-                <div className="topnav">
+                <TestBadge/>
+                <div className={isTestEnv ? "topnav test-env" : "topnav"}>
                     <nav>
                         <span className="nav-bar-buttons"> <Link to="/dashboard">Dashboard</Link></span>
                         <span className="nav-bar-buttons"> <Link to="/sinking-funds">Sinking Funds</Link></span>

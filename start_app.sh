@@ -29,9 +29,7 @@ echo "📦 Creating database backup..."
 BACKUP_DIR="src/paycheck/backups"
 mkdir -p "$BACKUP_DIR"
 
-# Get the current database name from the constants file
-DATABASE_NAME=$(grep "DATABASE_NAME" src/paycheck/utils/reference/database_constants.py | cut -d"'" -f2)
-DATABASE_PATH="src/paycheck/$DATABASE_NAME"
+DATABASE_PATH="src/paycheck/sinkingFunds.db"
 
 if [ -f "$DATABASE_PATH" ]; then
     TIMESTAMP=$(date +"%Y_%m_%d_%H_%M")
@@ -79,7 +77,9 @@ set +a
 # Start Flask backend
 echo "🐍 Starting Flask backend on http://127.0.0.1:5001..."
 cd src/paycheck
-python flask-connector.py &
+# Always run the real app against the real db, even if SINKING_FUNDS_DB
+# happens to be set in this shell (e.g. left over from start_test.sh).
+SINKING_FUNDS_DB="$(pwd)/sinkingFunds.db" PORT=5001 python flask-connector.py &
 FLASK_PID=$!
 cd ../..
 
@@ -104,7 +104,7 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
-npm start &
+PORT=3000 REACT_APP_API_PORT=5001 REACT_APP_ENV_LABEL= npm start &
 REACT_PID=$!
 
 # Wait a moment for React to start
