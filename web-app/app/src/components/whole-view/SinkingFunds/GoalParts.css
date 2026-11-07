@@ -89,10 +89,15 @@
 .sf-progress-next {
     height: 100%;
     background: #9db58f;
+    /* Reach back under the saved fill's rounded end so no track shows
+       through the corners where the two meet */
+    box-shadow: -6px 0 0 #9db58f;
     transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .sf-progress-fill {
+    position: relative;
+    z-index: 1; /* its rounded end sits over the next-paycheck segment */
     height: 100%;
     border-radius: 999px;
     background: var(--sage);
