@@ -56,7 +56,6 @@
     position: relative;
     min-height: auto;
     scroll-margin-top: 80px;
-    margin-top: 60px; /* Add margin to account for fixed navbar */
 }
 
 /* Responsive design for smaller screens */

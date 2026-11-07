@@ -17,6 +17,7 @@ const Recalculate = ({startDate, updateStartDate}) => {
     }
 
     return (
+        <div className="recalculate-page">
         <div className="date-container">
             <label htmlFor="start-date">I want to calculate my savings from this date</label>
             <div className="date-input-container">
@@ -29,6 +30,7 @@ const Recalculate = ({startDate, updateStartDate}) => {
             </div>
             
             <button onClick={recalculate}>Recalculate</button>
+        </div>
         </div>
     );
 };

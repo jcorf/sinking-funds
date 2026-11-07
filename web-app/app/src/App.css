@@ -4,14 +4,16 @@
 .topnav {
     background-color: #333;
     overflow: hidden;
-    position: fixed;
+    /* Sticky, not fixed: the bar keeps its own space in the layout, so when it
+       wraps onto a second line (zoomed in, narrow window) it pushes the page
+       down instead of covering the top of it. */
+    position: sticky;
     top: 0;
-    left: 0;
-    width: 100%; /* Full width */
     z-index: 1000; /* Ensure it's on top of other elements */
     padding-left: 0px;
     padding-right: 0px;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     color: white;
@@ -28,6 +30,7 @@
 }
 
 .logout-button {
+    margin-left: auto; /* stay right-aligned even when the nav wraps */
     color: #f2f2f2;
     padding: 14px 16px;
     cursor: pointer;
