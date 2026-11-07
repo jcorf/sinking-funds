@@ -245,6 +245,12 @@ Quiet until you touch it.
 - **States:** the border tints sage on hover. On focus it turns accent sage with a 3px soft sage ring, and the whole value is selected. Enter saves, the same as leaving the field.
 - **Behavior:** totals update as you type; the value is saved once, when you leave the field, and only if it changed.
 
+### Select (dropdown)
+Never ship the browser's default gray dropdown bar. Every `<select>` gets the shared `sf-date` class (defined in `SinkingFunds/GoalParts.css`), so it looks like the other fields.
+- **Style:** white, 40px tall, 1px firm-hairline border, 8px corners, a sage chevron on the right, and a 12px left pad. Hover tints the border sage; focus gives the accent border and 3px soft sage ring.
+- **Layout:** to fill a column, add a page-prefixed width rule (for example `.cc-pay-field .sf-date { width: 100% }`). Don't restyle the control itself on a page.
+- **Same for number and text fields** next to it: use `sf-date` rather than a one-off input style.
+
 ### List rows
 - **Structure:** drag handle (a grip icon, gray until hovered), name, money input, then a delete button.
 - **Delete:** hidden until the row is hovered or has keyboard focus (intentional), then a circular icon button that turns red on hover.
@@ -318,6 +324,7 @@ The first sage surface, and the reference for the new direction.
 - **Do** use inline SVG icons (grip, close, chevron) in one consistent stroke.
 
 ### Don't:
+- **Don't** use an unstyled `<select>` or a one-off input style. Use `sf-date` so dropdowns match the other fields.
 - **Don't** introduce new purple or blue. New and redesigned surfaces use sage. Don't mix sage with a legacy accent on one page.
 - **Don't** put layout styles on `body`/`#root`, or offset content by a hardcoded navbar height.
 - **Don't** add gradients, zero-offset glow shadows, or uppercase letter-spaced micro-labels to new work. They're legacy.

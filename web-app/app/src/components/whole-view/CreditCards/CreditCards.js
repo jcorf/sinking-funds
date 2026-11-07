@@ -438,7 +438,7 @@ function PayPanel({ cards, bucket, onPay }) {
       <form onSubmit={submit} className="cc-pay-form">
         <label className="cc-pay-field">
           <span>Card</span>
-          <select value={cardId} onChange={(e) => setCardId(e.target.value)}>
+          <select className="sf-date" value={cardId} onChange={(e) => setCardId(e.target.value)}>
             <option value="">Choose a card…</option>
             {cards.map((c) => (
               <option key={c.id} value={c.id}>
@@ -450,6 +450,7 @@ function PayPanel({ cards, bucket, onPay }) {
         <label className="cc-pay-field">
           <span>Amount</span>
           <input
+            className="sf-date"
             type="number"
             inputMode="decimal"
             min="0"
