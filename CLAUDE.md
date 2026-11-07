@@ -61,6 +61,10 @@ Database setup/reset is done via POST endpoints rather than a migration tool: `/
 - `components/whole-view/` holds one folder per page/feature (Grid, InfoCard, InfoPage, AddCard, Recalculate, Dashboard, CreditCards, EmojiPicker, TextField, Summary), each with its own `.js`/`.css` pair.
 - Drag-and-drop reordering (sinking fund cards and credit cards) uses `@dnd-kit`; reorder is persisted via `updateCardOrder`/`updateCreditCardOrder` in api.js, which hit `/update_card_order`/`/update_credit_card_order`.
 
+## Commit conventions
+
+Prefix every commit subject with its type: `(fix)`, `(feature)`, or `(other)` — e.g. `(fix) Stop zoomed-in pages from cutting off the top`. Use `(other)` for docs, tooling, and refactors that are neither a fix nor a feature.
+
 ## Data sensitivity
 
 This repo is pushed to a **public** GitHub remote (`origin` = jcorf/sinking-funds). The current branch, `local-db-dont-push-publicly`, exists specifically to hold real personal financial data in `src/paycheck/sinkingFunds.db` without pushing it to a public branch. Note `.gitignore` only ignores `src/paycheck/*.db` (the live db) — `src/paycheck/backups/*.db` is **not** gitignored, so backup snapshots are untracked-but-visible, not automatically excluded. Do not push this branch, and do not merge db files into `main` without explicit confirmation.
