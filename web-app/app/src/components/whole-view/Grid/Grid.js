@@ -369,11 +369,17 @@ function AddGoalForm({ existingNames, onCancel, onAdded }) {
     );
 }
 
+// Last-known goals, payday and bucket, kept across page visits so coming
+// back shows real numbers immediately instead of the header filling in
+// piece by piece, while fresh copies load quietly in the background.
+const cache = { goals: null, payday: undefined, bucket: undefined };
+
 const Grid = () => {
     const navigate = useNavigate();
-    const [goals, setGoals] = useState([]);
-    const [loaded, setLoaded] = useState(false);
-    const [payday, setPayday] = useState(null);
+    const [goals, setGoals] = useState(() => cache.goals || []);
+    const [loaded, setLoaded] = useState(() => cache.goals !== null);
+    // undefined = still loading; null = the request failed
+    const [payday, setPayday] = useState(() => cache.payday);
     const [logOpen, setLogOpen] = useState(false);
     const [adding, setAdding] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -407,7 +413,7 @@ const Grid = () => {
     // Edit mode: update every goal's saved amount at once.
     const [editing, setEditing] = useState(false);
     const [drafts, setDrafts] = useState({});
-    const [bucket, setBucket] = useState(null);
+    const [bucket, setBucket] = useState(() => (cache.bucket === undefined ? null : cache.bucket));
 
     // /sinking-funds?log=1 (from the Dashboard's "Log the … paycheck") opens
     // the log panel once the goals have loaded.
@@ -433,9 +439,23 @@ const Grid = () => {
     useEffect(() => {
         window.scrollTo(0, 0);
         refresh();
-        getNextPayday().then(setPayday);
+        getNextPayday().then((p) => setPayday(p || null));
         getAllyBankBalance().then(setBucket);
     }, [refresh]);
+
+    useEffect(() => {
+        if (loaded) cache.goals = goals;
+    }, [goals, loaded]);
+    useEffect(() => {
+        if (payday !== undefined) cache.payday = payday;
+    }, [payday]);
+    useEffect(() => {
+        cache.bucket = bucket;
+    }, [bucket]);
+
+    // The header and status pill wait for both goals and the payday, so they
+    // draw once with final numbers rather than flashing in stages.
+    const ready = loaded && payday !== undefined;
 
     useEffect(() => {
         if (loaded && wantsLog) {
@@ -445,7 +465,7 @@ const Grid = () => {
     }, [loaded, wantsLog, navigate]);
 
     const statuses = useMemo(
-        () => Object.fromEntries(goals.map((g) => [g.id, goalStatus(g, payday)])),
+        () => Object.fromEntries(goals.map((g) => [g.id, goalStatus(g, payday || null)])),
         [goals, payday]
     );
     const active = goals.filter((g) => !statuses[g.id].funded);
@@ -610,14 +630,21 @@ const Grid = () => {
             <header className="sf-header">
                 <div>
                     <h1 className="sf-title">Sinking Funds</h1>
-                    {contributing.length > 0 && (
-                        <p className="sf-summary">
-                            <span className="sf-figure sf-num">{formatMoney(perPaycheckTotal)}</span>
-                            <span className="sf-muted">per paycheck across {plural(contributing.length, 'goal')}</span>
+                    {!ready ? (
+                        // Holds the figure's space so nothing below jumps
+                        <p className="sf-summary" aria-hidden="true">
+                            <span className="sf-figure sf-num sf-placeholder">—</span>
                         </p>
+                    ) : (
+                        contributing.length > 0 && (
+                            <p className="sf-summary">
+                                <span className="sf-figure sf-num">{formatMoney(perPaycheckTotal)}</span>
+                                <span className="sf-muted">per paycheck across {plural(contributing.length, 'goal')}</span>
+                            </p>
+                        )
                     )}
                 </div>
-                {!logOpen && !editing && goals.length > 0 && (
+                {ready && !logOpen && !editing && goals.length > 0 && (
                     <div className="sf-header-actions">
                         <button type="button" className="sf-btn-quiet" onClick={startEditing}>
                             <PencilLine size={16} aria-hidden="true" /> Update saved amounts
@@ -631,11 +658,13 @@ const Grid = () => {
                 )}
             </header>
 
-            <div className={`sf-status ${outOfDate.length ? 'is-stale' : ''}`} aria-live="polite">
-                <span className={outOfDate.length ? '' : 'sf-status-ok'}>
-                    {!outOfDate.length && <Check size={14} aria-hidden="true" />} {basisText}
-                </span>
-                {payday && payday.previous && payday.next && (
+            <div className={`sf-status ${ready && outOfDate.length ? 'is-stale' : ''}`} aria-live="polite">
+                {ready && (
+                    <span className={outOfDate.length ? '' : 'sf-status-ok'}>
+                        {!outOfDate.length && <Check size={14} aria-hidden="true" />} {basisText}
+                    </span>
+                )}
+                {ready && payday && payday.previous && payday.next && (
                     <span
                         className={`sf-recalc ${recalculating ? 'is-busy' : ''} ${otherOpen ? 'is-open' : ''}`}
                         role="group"
@@ -722,7 +751,7 @@ const Grid = () => {
                 />
             )}
 
-            {goals.length > 0 && !editing && (
+            {ready && goals.length > 0 && !editing && (
                 <div className="sf-viewbar">
                     <button
                         type="button"
@@ -746,7 +775,7 @@ const Grid = () => {
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={goals.map((g) => g.id)} strategy={verticalListSortingStrategy}>
                     <ul className="sf-list">
-                        {loaded && goals.length === 0 && (
+                        {ready && goals.length === 0 && (
                             <li className="sf-empty">
                                 <span className="sf-empty-mark"><JarMark size={36} /></span>
                                 <span>
@@ -755,7 +784,7 @@ const Grid = () => {
                                 </span>
                             </li>
                         )}
-                        {goals.map((goal) => (
+                        {ready && goals.map((goal) => (
                             <GoalRow
                                 key={goal.id}
                                 goal={goal}

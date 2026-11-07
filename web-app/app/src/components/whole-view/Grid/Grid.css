@@ -849,3 +849,8 @@
         transition: none;
     }
 }
+
+/* Loading: keeps the per-paycheck figure's line height, invisibly */
+.sf-placeholder {
+    visibility: hidden;
+}
