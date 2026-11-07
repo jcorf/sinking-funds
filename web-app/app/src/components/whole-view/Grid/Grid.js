@@ -16,7 +16,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Check, GripVertical, PencilLine, Plus, RefreshCw, Repeat, Undo2, X } from 'lucide-react';
+import { Check, GripVertical, PencilLine, Plus, RefreshCw, Undo2, X } from 'lucide-react';
 import './Grid.css';
 import {
     addCategory,
@@ -36,7 +36,6 @@ import {
     goalStatus,
     plural,
     recalcStartFor,
-    repeatLabel,
     shiftDate,
     toCents,
 } from '../SinkingFunds/goalMath';
@@ -196,19 +195,7 @@ function GoalRow({ goal, status, view, showStart, edit, onOpen, onLog, onDelete,
             </div>
 
             <div className="sf-row-col sf-row-due">
-                <span>
-                    {Number(goal.repeat_months) > 0 && (
-                        <Repeat
-                            size={13}
-                            className="sf-repeat-icon"
-                            role="img"
-                            aria-label={`Repeats ${repeatLabel(goal.repeat_months).toLowerCase()}:`}
-                        >
-                            <title>{repeatLabel(goal.repeat_months)}</title>
-                        </Repeat>
-                    )}
-                    {formatDate(goal.goal_date)}
-                </span>
+                <span>{formatDate(goal.goal_date)}</span>
                 <span className={status.pastDue ? 'sf-past-due' : 'sf-muted'}>
                     {status.funded
                         ? 'Goal reached'

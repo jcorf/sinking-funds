@@ -1,7 +1,7 @@
 import './InfoPage.css';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Plus, Receipt, Repeat, Trash2, Undo2, X } from 'lucide-react';
+import { ChevronLeft, Plus, Receipt, Trash2, Undo2, X } from 'lucide-react';
 import {
     deleteCategory,
     getCategoryData,
@@ -12,30 +12,17 @@ import {
     spendFromGoal,
     updateField,
 } from '../../utils/api';
-import {
-    REPEAT_OPTIONS,
-    formatDate,
-    formatMoney,
-    formatPercent,
-    goalStatus,
-    nextCycleDate,
-    plural,
-    repeatLabel,
-    shiftDate,
-    toCents,
-} from '../SinkingFunds/goalMath';
+import { formatDate, formatMoney, formatPercent, goalStatus, plural, shiftDate, toCents } from '../SinkingFunds/goalMath';
 import { getTodayDate } from '../../utils/lib';
 import { IconPicker, MoneyInput } from '../SinkingFunds/GoalParts';
 import { celebrate, newlyFunded } from '../SinkingFunds/celebrate';
 
 // Record money taken out of this fund (the trip happened, the bill got
-// paid). For a recurring goal it can also start the next cycle.
+// paid). By default the goal drops by the same amount.
 function SpendForm({ goal, today, onCancel, onSaved }) {
-    const repeats = Number(goal.repeat_months) > 0;
     const [amount, setAmount] = useState(0);
     const [note, setNote] = useState('');
     const [spentOn, setSpentOn] = useState(today);
-    const [nextCycle, setNextCycle] = useState(repeats);
     const [lowerGoal, setLowerGoal] = useState(true);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
@@ -43,9 +30,6 @@ function SpendForm({ goal, today, onCancel, onSaved }) {
     const saved = Number(goal.saved) || 0;
     const fromSaved = Math.min(amount, saved);
     const leftover = toCents(saved - fromSaved);
-    const nextDue = repeats ? nextCycleDate(goal.goal_date, goal.repeat_months, today) : null;
-    // A new cycle keeps its goal; otherwise spent money can come off the goal.
-    const startingCycle = repeats && nextCycle;
     const target = Number(goal.goal) || 0;
     const newGoal = toCents(Math.max(0, target - amount));
 
@@ -61,8 +45,7 @@ function SpendForm({ goal, today, onCancel, onSaved }) {
             amount,
             note,
             spentOn: spentOn || today,
-            nextCycle: startingCycle,
-            lowerGoal: !startingCycle && lowerGoal,
+            lowerGoal,
             startDate: goal.calculated_from || today,
         });
         setBusy(false);
@@ -105,27 +88,13 @@ function SpendForm({ goal, today, onCancel, onSaved }) {
                     : `${formatMoney(saved)} is saved here.`}
             </p>
 
-            {repeats && (
-                <label className="gd-check">
-                    <input type="checkbox" checked={nextCycle} onChange={(e) => setNextCycle(e.target.checked)} />
-                    <span>
-                        <strong>Start the next cycle</strong>, due {formatDate(nextDue)}
-                        {amount > 0 && leftover > 0 ? `, keeping the ${formatMoney(leftover)} left over toward it` : ''}
-                    </span>
-                </label>
-            )}
-
-            {!startingCycle && (
-                <label className="gd-check">
-                    <input type="checkbox" checked={lowerGoal} onChange={(e) => setLowerGoal(e.target.checked)} />
-                    <span>
-                        <strong>Lower the goal too</strong>
-                        {amount > 0
-                            ? `, from ${formatMoney(target)} to ${formatMoney(newGoal)}`
-                            : ', by the amount spent'}
-                    </span>
-                </label>
-            )}
+            <label className="gd-check">
+                <input type="checkbox" checked={lowerGoal} onChange={(e) => setLowerGoal(e.target.checked)} />
+                <span>
+                    <strong>Lower the goal too</strong>
+                    {amount > 0 ? `, from ${formatMoney(target)} to ${formatMoney(newGoal)}` : ', by the amount spent'}
+                </span>
+            </label>
 
             {error && <p className="gd-error" role="alert">{error}</p>}
 
@@ -244,10 +213,7 @@ export function InfoPage() {
         setSpendOpen(false);
         // Log undo restores old saved amounts, which a spend just changed.
         setUndoStack([]);
-        setNotice(
-            `Recorded ${formatMoney(row.amount)} spent.` +
-                (row.new_goal_date ? ` The next cycle is due ${formatDate(row.new_goal_date)}.` : '')
-        );
+        setNotice(`Recorded ${formatMoney(row.amount)} spent.`);
         await load(goal.category);
     };
 
@@ -255,10 +221,7 @@ export function InfoPage() {
         const back = Number(row.from_saved) || 0;
         const msg =
             `Remove this entry? ${formatMoney(back)} goes back into ${goal.category}` +
-            (Number(row.goal_reduced) > 0 ? `, the goal goes back up by ${formatMoney(row.goal_reduced)}` : '') +
-            (row.new_goal_date && row.new_goal_date === goal.goal_date
-                ? ` and the due date moves back to ${formatDate(row.previous_goal_date)}.`
-                : '.');
+            (Number(row.goal_reduced) > 0 ? ` and the goal goes back up by ${formatMoney(row.goal_reduced)}.` : '.');
         if (!window.confirm(msg)) return;
         setError('');
         if (await removeGoalSpending(row.id, goal.calculated_from || today)) {
@@ -344,11 +307,6 @@ export function InfoPage() {
                     <span className="sf-dot" aria-hidden="true">·</span>
                     {formatPercent(status.fraction)}
                     {status.funded && <span className="sf-funded gd-funded">Funded</span>}
-                    {Number(goal.repeat_months) > 0 && (
-                        <span className="gd-repeats">
-                            <Repeat size={13} aria-hidden="true" /> {repeatLabel(goal.repeat_months)}
-                        </span>
-                    )}
                 </p>
             </div>
 
@@ -362,6 +320,16 @@ export function InfoPage() {
                         <span>Goal</span>
                         <MoneyInput value={goal.goal} label="Goal amount" onCommit={(v) => saveAndReload('goal', v.toFixed(2))} />
                     </label>
+                    <label className="gd-field">
+                        <span>Due</span>
+                        <input
+                            type="date"
+                            className="sf-date"
+                            defaultValue={goal.goal_date}
+                            key={goal.goal_date}
+                            onBlur={(e) => e.target.value && e.target.value !== goal.goal_date && saveAndReload('goal_date', e.target.value)}
+                        />
+                    </label>
                     <div className="gd-field gd-field-readout">
                         <span>Per paycheck</span>
                         <strong className="sf-num">{status.funded ? '—' : formatMoney(status.perPaycheck)}</strong>
@@ -373,30 +341,6 @@ export function InfoPage() {
                                 : `as of ${formatDate(goal.calculated_from)}`}
                         </small>
                     </div>
-                    <label className="gd-field">
-                        <span>Due</span>
-                        <input
-                            type="date"
-                            className="sf-date"
-                            defaultValue={goal.goal_date}
-                            key={goal.goal_date}
-                            onBlur={(e) => e.target.value && e.target.value !== goal.goal_date && saveAndReload('goal_date', e.target.value)}
-                        />
-                    </label>
-                    <label className="gd-field">
-                        <span>Repeats</span>
-                        <select
-                            className="sf-date gd-select"
-                            value={Number(goal.repeat_months) || 0}
-                            onChange={(e) => saveAndReload('repeat_months', Number(e.target.value))}
-                        >
-                            {REPEAT_OPTIONS.map((o) => (
-                                <option key={o.months} value={o.months}>
-                                    {o.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
                 </div>
 
                 <div className="gd-actions">
@@ -466,11 +410,6 @@ export function InfoPage() {
                                     <td>{formatDate(row.spent_on)}</td>
                                     <td>
                                         {row.note || <span className="sf-muted">—</span>}
-                                        {row.new_goal_date && (
-                                            <span className="gd-tag gd-tag-done">
-                                                Next cycle, due {formatDate(row.new_goal_date, { year: true })}
-                                            </span>
-                                        )}
                                     </td>
                                     <td className="gd-right sf-num">
                                         {formatMoney(row.amount)}

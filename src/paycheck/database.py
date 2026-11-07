@@ -16,8 +16,7 @@ def setup_database():
         emoji TEXT DEFAULT ':heart:',
         display_order INTEGER DEFAULT 0,
         last_updated DATE NOT NULL,
-        calculated_from DATE,
-        repeat_months INTEGER NOT NULL DEFAULT 0
+        calculated_from DATE
     )
     ''')
     print("SET UP database")
@@ -104,11 +103,6 @@ def ensure_savings_calculated_from_column():
         if column_names and 'calculated_from' not in column_names:
             execute_query("ALTER TABLE savings ADD COLUMN calculated_from DATE")
             print("✅ Added calculated_from column to savings")
-        # repeat_months: 0 = one-off goal; otherwise the goal comes back every
-        # N months (spending from it can start the next cycle).
-        if column_names and 'repeat_months' not in column_names:
-            execute_query("ALTER TABLE savings ADD COLUMN repeat_months INTEGER NOT NULL DEFAULT 0")
-            print("✅ Added repeat_months column to savings")
     except Exception as e:
         print(f"Error checking savings columns: {e}")
 
@@ -143,9 +137,9 @@ def get_all_data():
         print("✅ Savings table created")
     ensure_savings_calculated_from_column()
 
-    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order, calculated_from, repeat_months FROM savings ORDER BY display_order"
+    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order, calculated_from FROM savings ORDER BY display_order"
     rows = select_query(query)
-    cols = ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from", "repeat_months"]
+    cols = ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from"]
     return [listToDict(row, cols) for row in rows]
 
 
@@ -174,7 +168,7 @@ def get_ids():
     return [row[0] for row in rows]
 
 
-VALID_SAVINGS_FIELDS = {"category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from", "repeat_months"}
+VALID_SAVINGS_FIELDS = {"category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from"}
 # "id" is never something you'd SET via this endpoint, but it's a legitimate
 # way to FILTER which row to update (e.g. renaming a category, or any update
 # that needs to survive a category name changing in the same request).
@@ -204,9 +198,9 @@ def update_field(field_to_change, new_value, filter_value, field_filter="categor
 # Get the category information, based on the category name or the id value (must be specified)
 def get_category_info(value, field="category"):
     ensure_savings_calculated_from_column()
-    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order, calculated_from, repeat_months FROM savings WHERE {field} = '{value}' LIMIT 1"
+    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order, calculated_from FROM savings WHERE {field} = '{value}' LIMIT 1"
     row = select_query(query)
-    return listToDict(row[0], ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from", "repeat_months"])
+    return listToDict(row[0], ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from"])
 
 
 # validate ID or category
@@ -986,9 +980,8 @@ def nowStringWithTime():
 # ---------------------------------------------------------------------------
 # Spending from a goal. Each row records money taken out of a sinking fund
 # (the trip happened, the bill was paid). from_saved is how much actually
-# came out of the fund (never more than it held). If the spend started the
-# goal's next cycle (recurring goals), previous_goal_date/new_goal_date
-# record the due-date move so removing the entry can put it back.
+# came out of the fund (never more than it held); goal_reduced is how much
+# the goal amount was lowered with it. Removing the entry puts both back.
 # ---------------------------------------------------------------------------
 
 def setup_goal_spending_database():
@@ -1000,8 +993,6 @@ def setup_goal_spending_database():
         from_saved REAL NOT NULL,
         note TEXT NOT NULL DEFAULT '',
         spent_on DATE NOT NULL,
-        previous_goal_date DATE,
-        new_goal_date DATE,
         created_at TEXT NOT NULL,
         goal_reduced REAL NOT NULL DEFAULT 0
     )
@@ -1022,7 +1013,7 @@ def _spending_db():
     return conn
 
 
-SPENDING_COLS = "id, goal_id, amount, from_saved, note, spent_on, previous_goal_date, new_goal_date, created_at, goal_reduced"
+SPENDING_COLS = "id, goal_id, amount, from_saved, note, spent_on, created_at, goal_reduced"
 
 
 def get_goal_spending(goal_id):
@@ -1037,32 +1028,10 @@ def get_goal_spending(goal_id):
         conn.close()
 
 
-def add_months(date_string, months):
-    """YYYY-MM-DD plus whole months, clamping the day (Jan 31 + 1 -> Feb 28/29)."""
-    import calendar
-    from datetime import date
-    y, m, d = (int(x) for x in str(date_string)[:10].split('-'))
-    total = (y * 12 + (m - 1)) + months
-    y, m = divmod(total, 12)
-    m += 1
-    d = min(d, calendar.monthrange(y, m)[1])
-    return date(y, m, d).isoformat()
-
-
-def next_cycle_due_date(goal_date, repeat_months, today):
-    """The goal's due date moved forward by its repeat interval, as many
-    times as it takes to land after today."""
-    new_date = add_months(goal_date, repeat_months)
-    while new_date <= today:
-        new_date = add_months(new_date, repeat_months)
-    return new_date
-
-
-def spend_from_goal(goal_id, amount, note, spent_on, next_cycle, lower_goal=True):
+def spend_from_goal(goal_id, amount, note, spent_on, lower_goal=True):
     """Take `amount` out of a goal. With lower_goal the goal amount drops by
-    the same amount (that money is no longer needed), except when a
-    recurring goal starts its next cycle, which keeps its goal. Returns the
-    new spending row, or raises ValueError with a message meant for the user."""
+    the same amount (that money is no longer needed). Returns the new
+    spending row, or raises ValueError with a message meant for the user."""
     goal_id = int(goal_id)
     amount = round(float(amount), 2)
     if amount <= 0:
@@ -1073,13 +1042,8 @@ def spend_from_goal(goal_id, amount, note, spent_on, next_cycle, lower_goal=True
     saved = round(float(goal['saved'] or 0), 2)
     from_saved = min(amount, saved)
 
-    previous_goal_date = new_goal_date = None
-    repeat_months = int(goal.get('repeat_months') or 0)
-    if next_cycle and repeat_months > 0:
-        previous_goal_date = goal['goal_date']
-        new_goal_date = next_cycle_due_date(goal['goal_date'], repeat_months, nowString())
     target = round(float(goal['goal'] or 0), 2)
-    goal_reduced = min(amount, target) if lower_goal and not new_goal_date else 0
+    goal_reduced = min(amount, target) if lower_goal else 0
 
     conn = _spending_db()
     try:
@@ -1088,15 +1052,13 @@ def spend_from_goal(goal_id, amount, note, spent_on, next_cycle, lower_goal=True
                 "UPDATE savings SET saved = ?, last_updated = ? WHERE id = ?",
                 (round(saved - from_saved, 2), nowString(), goal_id),
             )
-            if new_goal_date:
-                conn.execute("UPDATE savings SET goal_date = ? WHERE id = ?", (new_goal_date, goal_id))
             if goal_reduced:
                 conn.execute("UPDATE savings SET goal = ? WHERE id = ?", (round(target - goal_reduced, 2), goal_id))
             cur = conn.execute(
-                "INSERT INTO goal_spending (goal_id, amount, from_saved, note, spent_on, previous_goal_date, new_goal_date, created_at, goal_reduced) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO goal_spending (goal_id, amount, from_saved, note, spent_on, created_at, goal_reduced) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (goal_id, amount, from_saved, (note or '').strip()[:200], spent_on or nowString(),
-                 previous_goal_date, new_goal_date, nowStringWithTime(), goal_reduced),
+                 nowStringWithTime(), goal_reduced),
             )
             spending_id = cur.lastrowid
         row = conn.execute(f"SELECT {SPENDING_COLS} FROM goal_spending WHERE id = ?", (spending_id,)).fetchone()
@@ -1106,15 +1068,14 @@ def spend_from_goal(goal_id, amount, note, spent_on, next_cycle, lower_goal=True
 
 
 def remove_goal_spending(spending_id):
-    """Delete a spending entry and put its money back in the goal. If the
-    entry moved the due date and the goal is still on that date, move it
-    back too. Returns the goal id, or None if there was no such entry."""
+    """Delete a spending entry and put its money (and any goal reduction)
+    back. Returns the goal id, or None if there was no such entry."""
     conn = _spending_db()
     try:
         row = conn.execute(f"SELECT {SPENDING_COLS} FROM goal_spending WHERE id = ?", (int(spending_id),)).fetchone()
         if not row:
             return None
-        goal = conn.execute("SELECT saved, goal, goal_date FROM savings WHERE id = ?", (row['goal_id'],)).fetchone()
+        goal = conn.execute("SELECT saved, goal FROM savings WHERE id = ?", (row['goal_id'],)).fetchone()
         with conn:
             if goal:
                 conn.execute(
@@ -1124,8 +1085,6 @@ def remove_goal_spending(spending_id):
                 if row['goal_reduced']:
                     conn.execute("UPDATE savings SET goal = ? WHERE id = ?",
                                  (round(float(goal['goal'] or 0) + float(row['goal_reduced']), 2), row['goal_id']))
-                if row['new_goal_date'] and goal['goal_date'] == row['new_goal_date']:
-                    conn.execute("UPDATE savings SET goal_date = ? WHERE id = ?", (row['previous_goal_date'], row['goal_id']))
             conn.execute("DELETE FROM goal_spending WHERE id = ?", (row['id'],))
         return row['goal_id']
     finally:

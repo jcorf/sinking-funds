@@ -613,13 +613,13 @@ export async function getGoalSpending(goalId) {
 }
 
 // Returns { spending } on success or { error } with a message to show.
-export async function spendFromGoal(goalId, { amount, note, spentOn, nextCycle, lowerGoal, startDate }) {
+export async function spendFromGoal(goalId, { amount, note, spentOn, lowerGoal, startDate }) {
     try {
         const response = await fetch(url('/spend_from_goal'), {
             method: 'POST',
             credentials: 'include',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: goalId, amount, note, spent_on: spentOn, next_cycle: nextCycle, lower_goal: lowerGoal, start_date: startDate}),
+            body: JSON.stringify({id: goalId, amount, note, spent_on: spentOn, lower_goal: lowerGoal, start_date: startDate}),
         });
         const data = await response.json();
         if (!response.ok) return {error: data.error || "That didn't save."};

@@ -152,13 +152,6 @@ def update_field_route():
     field_to_change, new_value = get_args(['field_to_change', 'new_value'], request.get_json())
     if field_to_change == 'to_save':
         return jsonify("Use /update_to_save")
-    if field_to_change == 'repeat_months':
-        try:
-            new_value = int(new_value)
-        except (TypeError, ValueError):
-            return jsonify({"error": "repeat_months must be a whole number"}), 400
-        if not 0 <= new_value <= 24:
-            return jsonify({"error": "repeat_months must be between 0 and 24"}), 400
     on_value, on_field = get_on_args(request.get_json())
     result = update_field(field_to_change, new_value, on_value, on_field)
 
@@ -290,8 +283,7 @@ def spend_from_goal_route():
         return jsonify({"error": "id must be a goal id"}), 400
     try:
         row = spend_from_goal(goal_id, data.get('amount'), data.get('note', ''),
-                              data.get('spent_on'), bool(data.get('next_cycle')),
-                              bool(data.get('lower_goal', True)))
+                              data.get('spent_on'), bool(data.get('lower_goal', True)))
     except (TypeError, ValueError) as e:
         return jsonify({"error": str(e) or "Enter a valid amount."}), 400
     # Re-plan from the goal's plan start (like any hand edit).
@@ -334,16 +326,13 @@ def export_goals_csv_route():
     import csv
     import io
     from flask import Response
-    repeats = {0: '', 1: 'Monthly', 3: 'Every 3 months', 6: 'Every 6 months', 12: 'Yearly'}
     out = io.StringIO()
     writer = csv.writer(out)
-    writer.writerow(['Goal', 'Saved', 'Goal amount', 'Due', 'Per paycheck', 'Plan starts', 'Repeats'])
+    writer.writerow(['Goal', 'Saved', 'Goal amount', 'Due', 'Per paycheck', 'Plan starts'])
     for row in get_all_data():
-        months = int(row.get('repeat_months') or 0)
         writer.writerow([
             row['category'], f"{float(row['saved']):.2f}", f"{float(row['goal']):.2f}", row['goal_date'],
             f"{float(row['calculated_to_save'] or 0):.2f}", first_payday_on_or_after(row.get('calculated_from')) or '',
-            repeats.get(months, f'Every {months} months'),
         ])
     return Response(out.getvalue(), mimetype='text/csv', headers={
         'Content-Disposition': f'attachment; filename="sinking-funds-goals-{nowString()}.csv"'})
