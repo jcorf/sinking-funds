@@ -41,7 +41,9 @@ from database import (update_field, setup_database, delete_database,
                       delete_post_tax_benefit, update_post_tax_benefit_order
                      )
 from paycheck import saved_by_paycheck, save_per_paycheck
-from utils.utils import nowString
+from utils.utils import nowString, stringToDate, dateToString
+from schedules.bimonthly import _remaining_paychecks as bimonthly_paycheck_dates
+from datetime import timedelta
 
 def get_on_args(data=None):
     if data is None:
@@ -125,8 +127,10 @@ def update_field_route():
     on_value, on_field = get_on_args(request.get_json())
     result = update_field(field_to_change, new_value, on_value, on_field)
 
-    # update to save amount
-    start_date = get_start_date_args()
+    # Recalculate the per-paycheck amount. The client sends the plan start it
+    # wants kept (or advanced, after logging a paycheck) as start_date in the
+    # JSON body; without one this falls back to today, as before.
+    start_date = get_start_date_args(request.get_json())
     update_to_save_single(on_value, on_field, start_date)
     return jsonify(result)
 
@@ -136,6 +140,9 @@ def update_to_save_single(on_value, on_field, start_date):
     saved, goal, end_date = result['saved'], result['goal'], result['goal_date']
     to_save = save_per_paycheck(float(saved), float(goal), start_date, end_date, "bimonthly")
     update_field('calculated_to_save', to_save, on_value, on_field)
+    # Record which start date this amount was computed from, so the UI can
+    # tell whether it predates the most recent payday.
+    update_field('calculated_from', start_date, on_value, on_field)
     return to_save
 
 @app.route('/update_to_save_single',methods=['POST'])
@@ -164,8 +171,26 @@ def add_category_route():
     emoji = request.get_json().get('emoji', ':heart:')  # Default to heart emoji if not provided
     start_date = get_start_date_args(request.get_json())
     to_save = save_per_paycheck(float(saved), float(goal), start_date, goal_date, "bimonthly")
-    result = add_db(category, float(saved), float(goal), goal_date, to_save, emoji)
+    result = add_db(category, float(saved), float(goal), goal_date, to_save, emoji, start_date)
     return jsonify(result)
+
+
+@app.route('/next_payday', methods=['GET'])
+@cross_origin(supports_credentials=True)
+@login_required
+def next_payday_route():
+    """Next payday on/after today and the most recent one before today,
+    from the same bimonthly rules the savings math uses."""
+    today = stringToDate(nowString())
+    _, dates = bimonthly_paycheck_dates(today - timedelta(days=45), today + timedelta(days=45))
+    dates = sorted(dates)
+    upcoming = [d for d in dates if d >= today]
+    past = [d for d in dates if d < today]
+    return jsonify({
+        "today": dateToString(today),
+        "next": dateToString(upcoming[0]) if upcoming else None,
+        "previous": dateToString(past[-1]) if past else None,
+    })
 
 
 @app.route('/remove_category', methods=['DELETE'])
@@ -182,13 +207,30 @@ def get_category_info_route():
     on_field = request.args.get('on_field', 'category')
     on_value = request.args.get('on_value')
     result = get_category_info(on_value, on_field)
-    return jsonify(result)
+    return jsonify(with_plan_start(result))
+
+
+def first_payday_on_or_after(date_string):
+    """First bimonthly payday on/after a YYYY-MM-DD date, or None."""
+    if not date_string:
+        return None
+    start = stringToDate(str(date_string)[:10])
+    _, dates = bimonthly_paycheck_dates(start, start + timedelta(days=45))
+    dates = sorted(dates)
+    return dateToString(dates[0]) if dates else None
+
+
+def with_plan_start(row):
+    """Adds plan_start: the first payday the goal's current amount counts
+    (the first row of its paycheck schedule, and the paycheck logged next)."""
+    row['plan_start'] = first_payday_on_or_after(row.get('calculated_from'))
+    return row
 
 
 @app.route('/get_data', methods=['GET'])
 @login_required
 def get_data_route():
-    result = get_all_data()
+    result = [with_plan_start(row) for row in get_all_data()]
     return jsonify({"data" : result})
 
 

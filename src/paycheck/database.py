@@ -15,7 +15,8 @@ def setup_database():
         calculated_to_save REAL NOT NULL,
         emoji TEXT DEFAULT ':heart:',
         display_order INTEGER DEFAULT 0,
-        last_updated DATE NOT NULL
+        last_updated DATE NOT NULL,
+        calculated_from DATE
     )
     ''')
     print("SET UP database")
@@ -90,16 +91,33 @@ def delete_db():
         return False
 
 
-def add_savings_category(category, saved, goal, goal_date, calculated_to_save, emoji=':heart:'):
+def ensure_savings_calculated_from_column():
+    """Add savings.calculated_from to databases created before it existed.
+
+    calculated_from is the start date the current calculated_to_save was
+    computed from, so the UI can tell whether an amount predates the most
+    recent payday. It stays NULL until the row is next recalculated.
+    """
+    try:
+        column_names = [row[1] for row in select_query("PRAGMA table_info(savings)")]
+        if column_names and 'calculated_from' not in column_names:
+            execute_query("ALTER TABLE savings ADD COLUMN calculated_from DATE")
+            print("✅ Added calculated_from column to savings")
+    except Exception as e:
+        print(f"Error checking savings columns: {e}")
+
+
+def add_savings_category(category, saved, goal, goal_date, calculated_to_save, emoji=':heart:', calculated_from=None):
     try:
         # Get the next order number
         max_order_query = "SELECT COALESCE(MAX(display_order), -1) FROM savings"
         max_order_result = select_query(max_order_query)
         next_order = max_order_result[0][0] + 1 if max_order_result else 0
         
-        query = f"""INSERT INTO savings (category, saved, goal, goal_date, calculated_to_save, emoji, display_order, last_updated)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
-        execute_query(query, category, saved, goal, goal_date, calculated_to_save, emoji, next_order, nowString())
+        ensure_savings_calculated_from_column()
+        query = f"""INSERT INTO savings (category, saved, goal, goal_date, calculated_to_save, emoji, display_order, last_updated, calculated_from)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        execute_query(query, category, saved, goal, goal_date, calculated_to_save, emoji, next_order, nowString(), calculated_from)
         print(f"ADDED {category} to database")
         return True
     except Exception as e:
@@ -107,8 +125,8 @@ def add_savings_category(category, saved, goal, goal_date, calculated_to_save, e
         return False
 
 
-def add_db(category, saved, goal, goal_date, to_save, emoji=':heart:'):
-    return add_savings_category(category, saved, goal, goal_date, to_save, emoji)
+def add_db(category, saved, goal, goal_date, to_save, emoji=':heart:', calculated_from=None):
+    return add_savings_category(category, saved, goal, goal_date, to_save, emoji, calculated_from)
 
 
 def get_all_data():
@@ -117,10 +135,11 @@ def get_all_data():
         print("Savings table doesn't exist, creating it...")
         setup_database()
         print("✅ Savings table created")
+    ensure_savings_calculated_from_column()
 
-    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order FROM savings ORDER BY display_order"
+    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order, calculated_from FROM savings ORDER BY display_order"
     rows = select_query(query)
-    cols = ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order"]
+    cols = ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from"]
     return [listToDict(row, cols) for row in rows]
 
 
@@ -149,7 +168,7 @@ def get_ids():
     return [row[0] for row in rows]
 
 
-VALID_SAVINGS_FIELDS = {"category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order"}
+VALID_SAVINGS_FIELDS = {"category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from"}
 # "id" is never something you'd SET via this endpoint, but it's a legitimate
 # way to FILTER which row to update (e.g. renaming a category, or any update
 # that needs to survive a category name changing in the same request).
@@ -178,9 +197,10 @@ def update_field(field_to_change, new_value, filter_value, field_filter="categor
 
 # Get the category information, based on the category name or the id value (must be specified)
 def get_category_info(value, field="category"):
-    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order FROM savings WHERE {field} = '{value}' LIMIT 1"
+    ensure_savings_calculated_from_column()
+    query = f"SELECT id, category, saved, goal, goal_date, calculated_to_save, emoji, display_order, calculated_from FROM savings WHERE {field} = '{value}' LIMIT 1"
     row = select_query(query)
-    return listToDict(row[0], ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order"])
+    return listToDict(row[0], ["id", "category", "saved", "goal", "goal_date", "calculated_to_save", "emoji", "display_order", "calculated_from"])
 
 
 # validate ID or category
