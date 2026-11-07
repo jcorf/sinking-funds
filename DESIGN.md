@@ -198,6 +198,10 @@ A neutral base moving to **muted sage green** as the one app-wide color. Purple 
 
 **The Tabular Money Rule.** Every money value uses tabular figures (`font-variant-numeric: tabular-nums`) and lines up on the right, so columns of amounts can be scanned.
 
+**The Serif Heading Rule.** Every page title and section heading is Castoro, regular weight (page titles about 2.6rem, section headings 1.35–1.6rem): Sinking Funds, Budget Categories ("Categories", "Paycheck setup", "This paycheck"), Credit Cards, Dashboard. Controls that act as headings (collapsible toggles, buttons) stay in the sans.
+
+**The One Edge Rule.** In a list, a section's total and its rows' amounts share one right edge, and the heading and row names share one left edge (Budget Categories uses a 16px inset for both).
+
 **The Sentence Case Rule.** Labels are sentence case ("Pre-tax benefits"). The older uppercase, letter-spaced micro-labels ("POSTED", "AMOUNT PER PAYCHECK") are legacy and shouldn't be copied into new work.
 
 ## Layout

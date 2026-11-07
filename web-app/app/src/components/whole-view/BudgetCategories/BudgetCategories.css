@@ -31,7 +31,12 @@
 .bc-page h1 {
   text-align: center;
   margin: 8px 0 32px;
-  color: #333;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 2.6rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--bc-ink);
 }
 
 .bc-page-header {
@@ -88,11 +93,18 @@
   width: 28px;
 }
 
+.bc-row.is-locked {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.bc-row.is-locked .bc-drag-spacer {
+  display: none;
+}
+
 .bc-amount-text {
   flex: none;
   min-width: 132px;
-  padding-right: 12px;
-  margin-right: 38px;
   text-align: right;
   font-size: 1rem;
   font-weight: 600;
@@ -123,13 +135,16 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
-  margin: 0 4px 12px;
+  /* 16px insets line the heading up with row names and the total up with
+     the row amounts (see .bc-row.is-locked) */
+  margin: 0 16px 12px;
 }
 
 .bc-section-header h2 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-family: var(--serif);
+  font-size: 1.6rem;
+  font-weight: 400;
   color: var(--bc-ink);
 }
 
@@ -374,7 +389,7 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 8px 4px;
+  padding: 8px 16px;
   margin-bottom: 8px;
   border: none;
   border-radius: 6px;
@@ -433,8 +448,9 @@
 
 .bc-math-title {
   margin: 0 0 14px;
-  font-size: 1rem;
-  font-weight: 700;
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-weight: 400;
   color: var(--bc-ink);
 }
 

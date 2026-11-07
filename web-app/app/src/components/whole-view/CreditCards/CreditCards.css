@@ -7,6 +7,10 @@
 .credit-cards h1 {
   text-align: center;
   margin-bottom: 30px;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 2.6rem;
+  line-height: 1.1;
   color: #333;
 }
 
@@ -22,7 +26,9 @@
 .ally-bank-section h2 {
   margin: 0 0 15px 0;
   color: #495057;
-  font-size: 1.3em;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.5rem;
 }
 
 .ally-bank-balance {
@@ -427,6 +433,9 @@
   margin: 0 0 20px 0;
   color: #333;
   text-align: center;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.6rem;
 }
 
 .summary-stats {

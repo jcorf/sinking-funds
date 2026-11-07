@@ -562,7 +562,7 @@ const BudgetCategories = () => {
 
             <ul className="bc-list">
               {standingValues.map(({ field, id, label }) => (
-                <li className="bc-row bc-row--static" key={field}>
+                <li className={`bc-row bc-row--static ${locked ? 'is-locked' : ''}`} key={field}>
                   <label className="bc-row-name" htmlFor={id}>
                     {label}
                   </label>
