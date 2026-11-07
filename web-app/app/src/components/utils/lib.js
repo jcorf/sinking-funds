@@ -2,7 +2,12 @@
 // Browsers treat those as different sites for cookie purposes, so if the
 // frontend is served from one and this pointed at the other, the session
 // cookie set by /login would silently fail to attach to later requests.
-const baseUrl = `http://${window.location.hostname}:5001`
+// REACT_APP_API_PORT lets a test instance (see start_test.sh) talk to its own
+// backend instead of the real one.
+const apiPort = process.env.REACT_APP_API_PORT || '5001';
+const baseUrl = `http://${window.location.hostname}:${apiPort}`
+
+export const isTestEnv = process.env.REACT_APP_ENV_LABEL === 'TEST';
 
 export function findNumPaychecks(coefficient, start, goal) {
     if (start >= goal) {
