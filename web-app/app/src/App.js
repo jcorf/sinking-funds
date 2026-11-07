@@ -23,10 +23,9 @@ export default function App() {
     const [authChecked, setAuthChecked] = useState(false);
     const [authenticated, setAuthenticated] = useState(false);
 
+    // Set outright (not prefixed): dev StrictMode runs effects twice.
     useEffect(() => {
-        if (isTestEnv) {
-            document.title = `[TEST] ${document.title}`;
-        }
+        document.title = isTestEnv ? '[TEST] Sinking Funds' : 'Sinking Funds';
     }, []);
 
     useEffect(() => {
