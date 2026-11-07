@@ -547,9 +547,6 @@ const CreditCards = () => {
           <section>
             <header className="cc-section-header">
               <h2>Cards</h2>
-              <span className="cc-section-total">
-                <span className="cc-num">{loaded ? formatMoney(totalOwed) : '—'}</span>
-              </span>
             </header>
 
             {error && (
