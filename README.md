@@ -135,11 +135,10 @@ Every route except `/`, `/login` and `/session` requires being logged in.
 |---|---|
 | Session | `POST /login`, `POST /logout`, `GET /session` |
 | Goals | `GET /get_data`, `GET /get_category_info`, `POST /add_category`, `POST /update_field`, `DELETE /remove_category`, `POST /update_card_order` |
-| Plans | `GET /saved_by_paycheck`, `POST /recalculate_all`, `POST /update_to_save_single`, `GET /next_payday`, `GET /upcoming_paydays` |
+| Plans | `GET /saved_by_paycheck`, `POST /recalculate_all`, `GET /next_payday`, `GET /upcoming_paydays` |
 | Spending | `GET /goal_spending?id=`, `POST /spend_from_goal`, `DELETE /goal_spending` |
-| Credit cards | `GET /get_credit_cards`, `GET /get_credit_card_info`, `POST /add_credit_card`, `POST /update_credit_card_balance`, `POST /update_covered_sub_balances`, `POST /update_pending_sub_balances`, `POST /update_credit_card_order`, `DELETE /remove_credit_card` |
+| Credit cards | `GET /get_credit_cards`, `POST /add_credit_card`, `POST /update_credit_card_balance`, `POST /update_covered_sub_balances`, `POST /update_pending_sub_balances`, `POST /update_credit_card_order`, `DELETE /remove_credit_card` |
 | Bucket | `GET /get_ally_bank_balance`, `POST /update_ally_bank_balance` |
 | Paycheck | `GET /get_paycheck_settings`, `POST /update_paycheck_settings`; and for each of `budget_category`, `pre_tax_benefit`, `post_tax_contribution`, `post_tax_benefit`: `GET /get_*s`, `POST /add_*`, `POST /update_*`, `POST /update_*_order`, `DELETE /remove_*` |
 | Notes | `GET /get_notes`, `POST /update_notes` |
 | Export | `GET /export` (JSON), `GET /export_goals.csv` |
-| Setup | `POST /setup_database`, `/delete_database`, `/add_mock_data`, `/setup_credit_cards_database`, `/setup_default_credit_cards`, `/setup_ally_bank_database`, `/add_display_order_column` |
