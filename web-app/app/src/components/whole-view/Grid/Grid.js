@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
     DndContext,
     closestCenter,
@@ -408,6 +408,11 @@ const Grid = () => {
     const [drafts, setDrafts] = useState({});
     const [bucket, setBucket] = useState(null);
 
+    // /sinking-funds?log=1 (from the Dashboard's "Log the … paycheck") opens
+    // the log panel once the goals have loaded.
+    const location = useLocation();
+    const wantsLog = new URLSearchParams(location.search).get('log') === '1';
+
     const refresh = useCallback(async () => {
         const data = await getAllData();
         setGoals((data && data.data) || []);
@@ -420,6 +425,13 @@ const Grid = () => {
         getNextPayday().then(setPayday);
         getAllyBankBalance().then(setBucket);
     }, [refresh]);
+
+    useEffect(() => {
+        if (loaded && wantsLog) {
+            setLogOpen(true);
+            navigate('/sinking-funds', { replace: true });
+        }
+    }, [loaded, wantsLog, navigate]);
 
     const statuses = useMemo(
         () => Object.fromEntries(goals.map((g) => [g.id, goalStatus(g, payday)])),

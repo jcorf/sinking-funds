@@ -156,7 +156,7 @@ A neutral base moving to **muted sage green** as the one app-wide color. Purple 
 
 ### Legacy accents
 - **Ledger Purple** (`accent-purple`): retired. Credit Cards and Budget Categories are now sage.
-- **Savings Blue** (`accent-blue`, deeper `accent-blue-deep`): legacy accent still on Dashboard and Recalculate. (Sinking Funds and the goal detail page are now sage.)
+- **Savings Blue** (`accent-blue`, deeper `accent-blue-deep`): retired. Every page is now sage.
 
 > **Decided:** muted sage green replaces both purple and blue. Redesign a page into sage as a whole. Until a page is redesigned it keeps its existing accent; never mix accents on one page.
 
@@ -260,6 +260,11 @@ Two quiet round buttons pinned bottom-left (calculator, notes); each turns solid
 
 ### Credit Cards
 Sage, Budget Categories structure: Castoro title with the Lock / Unlock pill (locked by default), one card list with column heads (Posted · Pending · Covered · Balance) on shared edges, balances in ink (red plus "over-covered" only when negative). Pending and Covered are toggles that expand the row inline to their transactions (description, amount, source tag: Venmo / Future / Actual / custom, words always shown in sage tints); editable with Save / Cancel when unlocked. Pinned "Cards vs bucket" panel: Total owed − Saved in bucket = big Net change with words ("Move into the bucket" in red when short, "Bucket covers your cards" in sage when ahead); bottom bar below 900px.
+
+### Dashboard (home)
+- **Needs doing:** a short action list, one row per item (icon tile, one sentence with the key figure bolded, an outlined pill button with an arrow): log the paycheck whose plan start has passed (opens Sinking Funds with the log panel via `?log=1`), move $X into the bucket, N goals need recalculating, goals due within 30 days or past due (up to 3, then "and N more"). Nothing pending: a sage "All caught up ✓ · Next paycheck: Fri, Nov 13" strip.
+- **At a glance:** two panels. *Sinking funds*: total saved (Figure style) of total goals, progress bar, Per paycheck / Funded / Progress, then **Where the next paycheck goes**, a thin segmented bar (2px surface gaps, 4px end radius) with a swatch list of name, amount and share, hover linking the two; max 6 parts, the tail folds into "Other". *Cards vs bucket*: the same net-change readout as Credit Cards.
+- **Chart colors (categorical, fixed order, validated with the dataviz checks: lightness band, chroma, CVD and normal-vision separation, ≥3:1 on white):** `#2e7d4f` green, `#2d6cb5` blue, `#cf6b25` orange, `#7b59c9` violet, `#b8407f` rose, `#6f7f12` olive; "Other" `#8b9586`. Color follows the goal (list order), not its rank. Text stays in ink, never the series color.
 
 ### Results panel ("This paycheck")
 The signature component.
