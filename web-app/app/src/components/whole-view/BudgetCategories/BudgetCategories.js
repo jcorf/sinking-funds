@@ -413,14 +413,14 @@ function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross, r
   const over = ready && !noPay && leftover < -0.004;
   const exact = ready && !noPay && Math.abs(leftover) < 0.005;
 
-  const leftoverLabel = !ready ? 'Loading…' : over ? 'Over budget by' : 'Leftover';
+  const leftoverLabel = !ready ? 'Loading…' : over ? 'Over Budget By' : 'Leftover';
   const leftoverAmount = !ready || noPay ? '—' : formatCurrency(Math.abs(leftover));
   const money = (n) => (ready ? n : null);
 
   return (
     <aside
       className={`bc-math ${expanded ? 'is-expanded' : ''} ${over ? 'is-over' : ''}`}
-      aria-label="This paycheck"
+      aria-label="This Paycheck"
     >
       {/* Compact bar, shown only on narrow screens */}
       <button
@@ -443,15 +443,15 @@ function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross, r
       </button>
 
       <div className="bc-math-body">
-        <h2 className="bc-math-title">This paycheck</h2>
+        <h2 className="bc-math-title">This Paycheck</h2>
         <dl className="bc-math-list">
-          <MathLine label="Gross pay" amount={money(gross)} />
-          <MathLine operator="−" label="Pre-tax" amount={money(preTax)} />
+          <MathLine label="Gross Pay" amount={money(gross)} />
+          <MathLine operator="−" label="Pre-Tax" amount={money(preTax)} />
           <MathLine operator="−" label="Taxes" amount={money(taxes)} />
-          <MathLine label="Net pay" amount={money(gross - preTax - taxes)} emphasis />
-          <MathLine operator="−" label="Post-tax" amount={money(postTax)} />
-          <MathLine label="Available to budget" amount={money(available)} emphasis />
-          <MathLine operator="−" label="Pre-budgeted" amount={money(categories)} />
+          <MathLine label="Net Pay" amount={money(gross - preTax - taxes)} emphasis />
+          <MathLine operator="−" label="Post-Tax" amount={money(postTax)} />
+          <MathLine label="Available to Budget" amount={money(available)} emphasis />
+          <MathLine operator="−" label="Pre-Budgeted" amount={money(categories)} />
         </dl>
 
         <div className="bc-leftover" aria-live="polite">
@@ -461,7 +461,7 @@ function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross, r
             <p className="bc-leftover-note">
               Add your gross pay to see what’s left.{' '}
               <button type="button" className="bc-link" onClick={onSetGross}>
-                Set gross pay
+                Set Gross Pay
               </button>
             </p>
           ) : over ? (
@@ -541,11 +541,27 @@ const BudgetCategories = () => {
   const totalPreTax = settings.pre_tax_retirement + preTaxBenefits.total;
   const totalPostTax = postTaxInvestments.total + postTaxBenefits.total;
 
-  const standingValues = [
-    { field: 'net_pay', id: 'bc-gross-pay', label: 'Gross pay' },
-    { field: 'pre_tax_retirement', id: 'bc-pre-tax-retirement', label: 'Pre-tax retirement' },
-    { field: 'taxes', id: 'bc-taxes', label: 'Taxes' },
-  ];
+  // One editable paycheck field (gross pay, pre-tax retirement, taxes) as a row.
+  const fieldRow = (field, id, label) => (
+    <li className={`bc-row bc-row--static ${locked ? 'is-locked' : ''}`} key={field}>
+      <label className="bc-row-name" htmlFor={id}>
+        {label}
+      </label>
+      {locked ? (
+        <span className="bc-amount-text" id={id}>
+          {settingsLoaded ? formatCurrency(settings[field] || 0) : '—'}
+        </span>
+      ) : (
+        <MoneyInput
+          id={id}
+          value={settings[field]}
+          label={`${label} per paycheck`}
+          onPreview={previewSetting(field)}
+          onCommit={commitSetting(field)}
+        />
+      )}
+    </li>
+  );
 
   return (
     <div className="bc-page">
@@ -559,85 +575,86 @@ const BudgetCategories = () => {
           title={locked ? 'Unlock to edit amounts, reorder, add or delete' : 'Lock to show a clean read-only view'}
         >
           {locked ? <Lock size={15} aria-hidden="true" /> : <LockOpen size={15} aria-hidden="true" />}
-          {locked ? 'Unlock to edit' : 'Lock'}
+          {locked ? 'Unlock to Edit' : 'Lock'}
         </button>
       </header>
 
       <div className="bc-layout">
         <div className="bc-main">
+          {/* Left column follows the paycheck waterfall, top to bottom:
+              gross -> pre-tax -> taxes -> post-tax -> pre-budgeted categories */}
+          <section className="bc-section">
+            <header className="bc-section-header">
+              <h2>Paycheck Setup</h2>
+            </header>
+
+            <ul className="bc-list">{fieldRow('net_pay', 'bc-gross-pay', 'Gross Pay')}</ul>
+
+            <div className="bc-group">
+              <header className="bc-group-header">
+                <h3>Pre-Tax</h3>
+                <span className="bc-section-total">{ready ? formatCurrency(totalPreTax) : '—'}</span>
+              </header>
+              <ul className="bc-list">{fieldRow('pre_tax_retirement', 'bc-pre-tax-retirement', 'Retirement')}</ul>
+              <SetupSection
+                id="pre-tax-benefits"
+                label="Contributions"
+                total={preTaxBenefits.loaded ? preTaxBenefits.total : null}
+                collapsed={!!collapsed.preTaxBenefits}
+                onToggle={() => toggleCollapsed('preTaxBenefits')}
+              >
+                <AmountList list={preTaxBenefits} addPlaceholder="Add a Pre-Tax Contribution…" locked={locked} />
+              </SetupSection>
+            </div>
+
+            <div className="bc-group">
+              <header className="bc-group-header">
+                <h3>Taxes</h3>
+                <span className="bc-section-total">{settingsLoaded ? formatCurrency(settings.taxes) : '—'}</span>
+              </header>
+              <ul className="bc-list">{fieldRow('taxes', 'bc-taxes', 'Taxes')}</ul>
+            </div>
+
+            <div className="bc-group">
+              <header className="bc-group-header">
+                <h3>Post-Tax</h3>
+                <span className="bc-section-total">{ready ? formatCurrency(totalPostTax) : '—'}</span>
+              </header>
+              <SetupSection
+                id="post-tax-investments"
+                label="Retirement & Investments"
+                total={postTaxInvestments.loaded ? postTaxInvestments.total : null}
+                collapsed={!!collapsed.postTaxInvestments}
+                onToggle={() => toggleCollapsed('postTaxInvestments')}
+              >
+                <AmountList list={postTaxInvestments} addPlaceholder="Add a Post-Tax Investment…" locked={locked} />
+              </SetupSection>
+              <SetupSection
+                id="post-tax-benefits"
+                label="Other Contributions"
+                total={postTaxBenefits.loaded ? postTaxBenefits.total : null}
+                collapsed={!!collapsed.postTaxBenefits}
+                onToggle={() => toggleCollapsed('postTaxBenefits')}
+              >
+                <AmountList list={postTaxBenefits} addPlaceholder="Add a Post-Tax Contribution…" locked={locked} />
+              </SetupSection>
+            </div>
+          </section>
+
           <section className="bc-section">
             <header className="bc-section-header">
               <h2>Categories</h2>
               <span className="bc-section-total">
                 {categories.loaded ? formatCurrency(categories.total) : '—'}
-                <span className="bc-section-total-unit"> per paycheck</span>
+                <span className="bc-section-total-unit"> Per Paycheck</span>
               </span>
             </header>
             <AmountList
               list={categories}
-              addPlaceholder="Add a category…"
+              addPlaceholder="Add a Category…"
               emptyText="No categories yet. Add your first one below."
               locked={locked}
             />
-          </section>
-
-          <section className="bc-section">
-            <header className="bc-section-header">
-              <h2>Paycheck setup</h2>
-            </header>
-
-            <ul className="bc-list">
-              {standingValues.map(({ field, id, label }) => (
-                <li className={`bc-row bc-row--static ${locked ? 'is-locked' : ''}`} key={field}>
-                  <label className="bc-row-name" htmlFor={id}>
-                    {label}
-                  </label>
-                  {locked ? (
-                    <span className="bc-amount-text" id={id}>
-                      {formatCurrency(settings[field] || 0)}
-                    </span>
-                  ) : (
-                    <MoneyInput
-                      id={id}
-                      value={settings[field]}
-                      label={`${label} per paycheck`}
-                      onPreview={previewSetting(field)}
-                      onCommit={commitSetting(field)}
-                    />
-                  )}
-                </li>
-              ))}
-            </ul>
-
-            <SetupSection
-              id="pre-tax-benefits"
-              label="Pre-Tax Contributions"
-              total={preTaxBenefits.loaded ? preTaxBenefits.total : null}
-              collapsed={!!collapsed.preTaxBenefits}
-              onToggle={() => toggleCollapsed('preTaxBenefits')}
-            >
-              <AmountList list={preTaxBenefits} addPlaceholder="Add a pre-tax contribution…" locked={locked} />
-            </SetupSection>
-
-            <SetupSection
-              id="post-tax-investments"
-              label="Post-Tax Retirement & Investments"
-              total={postTaxInvestments.loaded ? postTaxInvestments.total : null}
-              collapsed={!!collapsed.postTaxInvestments}
-              onToggle={() => toggleCollapsed('postTaxInvestments')}
-            >
-              <AmountList list={postTaxInvestments} addPlaceholder="Add a post-tax investment…" locked={locked} />
-            </SetupSection>
-
-            <SetupSection
-              id="post-tax-benefits"
-              label="Post-Tax Other Contributions"
-              total={postTaxBenefits.loaded ? postTaxBenefits.total : null}
-              collapsed={!!collapsed.postTaxBenefits}
-              onToggle={() => toggleCollapsed('postTaxBenefits')}
-            >
-              <AmountList list={postTaxBenefits} addPlaceholder="Add a post-tax contribution…" locked={locked} />
-            </SetupSection>
           </section>
         </div>
 

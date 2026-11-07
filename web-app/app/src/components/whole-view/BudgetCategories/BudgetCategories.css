@@ -380,6 +380,36 @@
 
 /* ---------- Paycheck setup: collapsible groups ---------- */
 
+/* Paycheck waterfall groups: Pre-tax, Taxes, Post-tax */
+.bc-group {
+  margin-top: 28px;
+}
+
+.bc-group-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 16px 10px;
+}
+
+.bc-group-header h3 {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.4rem;
+  color: var(--bc-ink);
+}
+
+/* Sub-sections inside a group sit one step below the group heading */
+.bc-group .bc-setup-section {
+  margin-top: 12px;
+}
+
+.bc-group .bc-section-toggle-label {
+  font-size: 1.1rem;
+}
+
 .bc-setup-section {
   margin-top: 20px;
 }

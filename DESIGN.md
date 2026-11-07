@@ -202,7 +202,7 @@ A neutral base moving to **muted sage green** as the one app-wide color. Purple 
 
 **The One Edge Rule.** In a list, a section's total and its rows' amounts share one right edge, and the heading and row names share one left edge (Budget Categories uses a 16px inset for both).
 
-**The Sentence Case Rule.** Labels are sentence case ("Pre-tax benefits"). The older uppercase, letter-spaced micro-labels ("POSTED", "AMOUNT PER PAYCHECK") are legacy and shouldn't be copied into new work.
+**The Sentence Case Rule.** Labels are sentence case ("Pre-tax benefits"). The older uppercase, letter-spaced micro-labels ("POSTED", "AMOUNT PER PAYCHECK") are legacy and shouldn't be copied into new work. **Exception (owner's choice):** the Paycheck page uses Title Case for every label, heading and button ("Pre-Tax", "Gross Pay", "Available to Budget", "Unlock to Edit"); its explanatory sentences stay in sentence case.
 
 ## Layout
 

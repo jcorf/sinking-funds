@@ -6,9 +6,10 @@
     top: 0;
     z-index: 1000;
     padding: 12px 16px;
-    /* Page-colored band so content scrolling underneath doesn't show around
-       the floating bar */
-    background: linear-gradient(#f2f2f2 75%, rgba(242, 242, 242, 0));
+    /* No band behind the bar: content scrolls under it and shows through the
+       frosted glass */
+    background: none;
+    pointer-events: none; /* the transparent padding never blocks clicks */
 }
 
 .nb-bar {
@@ -21,10 +22,14 @@
     min-height: 60px;
     margin: 0 auto;
     padding: 8px 10px 8px 12px;
-    background: #fff;
-    border: 1px solid var(--line);
+    pointer-events: auto;
+    /* Frosted, slightly see-through, with a light shadow */
+    background: rgba(255, 255, 255, 0.62);
+    -webkit-backdrop-filter: blur(16px) saturate(170%);
+    backdrop-filter: blur(16px) saturate(170%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
     border-radius: 30px;
-    box-shadow: 0 6px 20px rgba(29, 42, 30, 0.08);
+    box-shadow: 0 2px 10px rgba(29, 42, 30, 0.05), inset 0 0 0 1px rgba(29, 42, 30, 0.04);
     color: var(--sage-ink);
 }
 
@@ -162,7 +167,7 @@
     margin-left: auto;
     border: 1px solid var(--line-strong);
     border-radius: 999px;
-    background: #fff;
+    background: rgba(255, 255, 255, 0.5);
     color: var(--sage-ink);
     font: inherit;
     font-weight: 600;
