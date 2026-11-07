@@ -1,209 +1,145 @@
-# Sinking Funds Calculator
+# Sinking Funds
 
-A web application for managing and tracking sinking funds (savings goals) with automatic paycheck-based calculations.
+A personal finance app for planning each paycheck: how much to set aside for savings goals ("sinking funds"), where the rest of the paycheck goes, and whether the money set aside for credit cards covers what's owed. Flask + SQLite backend, React frontend, runs locally.
 
-## Overview
+![Overview](docs/screenshots/overview.png)
 
-This application helps users manage multiple savings goals by calculating how much to save per paycheck based on a bimonthly pay schedule (15th and 30th/31st of each month). It provides a visual dashboard to track progress toward financial goals.
+*Screenshots use the built-in fake sample data.*
 
 ## Features
 
-- **Multiple Savings Categories**: Create and manage multiple sinking funds (e.g., emergency fund, vacation, car repairs)
-- **Bimonthly Pay Schedule**: Automatically calculates savings based on 15th and 30th/31st paydays
-- **Progress Tracking**: Visual progress bars and percentage completion for each goal
-- **Drag & Drop Interface**: Reorder categories by dragging cards
-- **Real-time Updates**: Update saved amounts and see immediate recalculation
-- **Responsive Design**: Works on desktop and mobile devices
+### Overview
+The home page. **Needs doing** lists anything that needs action, such as a paycheck to log, goals that need recalculating, money to move into the credit card bucket, or goals coming due. **At a glance** shows total savings progress, where the next paycheck goes (split by goal), whether the bucket covers your cards, and which goals the next paycheck finishes. At the bottom you can **download a copy** of your data: everything as JSON, or your goals as a CSV spreadsheet.
 
-## Project Structure
+### Sinking Funds
+Every goal in one list, with progress, the amount to save per paycheck, the due date, and how many paychecks are left. Drag rows to reorder them.
 
-```
-sinking-funds/
-├── src/paycheck/                 # Backend Python/Flask application
-│   ├── database.py              # Database operations and schema
-│   ├── flask-connector.py       # Flask API endpoints
-│   ├── paycheck.py              # Paycheck calculation logic
-│   ├── schedules/
-│   │   └── bimonthly.py         # Bimonthly pay schedule calculations
-│   └── utils/
-│       ├── utils.py             # Utility functions
-│       └── reference/
-│           └── database_constants.py
-├── web-app/app/                 # Frontend React application
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── whole-view/      # Main application views
-│   │   │   │   ├── Dashboard/   # Dashboard component
-│   │   │   │   ├── Grid/        # Main grid view of savings cards
-│   │   │   │   ├── InfoCard/    # Individual savings card component
-│   │   │   │   ├── AddCard/     # Add new savings category
-│   │   │   │   └── InfoPage/    # Detailed category information
-│   │   │   └── utils/
-│   │   │       ├── api.js       # API communication functions
-│   │   │       └── lib.js       # Utility functions
-│   │   └── App.js               # Main React application
-│   └── package.json
-└── README.md
-```
+![Sinking Funds](docs/screenshots/sinking-funds.png)
 
-## Technology Stack
+- **Log this paycheck** adds each goal's planned amount in one step. Untick a goal or change an amount first if needed. You can undo afterwards, and a goal that becomes fully funded gets confetti.
+- **Update saved amounts** lets you edit every goal's balance at once, for example to match your bank.
+- **More detail** shows each goal's balance after the next paycheck and the date its plan starts.
+- The **status bar** says which paycheck the plans start from. Hover it to **Recalculate** from the last paycheck, the next one, or any date.
 
-### Backend
-- **Python 3.x**: Core application logic
-- **Flask**: Web framework for API endpoints
-- **SQLite**: Database for storing savings data
-- **Flask-CORS**: Cross-origin resource sharing
+![Logging a paycheck](docs/screenshots/log-paycheck.png)
 
-### Frontend
-- **React**: User interface framework
-- **React Router**: Client-side routing
-- **CSS3**: Styling and animations
-- **Fetch API**: HTTP requests to backend
+### A goal
+Click a goal to edit its amount saved, goal amount and due date, see its **Plan by paycheck** (each payday's contribution and the running total), and log a single paycheck.
 
-## Setup Instructions
+**Spend from Fund** records money taken out when the goal is used (the trip happened, the bill got paid). By default it also lowers the goal by the same amount. Each spend is listed under **Spending**, and removing an entry puts the money back.
 
-### What I'm running this locally on
-- Python 3.9.13
-- Node.js 22.12.0
-- npm 10.9.0
+![A goal with the spend form open](docs/screenshots/goal.png)
 
-### Desktop app (macOS)
+### Paycheck
+Your paycheck from top to bottom: Gross Pay, then Pre-Tax (retirement and other contributions), Taxes, Post-Tax, and your budget categories. **This Paycheck** on the right does the math down to **Leftover**. The page is locked by default so the numbers can't be changed by accident. Click the lock icon to edit.
 
-Run `./make_desktop_app.sh` once to put **Sinking Funds.app** on your Desktop. Double-click it to see whether the app and the test instance are running and to start, stop, or open either one, no Terminal needed. (Run `./start_app.sh` in Terminal once first to set up your login.)
+![Paycheck](docs/screenshots/paycheck.png)
 
-### Backend Setup
+**What If** lets you try different numbers without saving them, such as a raise, a new retirement amount, or taxes from the ADP paycheck calculator. It compares Now with What If and shows the change per paycheck and per year. You can then save the new Gross Pay, Retirement or Taxes if you want.
 
-1. Navigate to the backend directory:
-   ```bash
-   cd src/paycheck
-   ```
+![What If](docs/screenshots/what-if.png)
 
-2. Install Python dependencies (if using a virtual environment):
-   ```bash
-   pip install flask flask-cors
-   ```
+### Credit Cards
+Each card's **Posted**, **Pending** and **Covered** amounts and the resulting balance. Click a Pending or Covered amount to list its individual transactions. **Cards vs bucket** compares the total owed with the money set aside for the cards (the bucket), and tells you how much to move or how much is spare. Locked by default, like Paycheck.
 
-3. Run the Flask application:
-   ```bash
-   python flask-connector.py
-   ```
+![Credit Cards](docs/screenshots/credit-cards.png)
 
-   The backend will start on `http://127.0.0.1:5001`
+### Settings
+The gear icon in the nav opens a page listing every rule the math uses: the pay schedule, how plans are calculated, and the Paycheck and Credit Card formulas. It also shows the next few paydays, including any that moved off a weekend. It's read-only for now; [TODO.md](TODO.md) lists what could become editable.
 
-4. Set up database -- change DB name in `src/paycheck/utils/reference/database_constants.py`
+![Settings](docs/screenshots/settings.png)
 
-`http://127.0.0.1:5001/delete_database`
+### Calculator and notes
+The two buttons in the bottom-left corner open a calculator and a notepad that saves as you type. Both can be open at once, on any page.
 
-`http://127.0.0.1:5001/setup_database`
+![Calculator and notes](docs/screenshots/tools.png)
 
-`http://127.0.0.1:5001/add_mock_data`
+### Login
+Single user, with the username and password set up the first time you run `./start_app.sh`.
 
-### Frontend Setup
+![Login](docs/screenshots/login.png)
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd web-app
-   ```
+## How the math works
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+- **Pay schedule:** semi-monthly, paid on the 15th and the last day of each month. A payday that falls on a weekend is paid the Friday before. Holidays aren't accounted for.
+- **Per paycheck:** `(goal − saved) ÷ paydays left`, counting paydays from the goal's plan start through its due date.
+- **Plan start:** each goal's first paycheck. Logging a paycheck moves it to the following payday. Editing a goal by hand keeps it.
+- **Paycheck:** `Net Pay = Gross − Pre-Tax − Taxes`, then `Leftover = Net Pay − Post-Tax − budget categories`.
+- **Credit cards:** `balance = posted + pending − covered`.
 
-3. Start the development server:
-   ```bash
-   npm start
-   ```
+The pay schedule lives in [`src/paycheck/schedules/bimonthly.py`](src/paycheck/schedules/bimonthly.py). Adding another schedule means a new module there plus a branch in [`paycheck.py`](src/paycheck/paycheck.py).
 
-   The frontend will start on `http://localhost:3000`
+## Running it
 
-## Usage
+Built with Python 3.9, Node.js 22 and npm 10.
 
-### Adding a Savings Category
-
-1. Click the "+" card in the main grid
-2. Enter the category name, current amount saved, goal amount, and target date
-3. Choose an emoji to represent the category
-4. Click "Add Category"
-
-### Updating Progress
-
-1. Click on any savings card to view details
-2. Use the "next paycheck" button to simulate receiving a paycheck
-3. The saved amount will update and progress will be recalculated
-
-### Recalculating All Categories
-
-1. On the Sinking Funds page, hover the status pill ("Earliest plan starts with…")
-2. Choose **last** or **next** paycheck, or **Other date…** to pick any start date
-3. Every goal recalculates its per-paycheck amount from that start
-
-### Reordering Categories
-
-1. Drag and drop cards in the main grid to reorder them
-2. The new order will be saved automatically
-
-## API Endpoints
-
-### GET Endpoints
-- `/get_data` - Retrieve all savings categories
-- `/get_category_info` - Get specific category information
-- `/saved_by_paycheck` - Get paycheck schedule for a category
-- `/goal_spending?id=` - Spending recorded against a goal, newest first
-- `/upcoming_paydays?count=` - The next paydays, with the date each moved from if it fell on a weekend
-- `/export` - Download every table as JSON
-- `/export_goals.csv` - Download the sinking funds as a spreadsheet
-
-### POST Endpoints
-- `/add_category` - Create a new savings category
-- `/update_field` - Update a field in a category
-- `/spend_from_goal` - Record money spent from a goal (lowers the goal by the same amount unless `lower_goal` is false)
-- `/recalculate_all` - Recalculate all categories with new start date
-- `/update_card_order` - Update the display order of cards
-
-### DELETE Endpoints
-- `/remove_category` - Delete a savings category (and its spending history)
-- `/goal_spending` - Remove a spending entry, putting its money (and any goal reduction) back
-
-## Paycheck Schedule Logic
-
-The application uses a bimonthly pay schedule:
-- **15th of each month**: First paycheck
-- **30th/31st of each month**: Second paycheck
-- **Weekend adjustment**: If payday falls on a weekend, it's moved to the previous Friday
-
-### Calculation Formula
-```
-Amount per paycheck = (Goal - Current Saved) / Number of remaining paychecks
+```bash
+./start_app.sh
 ```
 
-## Database Schema
+This starts the backend (`http://127.0.0.1:5001`) and the frontend (`http://localhost:3000`). It also creates a Python virtual environment and installs the dependencies. The first run asks you to choose a username and password, which it saves to a gitignored `.env` file. Press Ctrl+C to stop.
 
-The application uses a SQLite database with the following table structure:
+**Without a terminal (macOS):** run `./make_desktop_app.sh` once to put **Sinking Funds.app** on your Desktop. It shows what's running and starts, stops or opens the app or the test instance. Run `./start_app.sh` once first to set up your login.
 
-```sql
-CREATE TABLE savings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    category TEXT NOT NULL,
-    saved REAL NOT NULL,
-    goal REAL NOT NULL,
-    goal_date TEXT NOT NULL,
-    calculated_to_save REAL NOT NULL,
-    emoji TEXT,
-    display_order INTEGER DEFAULT 0,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+**Test instance:** `./start_test.sh` runs a separate copy at `http://localhost:3001` with obviously fake sample data. It has an orange nav and a "TEST DATA" badge, and never touches your real data, so it's safe to experiment in. Its login is set in the gitignored `test.env`.
+
+```bash
+./start_test.sh          # fresh sample data
+./start_test.sh --keep   # keep the test data from last time
+./start_test.sh --empty  # start with no data
 ```
 
-## Todo
+**Manually:**
 
-1. Add other pay schedules
-2. Productionize it instead of having it be local
+```bash
+# Backend
+cd src/paycheck
+pip install -r requirements.txt
+python flask-connector.py
 
-## License
+# Frontend
+cd web-app/app
+npm install
+npm start
+```
 
-This project is open source and available under the [MIT License](LICENSE).
+## Your data
 
-## Support
+- Everything is stored in SQLite at `src/paycheck/sinkingFunds.db`. Tables are created automatically the first time they're needed.
+- The app keeps **one** rolling backup, `src/paycheck/backups/sinkingFunds_latest.db`, which is overwritten on start, stop and log out.
+- **Download a copy** on Overview exports everything as JSON, or your goals as CSV.
 
-For issues or questions, please open an issue in the repository or contact the development team.
+## Project structure
+
+```
+src/paycheck/
+  flask-connector.py      API routes
+  database.py             All SQL (raw sqlite3)
+  paycheck.py             Picks the pay schedule
+  schedules/bimonthly.py  Semi-monthly paydays and savings math
+  auth.py                 Single-user login
+  seed_demo_data.py       Fake data for the test instance
+web-app/app/src/
+  App.js                  Routes, nav, tools dock
+  components/utils/api.js All calls to the backend
+  components/whole-view/  One folder per page: Dashboard (Overview), Grid (Sinking Funds),
+                          InfoPage (a goal), BudgetCategories (Paycheck), CreditCards,
+                          Settings, Login, Nav, Tools, plus SinkingFunds (shared parts)
+```
+
+## API
+
+Every route except `/`, `/login` and `/session` requires being logged in.
+
+| Area | Routes |
+|---|---|
+| Session | `POST /login`, `POST /logout`, `GET /session` |
+| Goals | `GET /get_data`, `GET /get_category_info`, `POST /add_category`, `POST /update_field`, `DELETE /remove_category`, `POST /update_card_order` |
+| Plans | `GET /saved_by_paycheck`, `POST /recalculate_all`, `POST /update_to_save_single`, `GET /next_payday`, `GET /upcoming_paydays` |
+| Spending | `GET /goal_spending?id=`, `POST /spend_from_goal`, `DELETE /goal_spending` |
+| Credit cards | `GET /get_credit_cards`, `GET /get_credit_card_info`, `POST /add_credit_card`, `POST /update_credit_card_balance`, `POST /update_covered_sub_balances`, `POST /update_pending_sub_balances`, `POST /update_credit_card_order`, `DELETE /remove_credit_card` |
+| Bucket | `GET /get_ally_bank_balance`, `POST /update_ally_bank_balance` |
+| Paycheck | `GET /get_paycheck_settings`, `POST /update_paycheck_settings`; and for each of `budget_category`, `pre_tax_benefit`, `post_tax_contribution`, `post_tax_benefit`: `GET /get_*s`, `POST /add_*`, `POST /update_*`, `POST /update_*_order`, `DELETE /remove_*` |
+| Notes | `GET /get_notes`, `POST /update_notes` |
+| Export | `GET /export` (JSON), `GET /export_goals.csv` |
+| Setup | `POST /setup_database`, `/delete_database`, `/add_mock_data`, `/setup_credit_cards_database`, `/setup_default_credit_cards`, `/setup_ally_bank_database`, `/add_display_order_column` |
