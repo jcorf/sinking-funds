@@ -12,7 +12,7 @@ A personal finance web app for tracking "sinking funds" (savings goals), credit 
 ./start_app.sh          # starts both backend and frontend, backs up the db first
 ```
 
-Or without a terminal: `./make_desktop_app.sh` builds **Sinking Funds.app** on the Desktop, a native dialog that shows what's running and starts/stops/opens the real app or the test instance. It drives `./app_control.sh status | start real|test | stop real|test | open real|test`, which runs the start scripts in the background (logs in `.run/`).
+Or without a terminal: `./make_desktop_app.sh` builds **Sinking Funds.app** on the Desktop, a native dialog that shows what's running and starts/stops/opens the real app or the test instance and restores the backup. It also writes the Desktop `Sinking Funds.command`, which runs `./menu.sh`, the same menu in Terminal. It drives `./app_control.sh status | start real|test | stop real|test | open real|test`, which runs the start scripts in the background (logs in `.run/`).
 
 To experiment without touching real data, run a second, isolated instance alongside it:
 
@@ -54,7 +54,6 @@ The frontend lives entirely under `web-app/app/` (there is nothing else in `web-
 - [paycheck.py](src/paycheck/paycheck.py) + [schedules/bimonthly.py](src/paycheck/schedules/bimonthly.py) — the actual savings-per-paycheck math, dispatched by a `frequency` string. Only `"bimonthly"` is implemented (paydays = 15th and last day of month, shifted back to Friday if it falls on a weekend). Adding a new pay schedule means adding a new module under `schedules/` and a new branch in `paycheck.py`'s dispatch functions (`saved_by_paycheck`, `save_per_paycheck`).
 - [utils/reference/database_constants.py](src/paycheck/utils/reference/database_constants.py) — single `DATABASE_NAME` constant (`sinkingFunds.db`) used everywhere via import.
 - Credit card balance model: `total_balance = posted_transactions + pending_transactions - covered_transactions`. `covered_sub_balances`/`pending_sub_balances` store itemized breakdowns as JSON strings; updating them (`update_covered_sub_balances`/`update_pending_sub_balances`) recalculates the aggregate field and `total_balance` together — keep both in sync if editing this logic.
-- `notebooks/` contains the original Jupyter-prototype versions of the calculation logic (`sinkingFunds.py`, `calculateFunctions.py`). It's not imported by the running app — treat it as historical reference only, not a dependency.
 
 ## Frontend architecture
 
@@ -69,4 +68,4 @@ Prefix every commit subject with its type: `(fix)`, `(feature)`, or `(other)` �
 
 ## Data sensitivity
 
-This repo is pushed to a **public** GitHub remote (`origin` = jcorf/sinking-funds). The current branch, `local-db-dont-push-publicly`, exists specifically to hold real personal financial data in `src/paycheck/sinkingFunds.db` without pushing it to a public branch. Backups: the real app keeps **one** rolling backup, `src/paycheck/backups/sinkingFunds_latest.db` (gitignored), overwritten on start, stop, and logout via `backup_db.sh` / the backend's logout route. The test instance uses fake sample data (`seed_demo_data.py`) and never backs up. Do not push this branch, and do not merge db files into `main` without explicit confirmation.
+This repo is pushed to a **public** GitHub remote (`origin` = jcorf/sinking-funds). Real personal financial data lives only in `src/paycheck/sinkingFunds.db`, which is gitignored along with `src/paycheck/backups/`, `.env` and `test.env`. Never commit or force-add db or env files. The real app keeps **one** rolling backup, `src/paycheck/backups/sinkingFunds_latest.db`, overwritten on start, stop, and logout via `backup_db.sh` / the backend's logout route. `./restore_db.sh` (also `app_control.sh restore` and the desktop app's Restore backup…) restores it, saving the current db as `backups/sinkingFunds_before_restore.db` first. The test instance uses fake sample data (`seed_demo_data.py`) and never backs up.

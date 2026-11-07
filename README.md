@@ -79,7 +79,7 @@ Built with Python 3.9, Node.js 22 and npm 10.
 
 This starts the backend (`http://127.0.0.1:5001`) and the frontend (`http://localhost:3000`). It also creates a Python virtual environment and installs the dependencies. The first run asks you to choose a username and password, which it saves to a gitignored `.env` file. Press Ctrl+C to stop.
 
-**Without a terminal (macOS):** run `./make_desktop_app.sh` once to put **Sinking Funds.app** on your Desktop. It shows what's running and starts, stops or opens the app or the test instance. Run `./start_app.sh` once first to set up your login.
+**Without a terminal (macOS):** run `./make_desktop_app.sh` once to put **Sinking Funds.app** on your Desktop. It shows what's running and starts, stops or opens the app or the test instance, and restores the backup. It also writes **Sinking Funds.command**, the same menu inside Terminal (or run `./menu.sh`). Run `./start_app.sh` once first to set up your login.
 
 **Test instance:** `./start_test.sh` runs a separate copy at `http://localhost:3001` with obviously fake sample data. It has an orange nav and a "TEST DATA" badge, and never touches your real data, so it's safe to experiment in. Its login is set in the gitignored `test.env`.
 
@@ -107,6 +107,7 @@ npm start
 
 - Everything is stored in SQLite at `src/paycheck/sinkingFunds.db`. Tables are created automatically the first time they're needed.
 - The app keeps **one** rolling backup, `src/paycheck/backups/sinkingFunds_latest.db`, which is overwritten on start, stop and log out.
+- **Restore the backup** with `./restore_db.sh`, or **Restore backup…** in the desktop app. It checks the backup, stops the app, keeps your current data as `backups/sinkingFunds_before_restore.db`, and puts the backup in place. Restore *before* stopping the app normally, because every stop overwrites the backup with the current data.
 - **Download a copy** on Overview exports everything as JSON, or your goals as CSV.
 
 ## Project structure
