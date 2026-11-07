@@ -386,3 +386,159 @@ export async function updatePostTaxContributionOrder(cardOrders) {
         return false;
     }
 }
+
+export async function getPreTaxBenefits() {
+    try {
+        const response = await fetch(url('/get_pre_tax_benefits'), {credentials: 'include'});
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching pre-tax benefits:', error);
+        return {data: []};
+    }
+}
+
+export async function addPreTaxBenefit(category, amount) {
+    try {
+        const response = await fetch(url('/add_pre_tax_benefit'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category, amount }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error adding pre-tax benefit:", error);
+        return false;
+    }
+}
+
+export async function updatePreTaxBenefit(category, field, value) {
+    try {
+        const response = await fetch(url('/update_pre_tax_benefit'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category, field_to_change: field, new_value: value }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating pre-tax benefit:", error);
+        return false;
+    }
+}
+
+export async function deletePreTaxBenefit(category) {
+    try {
+        const response = await fetch(url('/remove_pre_tax_benefit'), {
+            method: "DELETE",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error deleting pre-tax benefit:", error);
+        return false;
+    }
+}
+
+export async function updatePreTaxBenefitOrder(cardOrders) {
+    try {
+        const response = await fetch(url('/update_pre_tax_benefit_order'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ card_orders: cardOrders }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating pre-tax benefit order:", error);
+        return false;
+    }
+}
+
+export async function getPostTaxBenefits() {
+    try {
+        const response = await fetch(url('/get_post_tax_benefits'), {credentials: 'include'});
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching post-tax benefits:', error);
+        return {data: []};
+    }
+}
+
+export async function addPostTaxBenefit(category, amount) {
+    try {
+        const response = await fetch(url('/add_post_tax_benefit'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category, amount }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error adding post-tax benefit:", error);
+        return false;
+    }
+}
+
+export async function updatePostTaxBenefit(category, field, value) {
+    try {
+        const response = await fetch(url('/update_post_tax_benefit'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category, field_to_change: field, new_value: value }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating post-tax benefit:", error);
+        return false;
+    }
+}
+
+export async function deletePostTaxBenefit(category) {
+    try {
+        const response = await fetch(url('/remove_post_tax_benefit'), {
+            method: "DELETE",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ category }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error deleting post-tax benefit:", error);
+        return false;
+    }
+}
+
+export async function updatePostTaxBenefitOrder(cardOrders) {
+    try {
+        const response = await fetch(url('/update_post_tax_benefit_order'), {
+            method: "POST",
+            credentials: 'include',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ card_orders: cardOrders }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating post-tax benefit order:", error);
+        return false;
+    }
+}

@@ -30,6 +30,16 @@ import {
   updatePostTaxContribution,
   deletePostTaxContribution,
   updatePostTaxContributionOrder,
+  getPreTaxBenefits,
+  addPreTaxBenefit,
+  updatePreTaxBenefit,
+  deletePreTaxBenefit,
+  updatePreTaxBenefitOrder,
+  getPostTaxBenefits,
+  addPostTaxBenefit,
+  updatePostTaxBenefit,
+  deletePostTaxBenefit,
+  updatePostTaxBenefitOrder,
 } from '../../utils/api';
 
 const parseDecimalInput = (value) => {
@@ -47,11 +57,14 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
-function SortableBudgetCategoryRow({ category, removeCategory, updateCategory }) {
-  const [localAmount, setLocalAmount] = useState(parseFloat(category.amount).toFixed(2));
+// Shared by every editable amount list on this page (budget categories,
+// post-tax investments, pre-tax benefits, post-tax benefits) -- they're all
+// "named thing + dollar amount, sortable, deletable."
+function SortableAmountRow({ item, removeItem, updateItem }) {
+  const [localAmount, setLocalAmount] = useState(parseFloat(item.amount).toFixed(2));
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
-    id: category.id,
+    id: item.id,
   });
 
   const style = {
@@ -60,8 +73,8 @@ function SortableBudgetCategoryRow({ category, removeCategory, updateCategory })
   };
 
   useEffect(() => {
-    setLocalAmount(parseFloat(category.amount).toFixed(2));
-  }, [category.amount]);
+    setLocalAmount(parseFloat(item.amount).toFixed(2));
+  }, [item.amount]);
 
   return (
     <div ref={setNodeRef} style={style} className="budget-category-row">
@@ -71,14 +84,14 @@ function SortableBudgetCategoryRow({ category, removeCategory, updateCategory })
 
       <button
         className="delete-card-btn"
-        onClick={() => removeCategory(category.category)}
-        title={`Delete ${category.category}`}
+        onClick={() => removeItem(item.category)}
+        title={`Delete ${item.category}`}
       >
         ×
       </button>
 
       <div className="category-title-section">
-        <h3>{category.category}</h3>
+        <h3>{item.category}</h3>
       </div>
 
       <div className="category-inputs-section">
@@ -92,61 +105,7 @@ function SortableBudgetCategoryRow({ category, removeCategory, updateCategory })
             onBlur={() => {
               const value = parseDecimalInput(localAmount);
               setLocalAmount(value.toFixed(2));
-              updateCategory(category.category, 'amount', value);
-            }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SortablePostTaxRow({ contribution, removeContribution, updateContribution }) {
-  const [localAmount, setLocalAmount] = useState(parseFloat(contribution.amount).toFixed(2));
-
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
-    id: contribution.id,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  useEffect(() => {
-    setLocalAmount(parseFloat(contribution.amount).toFixed(2));
-  }, [contribution.amount]);
-
-  return (
-    <div ref={setNodeRef} style={style} className="budget-category-row">
-      <div className="drag-handle" {...attributes} {...listeners}>
-        ⋮⋮
-      </div>
-
-      <button
-        className="delete-card-btn"
-        onClick={() => removeContribution(contribution.category)}
-        title={`Delete ${contribution.category}`}
-      >
-        ×
-      </button>
-
-      <div className="category-title-section">
-        <h3>{contribution.category}</h3>
-      </div>
-
-      <div className="category-inputs-section">
-        <div className="amount-field">
-          <label>Amount per paycheck</label>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={localAmount}
-            onChange={(e) => setLocalAmount(e.target.value)}
-            onBlur={() => {
-              const value = parseDecimalInput(localAmount);
-              setLocalAmount(value.toFixed(2));
-              updateContribution(contribution.category, 'amount', value);
+              updateItem(item.category, 'amount', value);
             }}
           />
         </div>
@@ -167,6 +126,12 @@ const BudgetCategories = () => {
   const [postTaxContributions, setPostTaxContributions] = useState([]);
   const [activePostTaxId, setActivePostTaxId] = useState(null);
 
+  const [preTaxBenefits, setPreTaxBenefits] = useState([]);
+  const [activePreTaxBenefitId, setActivePreTaxBenefitId] = useState(null);
+
+  const [postTaxBenefits, setPostTaxBenefits] = useState([]);
+  const [activePostTaxBenefitId, setActivePostTaxBenefitId] = useState(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
@@ -180,6 +145,8 @@ const BudgetCategories = () => {
     fetchCategories();
     fetchPaycheckSettings();
     fetchPostTaxContributions();
+    fetchPreTaxBenefits();
+    fetchPostTaxBenefits();
   }, []);
 
   const fetchCategories = async () => {
@@ -197,6 +164,16 @@ const BudgetCategories = () => {
   const fetchPostTaxContributions = async () => {
     const data = await getPostTaxContributions();
     setPostTaxContributions(data.data || []);
+  };
+
+  const fetchPreTaxBenefits = async () => {
+    const data = await getPreTaxBenefits();
+    setPreTaxBenefits(data.data || []);
+  };
+
+  const fetchPostTaxBenefits = async () => {
+    const data = await getPostTaxBenefits();
+    setPostTaxBenefits(data.data || []);
   };
 
   const addCategory = async (categoryName) => {
@@ -315,17 +292,126 @@ const BudgetCategories = () => {
     }
   }
 
+  const addPreTaxBenefitCategory = async (categoryName) => {
+    if (!categoryName.trim()) return;
+    await addPreTaxBenefit(categoryName, 0);
+    fetchPreTaxBenefits();
+  };
+
+  const removePreTaxBenefitCategory = async (categoryName) => {
+    if (!window.confirm(`Are you sure you want to delete "${categoryName}"?`)) return;
+
+    setPreTaxBenefits((prev) => prev.filter((c) => c.category !== categoryName));
+
+    try {
+      await deletePreTaxBenefit(categoryName);
+    } finally {
+      fetchPreTaxBenefits();
+    }
+  };
+
+  const updatePreTaxBenefitCategory = async (categoryName, field, value) => {
+    setPreTaxBenefits((prev) =>
+      prev.map((c) => (c.category === categoryName ? { ...c, [field]: value } : c))
+    );
+
+    try {
+      await updatePreTaxBenefit(categoryName, field, value);
+    } finally {
+      fetchPreTaxBenefits();
+    }
+  };
+
+  function handlePreTaxBenefitDragStart(event) {
+    setActivePreTaxBenefitId(event.active.id);
+  }
+
+  function handlePreTaxBenefitDragEnd(event) {
+    const { active, over } = event;
+    setActivePreTaxBenefitId(null);
+
+    if (over && active.id !== over.id) {
+      setPreTaxBenefits((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        const reorderedItems = arrayMove(items, oldIndex, newIndex);
+        updatePreTaxBenefitOrder(reorderedItems.map((item) => item.id));
+        return reorderedItems;
+      });
+    }
+  }
+
+  const addPostTaxBenefitCategory = async (categoryName) => {
+    if (!categoryName.trim()) return;
+    await addPostTaxBenefit(categoryName, 0);
+    fetchPostTaxBenefits();
+  };
+
+  const removePostTaxBenefitCategory = async (categoryName) => {
+    if (!window.confirm(`Are you sure you want to delete "${categoryName}"?`)) return;
+
+    setPostTaxBenefits((prev) => prev.filter((c) => c.category !== categoryName));
+
+    try {
+      await deletePostTaxBenefit(categoryName);
+    } finally {
+      fetchPostTaxBenefits();
+    }
+  };
+
+  const updatePostTaxBenefitCategory = async (categoryName, field, value) => {
+    setPostTaxBenefits((prev) =>
+      prev.map((c) => (c.category === categoryName ? { ...c, [field]: value } : c))
+    );
+
+    try {
+      await updatePostTaxBenefit(categoryName, field, value);
+    } finally {
+      fetchPostTaxBenefits();
+    }
+  };
+
+  function handlePostTaxBenefitDragStart(event) {
+    setActivePostTaxBenefitId(event.active.id);
+  }
+
+  function handlePostTaxBenefitDragEnd(event) {
+    const { active, over } = event;
+    setActivePostTaxBenefitId(null);
+
+    if (over && active.id !== over.id) {
+      setPostTaxBenefits((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        const reorderedItems = arrayMove(items, oldIndex, newIndex);
+        updatePostTaxBenefitOrder(reorderedItems.map((item) => item.id));
+        return reorderedItems;
+      });
+    }
+  }
+
   const totalPerPaycheck = categories.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-  const totalPostTax = postTaxContributions.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+  const totalPostTaxContributions = postTaxContributions.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+  const totalPreTaxBenefits = preTaxBenefits.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+  const totalPostTaxBenefits = postTaxBenefits.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+
+  // Pre-Tax Retirement and Post-Tax Investments are their own standing
+  // input/list, but Benefits combine with their counterpart into a single
+  // Pre-Tax / Post-Tax figure for the leftover math and summary line.
+  const totalPreTax = parseDecimalInput(preTaxRetirement) + totalPreTaxBenefits;
+  const totalPostTax = totalPostTaxContributions + totalPostTaxBenefits;
+
   const leftover =
     parseDecimalInput(netPay) -
-    parseDecimalInput(preTaxRetirement) -
+    totalPreTax -
     parseDecimalInput(taxes) -
     totalPerPaycheck -
     totalPostTax;
 
   const activeCategory = categories.find((c) => c.id === activeId);
   const activePostTaxContribution = postTaxContributions.find((c) => c.id === activePostTaxId);
+  const activePreTaxBenefit = preTaxBenefits.find((c) => c.id === activePreTaxBenefitId);
+  const activePostTaxBenefit = postTaxBenefits.find((c) => c.id === activePostTaxBenefitId);
 
   return (
     <div className="budget-categories">
@@ -356,11 +442,11 @@ const BudgetCategories = () => {
           >
             <SortableContext items={categories.map((c) => c.id)} strategy={rectSortingStrategy}>
               {categories.map((category) => (
-                <SortableBudgetCategoryRow
+                <SortableAmountRow
                   key={category.id}
-                  category={category}
-                  removeCategory={removeCategory}
-                  updateCategory={updateCategory}
+                  item={category}
+                  removeItem={removeCategory}
+                  updateItem={updateCategory}
                 />
               ))}
             </SortableContext>
@@ -434,6 +520,59 @@ const BudgetCategories = () => {
             </div>
           </div>
 
+          <h2 className="post-tax-heading">Pre-Tax Benefits</h2>
+
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handlePreTaxBenefitDragStart}
+            onDragEnd={handlePreTaxBenefitDragEnd}
+          >
+            <SortableContext
+              items={preTaxBenefits.map((c) => c.id)}
+              strategy={rectSortingStrategy}
+            >
+              {preTaxBenefits.map((benefit) => (
+                <SortableAmountRow
+                  key={benefit.id}
+                  item={benefit}
+                  removeItem={removePreTaxBenefitCategory}
+                  updateItem={updatePreTaxBenefitCategory}
+                />
+              ))}
+            </SortableContext>
+            <DragOverlay>
+              {activePreTaxBenefit ? (
+                <div className="budget-category-row dragging-overlay">
+                  <div className="drag-handle">⋮⋮</div>
+                  <div className="category-title-section">
+                    <h3>{activePreTaxBenefit.category}</h3>
+                  </div>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+
+          <div className="budget-category-row add-card-row">
+            <input
+              type="text"
+              placeholder="Add new pre-tax benefit..."
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  addPreTaxBenefitCategory(e.target.value);
+                  e.target.value = '';
+                }
+              }}
+            />
+          </div>
+
+          <div className="summary-section">
+            <h2>Total Pre-Tax</h2>
+            <div className="summary-stats">
+              <div>Retirement + Benefits: {formatCurrency(totalPreTax)}</div>
+            </div>
+          </div>
+
           <div className="summary-section">
             <h2>Regular Budget Categories</h2>
             <div className="summary-stats">
@@ -454,11 +593,11 @@ const BudgetCategories = () => {
               strategy={rectSortingStrategy}
             >
               {postTaxContributions.map((contribution) => (
-                <SortablePostTaxRow
+                <SortableAmountRow
                   key={contribution.id}
-                  contribution={contribution}
-                  removeContribution={removePostTaxCategory}
-                  updateContribution={updatePostTaxCategory}
+                  item={contribution}
+                  removeItem={removePostTaxCategory}
+                  updateItem={updatePostTaxCategory}
                 />
               ))}
             </SortableContext>
@@ -485,6 +624,59 @@ const BudgetCategories = () => {
                 }
               }}
             />
+          </div>
+
+          <h2 className="post-tax-heading">Post-Tax Benefits</h2>
+
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handlePostTaxBenefitDragStart}
+            onDragEnd={handlePostTaxBenefitDragEnd}
+          >
+            <SortableContext
+              items={postTaxBenefits.map((c) => c.id)}
+              strategy={rectSortingStrategy}
+            >
+              {postTaxBenefits.map((benefit) => (
+                <SortableAmountRow
+                  key={benefit.id}
+                  item={benefit}
+                  removeItem={removePostTaxBenefitCategory}
+                  updateItem={updatePostTaxBenefitCategory}
+                />
+              ))}
+            </SortableContext>
+            <DragOverlay>
+              {activePostTaxBenefit ? (
+                <div className="budget-category-row dragging-overlay">
+                  <div className="drag-handle">⋮⋮</div>
+                  <div className="category-title-section">
+                    <h3>{activePostTaxBenefit.category}</h3>
+                  </div>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+
+          <div className="budget-category-row add-card-row">
+            <input
+              type="text"
+              placeholder="Add new post-tax benefit..."
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  addPostTaxBenefitCategory(e.target.value);
+                  e.target.value = '';
+                }
+              }}
+            />
+          </div>
+
+          <div className="summary-section">
+            <h2>Total Post-Tax</h2>
+            <div className="summary-stats">
+              <div>Investments + Benefits: {formatCurrency(totalPostTax)}</div>
+            </div>
           </div>
 
           <div className="summary-section leftover-section">
