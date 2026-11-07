@@ -1,7 +1,9 @@
 #!/bin/bash
 # Builds "Sinking Funds.app" on your Desktop: a native Mac dialog that shows
 # whether the app and the test instance are running and lets you start,
-# stop, or open either one (no Terminal window). Re-run after moving the repo.
+# stop, or open either one (no Terminal window), plus restore the backup. Also
+# writes "Sinking Funds.command", the same menu for Terminal. Re-run after
+# moving the repo.
 
 cd "$(dirname "$0")"
 REPO="$(pwd)"
@@ -68,5 +70,9 @@ EOF
 rm -rf "$APP"
 osacompile -o "$APP" "$TMP_SCRIPT"
 rm -f "$TMP_SCRIPT"
-echo "✅ Created $APP"
+# Terminal version of the same menu
+CMD="$HOME/Desktop/Sinking Funds.command"
+printf '#!/bin/bash\nexec "%s/menu.sh"\n' "$REPO" >"$CMD"
+chmod +x "$CMD"
+echo "✅ Created $APP and $CMD"
 echo "Double-click it to start/stop the app or the test instance."

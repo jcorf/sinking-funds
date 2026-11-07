@@ -12,7 +12,7 @@ A personal finance web app for tracking "sinking funds" (savings goals), credit 
 ./start_app.sh          # starts both backend and frontend, backs up the db first
 ```
 
-Or without a terminal: `./make_desktop_app.sh` builds **Sinking Funds.app** on the Desktop, a native dialog that shows what's running and starts/stops/opens the real app or the test instance. It drives `./app_control.sh status | start real|test | stop real|test | open real|test`, which runs the start scripts in the background (logs in `.run/`).
+Or without a terminal: `./make_desktop_app.sh` builds **Sinking Funds.app** on the Desktop, a native dialog that shows what's running and starts/stops/opens the real app or the test instance and restores the backup. It also writes the Desktop `Sinking Funds.command`, which runs `./menu.sh`, the same menu in Terminal. It drives `./app_control.sh status | start real|test | stop real|test | open real|test`, which runs the start scripts in the background (logs in `.run/`).
 
 To experiment without touching real data, run a second, isolated instance alongside it:
 
