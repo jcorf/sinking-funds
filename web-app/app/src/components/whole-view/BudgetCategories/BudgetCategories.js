@@ -57,6 +57,15 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
+function CollapsibleHeading({ label, expanded, onToggle }) {
+  return (
+    <h2 className="post-tax-heading collapsible-heading" onClick={onToggle}>
+      <span className={`collapse-chevron ${expanded ? 'expanded' : ''}`}>▸</span>
+      {label}
+    </h2>
+  );
+}
+
 // Shared by every editable amount list on this page (budget categories,
 // post-tax investments, pre-tax benefits, post-tax benefits) -- they're all
 // "named thing + dollar amount, sortable, deletable."
@@ -131,6 +140,12 @@ const BudgetCategories = () => {
 
   const [postTaxBenefits, setPostTaxBenefits] = useState([]);
   const [activePostTaxBenefitId, setActivePostTaxBenefitId] = useState(null);
+
+  // Purely visual: hides the list + add-row for a section without affecting
+  // its total or the Leftover calculation.
+  const [showPreTaxBenefits, setShowPreTaxBenefits] = useState(true);
+  const [showPostTaxInvestments, setShowPostTaxInvestments] = useState(true);
+  const [showPostTaxBenefits, setShowPostTaxBenefits] = useState(true);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -520,51 +535,59 @@ const BudgetCategories = () => {
             </div>
           </div>
 
-          <h2 className="post-tax-heading">Pre-Tax Benefits</h2>
+          <CollapsibleHeading
+            label="Pre-Tax Benefits"
+            expanded={showPreTaxBenefits}
+            onToggle={() => setShowPreTaxBenefits((prev) => !prev)}
+          />
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handlePreTaxBenefitDragStart}
-            onDragEnd={handlePreTaxBenefitDragEnd}
-          >
-            <SortableContext
-              items={preTaxBenefits.map((c) => c.id)}
-              strategy={rectSortingStrategy}
-            >
-              {preTaxBenefits.map((benefit) => (
-                <SortableAmountRow
-                  key={benefit.id}
-                  item={benefit}
-                  removeItem={removePreTaxBenefitCategory}
-                  updateItem={updatePreTaxBenefitCategory}
+          {showPreTaxBenefits && (
+            <>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handlePreTaxBenefitDragStart}
+                onDragEnd={handlePreTaxBenefitDragEnd}
+              >
+                <SortableContext
+                  items={preTaxBenefits.map((c) => c.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  {preTaxBenefits.map((benefit) => (
+                    <SortableAmountRow
+                      key={benefit.id}
+                      item={benefit}
+                      removeItem={removePreTaxBenefitCategory}
+                      updateItem={updatePreTaxBenefitCategory}
+                    />
+                  ))}
+                </SortableContext>
+                <DragOverlay>
+                  {activePreTaxBenefit ? (
+                    <div className="budget-category-row dragging-overlay">
+                      <div className="drag-handle">⋮⋮</div>
+                      <div className="category-title-section">
+                        <h3>{activePreTaxBenefit.category}</h3>
+                      </div>
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+
+              <div className="budget-category-row add-card-row">
+                <input
+                  type="text"
+                  placeholder="Add new pre-tax benefit..."
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      addPreTaxBenefitCategory(e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
                 />
-              ))}
-            </SortableContext>
-            <DragOverlay>
-              {activePreTaxBenefit ? (
-                <div className="budget-category-row dragging-overlay">
-                  <div className="drag-handle">⋮⋮</div>
-                  <div className="category-title-section">
-                    <h3>{activePreTaxBenefit.category}</h3>
-                  </div>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-
-          <div className="budget-category-row add-card-row">
-            <input
-              type="text"
-              placeholder="Add new pre-tax benefit..."
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  addPreTaxBenefitCategory(e.target.value);
-                  e.target.value = '';
-                }
-              }}
-            />
-          </div>
+              </div>
+            </>
+          )}
 
           <div className="summary-section">
             <h2>Total Pre-Tax</h2>
@@ -580,97 +603,113 @@ const BudgetCategories = () => {
             </div>
           </div>
 
-          <h2 className="post-tax-heading">Post-Tax Retirement &amp; Investment Contributions</h2>
+          <CollapsibleHeading
+            label="Post-Tax Retirement & Investment Contributions"
+            expanded={showPostTaxInvestments}
+            onToggle={() => setShowPostTaxInvestments((prev) => !prev)}
+          />
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handlePostTaxDragStart}
-            onDragEnd={handlePostTaxDragEnd}
-          >
-            <SortableContext
-              items={postTaxContributions.map((c) => c.id)}
-              strategy={rectSortingStrategy}
-            >
-              {postTaxContributions.map((contribution) => (
-                <SortableAmountRow
-                  key={contribution.id}
-                  item={contribution}
-                  removeItem={removePostTaxCategory}
-                  updateItem={updatePostTaxCategory}
+          {showPostTaxInvestments && (
+            <>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handlePostTaxDragStart}
+                onDragEnd={handlePostTaxDragEnd}
+              >
+                <SortableContext
+                  items={postTaxContributions.map((c) => c.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  {postTaxContributions.map((contribution) => (
+                    <SortableAmountRow
+                      key={contribution.id}
+                      item={contribution}
+                      removeItem={removePostTaxCategory}
+                      updateItem={updatePostTaxCategory}
+                    />
+                  ))}
+                </SortableContext>
+                <DragOverlay>
+                  {activePostTaxContribution ? (
+                    <div className="budget-category-row dragging-overlay">
+                      <div className="drag-handle">⋮⋮</div>
+                      <div className="category-title-section">
+                        <h3>{activePostTaxContribution.category}</h3>
+                      </div>
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+
+              <div className="budget-category-row add-card-row">
+                <input
+                  type="text"
+                  placeholder="Add new post-tax investment..."
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      addPostTaxCategory(e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
                 />
-              ))}
-            </SortableContext>
-            <DragOverlay>
-              {activePostTaxContribution ? (
-                <div className="budget-category-row dragging-overlay">
-                  <div className="drag-handle">⋮⋮</div>
-                  <div className="category-title-section">
-                    <h3>{activePostTaxContribution.category}</h3>
-                  </div>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+              </div>
+            </>
+          )}
 
-          <div className="budget-category-row add-card-row">
-            <input
-              type="text"
-              placeholder="Add new post-tax investment..."
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  addPostTaxCategory(e.target.value);
-                  e.target.value = '';
-                }
-              }}
-            />
-          </div>
+          <CollapsibleHeading
+            label="Post-Tax Benefits"
+            expanded={showPostTaxBenefits}
+            onToggle={() => setShowPostTaxBenefits((prev) => !prev)}
+          />
 
-          <h2 className="post-tax-heading">Post-Tax Benefits</h2>
+          {showPostTaxBenefits && (
+            <>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handlePostTaxBenefitDragStart}
+                onDragEnd={handlePostTaxBenefitDragEnd}
+              >
+                <SortableContext
+                  items={postTaxBenefits.map((c) => c.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  {postTaxBenefits.map((benefit) => (
+                    <SortableAmountRow
+                      key={benefit.id}
+                      item={benefit}
+                      removeItem={removePostTaxBenefitCategory}
+                      updateItem={updatePostTaxBenefitCategory}
+                    />
+                  ))}
+                </SortableContext>
+                <DragOverlay>
+                  {activePostTaxBenefit ? (
+                    <div className="budget-category-row dragging-overlay">
+                      <div className="drag-handle">⋮⋮</div>
+                      <div className="category-title-section">
+                        <h3>{activePostTaxBenefit.category}</h3>
+                      </div>
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handlePostTaxBenefitDragStart}
-            onDragEnd={handlePostTaxBenefitDragEnd}
-          >
-            <SortableContext
-              items={postTaxBenefits.map((c) => c.id)}
-              strategy={rectSortingStrategy}
-            >
-              {postTaxBenefits.map((benefit) => (
-                <SortableAmountRow
-                  key={benefit.id}
-                  item={benefit}
-                  removeItem={removePostTaxBenefitCategory}
-                  updateItem={updatePostTaxBenefitCategory}
+              <div className="budget-category-row add-card-row">
+                <input
+                  type="text"
+                  placeholder="Add new post-tax benefit..."
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      addPostTaxBenefitCategory(e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
                 />
-              ))}
-            </SortableContext>
-            <DragOverlay>
-              {activePostTaxBenefit ? (
-                <div className="budget-category-row dragging-overlay">
-                  <div className="drag-handle">⋮⋮</div>
-                  <div className="category-title-section">
-                    <h3>{activePostTaxBenefit.category}</h3>
-                  </div>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-
-          <div className="budget-category-row add-card-row">
-            <input
-              type="text"
-              placeholder="Add new post-tax benefit..."
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  addPostTaxBenefitCategory(e.target.value);
-                  e.target.value = '';
-                }
-              }}
-            />
-          </div>
+              </div>
+            </>
+          )}
 
           <div className="summary-section">
             <h2>Total Post-Tax</h2>

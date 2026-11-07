@@ -317,6 +317,30 @@
   text-align: center;
 }
 
+.collapsible-heading {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.collapsible-heading:hover {
+  color: #6f42c1;
+}
+
+.collapse-chevron {
+  display: inline-block;
+  font-size: 0.75em;
+  color: #adb5bd;
+  transition: transform 0.2s ease;
+}
+
+.collapse-chevron.expanded {
+  transform: rotate(90deg);
+}
+
 .leftover-section {
   border: 2px solid #6f42c1;
 }
