@@ -16,7 +16,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Lock, LockOpen } from 'lucide-react';
+import { Lock, LockOpen, SlidersHorizontal, X } from 'lucide-react';
 import './BudgetCategories.css';
 import {
   getBudgetCategories,
@@ -475,6 +475,121 @@ function PaycheckMath({ gross, preTax, taxes, postTax, categories, onSetGross, r
   );
 }
 
+const PAYCHECKS_PER_YEAR = 24; // semi-monthly
+
+// ['a','b','c'] -> "a, b & c"
+const listJoin = (items) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} & ${items[items.length - 1]}`);
+
+const signed = (n) => (Math.abs(n) < 0.005 ? '$0.00' : `${n > 0 ? '+' : '−'}${formatCurrency(Math.abs(n))}`);
+
+function waterfall(v) {
+  const net = v.gross - v.retirement - v.otherPreTax - v.taxes;
+  const available = net - v.postTax;
+  return { net, available, leftover: available - v.categories };
+}
+
+// Try different paycheck numbers (a raise, a new retirement %, taxes from the
+// ADP paycheck calculator) without saving anything. Gross pay, retirement
+// and taxes can be saved afterwards; the list totals are scratch only.
+function WhatIf({ now, onClose, onSave }) {
+  const [draft, setDraft] = useState(now);
+  const [saving, setSaving] = useState(false);
+  const set = (key) => (amount) => setDraft((d) => ({ ...d, [key]: amount }));
+
+  const before = waterfall(now);
+  const after = waterfall(draft);
+  const leftoverChange = after.leftover - before.leftover;
+  const changed = (key) => Math.abs(draft[key] - now[key]) > 0.004;
+  const anyChange = Object.keys(now).some(changed);
+  const savable = ['gross', 'retirement', 'taxes'].filter(changed);
+  const pct = draft.gross > 0 ? (draft.retirement / draft.gross) * 100 : null;
+
+  const input = (key, label, hint) => (
+    <li className={`bc-whatif-field ${changed(key) ? 'is-changed' : ''}`}>
+      <label htmlFor={`bc-whatif-${key}`}>
+        {label}
+        {hint && <small>{hint}</small>}
+      </label>
+      <MoneyInput id={`bc-whatif-${key}`} value={draft[key]} label={`What if ${label}`} onPreview={set(key)} onCommit={set(key)} />
+    </li>
+  );
+
+  const compare = (label, a, b, emphasis) => (
+    <tr className={emphasis ? 'is-emphasis' : ''}>
+      <th scope="row">{label}</th>
+      <td>{formatCurrency(a)}</td>
+      <td>{formatCurrency(b)}</td>
+      <td className={b - a > 0.004 ? 'is-up' : b - a < -0.004 ? 'is-down' : ''}>{signed(b - a)}</td>
+    </tr>
+  );
+
+  const save = async () => {
+    setSaving(true);
+    await onSave(savable.map((key) => [key, draft[key]]));
+    setSaving(false);
+  };
+
+  return (
+    <aside className="bc-whatif" aria-label="What If">
+      <header className="bc-whatif-header">
+        <h2 className="bc-math-title">What If</h2>
+        <button type="button" className="bc-whatif-close" onClick={onClose} aria-label="Close What If" title="Close What If">
+          <X size={16} aria-hidden="true" />
+        </button>
+      </header>
+      <p className="bc-whatif-intro">Try different numbers. Nothing is saved unless you choose to.</p>
+
+      <ul className="bc-whatif-fields">
+        {input('gross', 'Gross Pay')}
+        {input('retirement', 'Pre-Tax Retirement', pct === null ? null : `${pct.toFixed(1)}% of gross`)}
+        {input('otherPreTax', 'Other Pre-Tax')}
+        {input('taxes', 'Taxes', 'From your ADP paycheck calculator')}
+        {input('postTax', 'Post-Tax')}
+        {input('categories', 'Pre-Budgeted')}
+      </ul>
+
+      <table className="bc-whatif-table">
+        <thead>
+          <tr>
+            <td />
+            <th scope="col">Now</th>
+            <th scope="col">What If</th>
+            <th scope="col">Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          {compare('Net Pay', before.net, after.net)}
+          {compare('Available', before.available, after.available)}
+          {compare('Leftover', before.leftover, after.leftover, true)}
+        </tbody>
+      </table>
+
+      <div className={`bc-whatif-result ${after.leftover < -0.004 ? 'is-over' : ''}`} aria-live="polite">
+        <div className="bc-leftover-label">{after.leftover < -0.004 ? 'Over Budget By' : 'Leftover'}</div>
+        <div className="bc-leftover-value">{formatCurrency(Math.abs(after.leftover))}</div>
+        <p className="bc-leftover-note">
+          {anyChange
+            ? `${signed(leftoverChange)} per paycheck, ${signed(leftoverChange * PAYCHECKS_PER_YEAR)} a year`
+            : 'Change a number above to compare.'}
+        </p>
+      </div>
+
+      <div className="bc-whatif-actions">
+        {savable.length > 0 && (
+          <button type="button" className="bc-whatif-save" onClick={save} disabled={saving}>
+            Save {listJoin(savable.map((k) => ({ gross: 'Gross Pay', retirement: 'Retirement', taxes: 'Taxes' }[k])))}
+          </button>
+        )}
+        {anyChange && (
+          <button type="button" className="bc-whatif-reset" onClick={() => setDraft(now)}>
+            Reset
+          </button>
+        )}
+      </div>
+    </aside>
+  );
+}
+
 const BudgetCategories = () => {
   const categories = useAmountList(CATEGORY_API);
   const preTaxBenefits = useAmountList(PRE_TAX_BENEFIT_API);
@@ -527,7 +642,7 @@ const BudgetCategories = () => {
   const previewSetting = (field) => (amount) => setSettings((prev) => ({ ...prev, [field]: amount }));
   const commitSetting = (field) => (amount) => {
     setSettings((prev) => ({ ...prev, [field]: amount }));
-    updatePaycheckSettings(field, amount);
+    return updatePaycheckSettings(field, amount);
   };
 
   const focusGross = () => {
@@ -536,6 +651,12 @@ const BudgetCategories = () => {
       input.scrollIntoView({ behavior: 'smooth', block: 'center' });
       input.focus({ preventScroll: true });
     }
+  };
+
+  const [whatIf, setWhatIf] = useState(false);
+  const saveWhatIf = async (pairs) => {
+    const field = { gross: 'net_pay', retirement: 'pre_tax_retirement', taxes: 'taxes' };
+    await Promise.all(pairs.map(([key, amount]) => commitSetting(field[key])(amount)));
   };
 
   const totalPreTax = settings.pre_tax_retirement + preTaxBenefits.total;
@@ -567,6 +688,18 @@ const BudgetCategories = () => {
     <div className="bc-page">
       <header className="bc-page-header">
         <h1>Paycheck</h1>
+        <div className="bc-header-actions">
+        <button
+          type="button"
+          className={`bc-lock ${whatIf ? 'is-unlocked' : ''}`}
+          onClick={() => setWhatIf((v) => !v)}
+          aria-pressed={whatIf}
+          disabled={!ready}
+          title="Try different paycheck numbers without saving them"
+        >
+          <SlidersHorizontal size={15} aria-hidden="true" />
+          What If
+        </button>
         <button
           type="button"
           className={`bc-lock ${locked ? '' : 'is-unlocked'}`}
@@ -577,9 +710,10 @@ const BudgetCategories = () => {
           {locked ? <Lock size={15} aria-hidden="true" /> : <LockOpen size={15} aria-hidden="true" />}
           {locked ? 'Unlock to Edit' : 'Lock'}
         </button>
+        </div>
       </header>
 
-      <div className="bc-layout">
+      <div className={`bc-layout ${whatIf && ready ? 'has-whatif' : ''}`}>
         <div className="bc-main">
           {/* Left column follows the paycheck waterfall, top to bottom:
               gross -> pre-tax -> taxes -> post-tax -> pre-budgeted categories */}
@@ -658,6 +792,20 @@ const BudgetCategories = () => {
           </section>
         </div>
 
+        {whatIf && ready ? (
+          <WhatIf
+            now={{
+              gross: settings.net_pay,
+              retirement: settings.pre_tax_retirement,
+              otherPreTax: preTaxBenefits.total,
+              taxes: settings.taxes,
+              postTax: totalPostTax,
+              categories: categories.total,
+            }}
+            onClose={() => setWhatIf(false)}
+            onSave={saveWhatIf}
+          />
+        ) : (
         <PaycheckMath
           gross={settings.net_pay}
           preTax={totalPreTax}
@@ -667,6 +815,7 @@ const BudgetCategories = () => {
           onSetGross={focusGross}
           ready={ready}
         />
+        )}
       </div>
     </div>
   );
